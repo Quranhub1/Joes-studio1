@@ -19,7 +19,7 @@
     <script src="./static/bwip-js.min.js"></script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
-      /* 基础滚动条隐藏 */
+      /* Hide base scrollbar */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
@@ -29,7 +29,7 @@
         scrollbar-width: none;
       }
 
-      /* 自定义滚动条样式 */
+      /* Custom scrollbar style */
       .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -48,14 +48,14 @@
         background-color: #94a3b8;
       }
 
-      /* UI 交互状态 */
+      /* UI interaction state */
       .tool-btn.active {
         background-color: #fee2e2;
         color: #e11d48;
         border-color: #e11d48;
       }
 
-      /* 画布区域背景 */
+      /* Canvas area background */
       #scrollContainer {
         background-image: radial-gradient(#ddd 1px, transparent 1px);
         background-size: 20px 20px;
@@ -84,11 +84,11 @@
         background-color: #f3f4f6;
         border: 2px dashed #cbd5e1;
       }
-      /* 禁止背景层拖拽 */
+      /* Disable background layer drag */
       .layer-item.no-drag {
         cursor: default;
       }
-      /* 模态框与卡片 */
+      /* Modals and cards */
       .modal-backdrop {
         background-color: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(4px);
@@ -99,7 +99,7 @@
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       }
 
-      /* 光标状态 */
+      /* Cursor state */
       .canvas-container.grabbing-mode canvas {
         cursor: grabbing !important;
       }
@@ -108,7 +108,7 @@
         cursor: grab !important;
       }
 
-      /* 紧凑型表单控件 */
+      /* Compact form controls */
       .compact-input {
         font-size: 12px;
         padding: 4px 6px;
@@ -123,7 +123,7 @@
         align-items: center;
       }
 
-      /* 样式按钮 */
+      /* Style buttons */
       .style-btn {
         width: 28px;
         height: 28px;
@@ -138,7 +138,7 @@
         color: #000;
       }
 
-      /* 下拉菜单 */
+      /* Dropdown menu */
       .dropdown:hover .dropdown-menu {
         display: block;
       }
@@ -204,7 +204,7 @@
         color: #b91c1c;
         font-weight: 600;
       }
-      /* Table Editor网格样式 */
+      /* Table Editor grid style */
       .table-editor-grid td {
         border: 1px solid #cbd5e1;
         min-width: 60px; /* Min width to prevent being too narrow */
@@ -214,7 +214,7 @@
         transition: background-color 0.1s;
       }
 
-      /* 选中高亮 */
+      /* Selection highlight */
       .table-editor-grid td.selected {
         background-color: rgba(59, 130, 246, 0.15) !important;
         box-shadow: inset 0 0 0 2px #3b82f6;
@@ -228,7 +228,7 @@
         z-index: 20;
       }
 
-      /* 悬浮工具栏 */
+      /* Floating toolbar */
       #tableFloatMenu {
         pointer-events: auto;
         will-change: top, left;
@@ -262,7 +262,7 @@
         color: #94a3b8;
       }
 
-      /* 标尺样式 */
+      /* Ruler style */
       .ruler-canvas {
         position: absolute;
         background-color: #f8fafc;
@@ -330,7 +330,7 @@
         border-color: #e11d48 !important;
       }
 
-      /* ===== Font搜索下拉组件样式 ===== */
+      /* ===== Font search dropdown component style ===== */
       .font-select-wrapper {
         position: relative;
         width: 100%;
@@ -484,7 +484,7 @@
         text-align: center;
       }
 
-      /* 紧凑模式（用于浮动工具栏，Width受限） */
+      /* Compact mode (for floating toolbar, width constrained) */
       .font-select-wrapper.compact .font-select-trigger {
         height: 28px;
         font-size: 11px;
@@ -499,7 +499,7 @@
       }
 
       /* ========================================= */
-      /* Print专用样式 */
+      /* Print-specific styles */
       /* ========================================= */
 
       #printContainer {
