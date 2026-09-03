@@ -8857,7 +8857,8 @@
             const doc = f.contentWindow.document;
             doc.open();
             doc.write(
-              `<html><head><style>@page{size:${App.state.currentPaper.w}mm ${App.state.currentPaper.h}mm;margin:0}body{margin:0;display:flex;justify-content:center}${css}</style></head><body>${content}</body></html>`,
+              `<html><head><style>@page{size:${App.state.currentPaper.w}mm ${App.state.currentPaper.h}mm;margin:0}body{margin:0;display:flex;justify-content:center}${css}</style></head><body>${content}  <script src="./static/student-template-loader.js"></script>
+</body></html>`,
             );
             doc.close();
           },
