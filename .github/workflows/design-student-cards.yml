@@ -1,0 +1,33 @@
+name: Build Student Card Templates
+
+on:
+  push:
+    paths:
+      - '.github/scripts/design-student-cards.mjs'
+      - '.github/workflows/design-student-cards.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate 20 card designs
+        run: node .github/scripts/design-student-cards.mjs
+      - name: Commit generated templates
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add templates/student_card_*.json
+          if git diff --cached --quiet; then
+            echo 'No template changes.'
+          else
+            git commit -m 'Design 20 professional student card templates'
+            git push
+          fi
