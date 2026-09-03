@@ -7,24 +7,21 @@
   <style>html,body,iframe{margin:0;width:100%;height:100%;border:0;overflow:hidden}body{background:#fff}</style>
 </head>
 <body>
-  <iframe id="app" src="./index_en.html" title="Joes Studio"></iframe>
+  <iframe id="app" src="./PaperStudio-main/PaperStudio-main/index_en.html" title="Joes Studio"></iframe>
   <script>
     const BRAND = /Paper\s*Studio/gi;
     const BRAND_COMPACT = /PaperStudio/gi;
-    function replaceBrand(value) {
-      return value.replace(BRAND_COMPACT, 'Joes Studio').replace(BRAND, 'Joes Studio');
-    }
     function replaceText(root) {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       const nodes = [];
       let node;
       while ((node = walker.nextNode())) nodes.push(node);
       for (const text of nodes) {
-        if (text.nodeValue) text.nodeValue = replaceBrand(text.nodeValue);
+        if (text.nodeValue) text.nodeValue = text.nodeValue.replace(BRAND_COMPACT, 'Joes Studio').replace(BRAND, 'Joes Studio');
       }
       for (const el of root.querySelectorAll('*')) {
         for (const attr of ['title','aria-label','placeholder','alt','value']) {
-          if (el.hasAttribute && el.hasAttribute(attr)) el.setAttribute(attr, replaceBrand(el.getAttribute(attr)));
+          if (el.hasAttribute && el.hasAttribute(attr)) el.setAttribute(attr, el.getAttribute(attr).replace(BRAND_COMPACT, 'Joes Studio').replace(BRAND, 'Joes Studio'));
         }
       }
     }
@@ -36,7 +33,7 @@
         doc.title = 'Joes Studio';
         replaceText(doc.body);
         new MutationObserver(() => replaceText(doc.body)).observe(doc.body, {subtree:true, childList:true, characterData:true});
-      } catch (e) { console.warn('Joes Studio branding could not be applied:', e); }
+      } catch (e) { console.warn('Joes Studio branding could not be injected:', e); }
     });
   </script>
 </body>
