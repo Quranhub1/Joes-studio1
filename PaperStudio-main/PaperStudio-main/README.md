@@ -1,107 +1,106 @@
-# 📄 PaperStudio - 简单易用纸张打印设计工具
+# 📄 PaperStudio - Simple and Easy Paper Print Design Tool
 
-**PaperStudio** 是一款基于 Web 的轻量级、功能强大的可视化打印设计工具。它无需安装，打开浏览器即可使用。不仅支持设计各种标准的办公用纸、书法练习纸，更内置了强大的\*\*可变数据\*\*功能，能够通过导入 Excel 数据轻松实现标签、证书、工牌，工资条等的批量生成与打印。
-
----
-
-## ✨ 核心亮点
-
-### 1. 🎨 丰富的纸张模版库
-
-内置多种预设模版，满足不同场景需求，支持参数化一键调整：
-
-* ​**常用规格**​：A3、A4、A5、B4、B5 等标准尺寸及自定义尺寸。
-* ​**办公/学习​**​：横线纸、方格纸、英文纸、乐谱纸。
-* ​**书法/国风**​：田字格、米字格、回字格、九宫格（支持自定义颜色、虚线）。
-* ​**几何图形**​：点阵纸、三角形网格、六边形网格。
-
-### 2. 🚀 强大的可变数据打印 
-
-这是 PaperStudio 的杀手级功能，专为批量任务设计：
-
-* ​**Excel 数据源**​：支持导入 `.xlsx` 文件，自动识别表头。
-* ​**数据绑定**​：将画布上的文本、条码、图片与 Excel 字段绑定。
-* ​**批量生成**​：设计一个模版，自动生成成百上千张不同内容的页面（如：批量打印含不同姓名和照片的工牌）。
-* ​**智能序列号**​：支持自动生成递增/递减的序列号。
-
-### 3. 🛠️ 专业级可视化编辑器
-
-基于 Fabric.js 构建的画布，提供接近桌面级软件的操作体验：
-
-* ​**完整图层管理**​：支持图层锁定、隐藏、排序。
-* ​**所见即所得表格**​：内置强大的表格编辑器，支持单元格合并、拆分、样式自定义。
-* ​**矢量绘图**​：矩形、圆形、多边形、线条及智能圆角设置。
-* ​**条码/二维码生成**​：支持 QR Code、Code128、EAN-13 等 30+ 种主流条码格式，且内容可动态绑定。
-
-### 4. 🖨️ 灵活的输出与打印
-
-* ​**导出 PDF**​：基于 jsPDF，支持多页批量导出，矢量级清晰度。
-* ​**原生打印**​：直接调用浏览器打印接口，支持打印预览。
-* ​**本地字体支持**​：直接调用用户电脑本地安装的字体（无需上传）。
-
-### 5. 🔒 安全与隐私
-
-* ​**纯前端运行**​：所有数据处理（包括 Excel 解析、图片渲染）均在浏览器本地完成。
-* ​**数据不出域**​：您的设计稿和业务数据不会上传到任何服务器，绝对安全。
+**PaperStudio** is a web-based, lightweight, and powerful visual print design tool. It requires no installation—just open it in your browser. Besides supporting the design of various standard office paper and calligraphy practice paper, it also includes a powerful **Variable Data** feature. By importing Excel data, you can easily achieve batch generation and printing of labels, certificates, badges, payroll slips, and more.
 
 ---
 
-## 💡 应用场景
+## ✨ Key Highlights
 
-* ​**教育培训**​：定制练字帖、信纸稿纸、乐谱制作。
-* ​**行政办公**​：批量打印员工工牌、会议桌牌、固定资产标签。
-* ​**仓储物流**​：生成带条码/二维码的商品标签、发货单。
-* ​**个人使用**​：制作手账内页、日历、待办清单。
+### 1. 🎨 Rich Paper Template Library
+
+Built-in multiple preset templates to meet different scenario needs, with parameterized one-click adjustment:
+
+* **Common Sizes**: A3, A4, A5, B4, B5 standard sizes and custom sizes.
+* **Office/Learning**: Lined paper, grid paper, English paper, music staff paper.
+* **Calligraphy/Traditional Style**: Tian-zi grid, Mi-zi grid, Hui-zi grid, Jiu-gong grid (supports custom colors, dashed lines).
+* **Geometric Shapes**: Dot grid, triangle grid, hexagon grid.
+
+### 2. 🚀 Powerful Variable Data Printing
+
+This is PaperStudio's killer feature, designed specifically for batch tasks:
+
+* **Excel Data Source**: Supports importing `.xlsx` files with automatic header recognition.
+* **Data Binding**: Bind text, barcodes, and images on the canvas to Excel fields.
+* **Batch Generation**: Design one template to automatically generate hundreds or thousands of pages with different content (e.g., batch print badges with different names and photos).
+* **Smart Serial Numbers**: Supports automatically generating incrementing/decrementing serial numbers.
+
+### 3. 🛠️ Professional Visual Editor
+
+A canvas built on Fabric.js providing an experience close to desktop software:
+
+* **Complete Layer Management**: Supports layer locking, hiding, and sorting.
+* **WYSIWYG Table Editor**: Built-in powerful table editor supporting cell merging, splitting, and style customization.
+* **Vector Drawing**: Rectangles, circles, polygons, lines, and smart rounded corner settings.
+* **Barcode/QR Code Generation**: Supports 30+ mainstream barcode formats like QR Code, Code128, EAN-13, with dynamically bindable content.
+
+### 4. 🖨️ Flexible Output and Printing
+
+* **Export PDF**: Based on jsPDF, supports multi-page batch export with vector-level clarity.
+* **Native Printing**: Directly calls the browser print interface with print preview support.
+* **Local Font Support**: Directly calls fonts installed on the user's computer (no upload needed).
+
+### 5. 🔒 Security and Privacy
+
+* **Pure Frontend Operation**: All data processing (including Excel parsing, image rendering) is done locally in the browser.
+* **Data Never Leaves**: Your designs and business data are never uploaded to any server, absolutely safe.
 
 ---
 
-## 💻 技术栈
+## 💡 Application Scenarios
 
-* ​**核心引擎**​：[Fabric.js](http://fabricjs.com/) (Canvas 交互)
-* ​**样式框架**​：TailwindCSS (UI 构建)
-* ​**PDF 生成**​：jsPDF & svg2pdf
-* ​**数据处理**​：SheetJS (Excel 解析)
-* ​**条码生成**​：bwip-js
-* ​**字体处理**​：Opentype.js (字体解析)
+* **Education/Training**: Customize handwriting practice sheets, letterhead paper, music staff creation.
+* **Administrative Office**: Batch print employee badges, meeting table cards, fixed asset labels.
+* **Warehousing/Logistics**: Generate product labels with barcodes/QR codes, shipping documents.
+* **Personal Use**: Make journal inner pages, calendars, to-do lists.
 
 ---
 
-## ⚡ 快速开始
+## 💻 Tech Stack
 
-1. 打开 `index.html` (推荐使用 Chrome 或 Edge 浏览器)。
-2. 点击 **"新建空白纸"** 或从模版库选择一个预设。
-3. ​**设计**​：从顶部工具栏添加文字、图形或表格。
-4. ​**数据绑定（可选）**​：切换到 "数据源" 面板，加载本地 Excel 文件，选中元素并在属性面板绑定字段。
-5. ​**输出**​：点击右上角的 "打印" 或 "导出 PDF"。
+* **Core Engine**: [Fabric.js](http://fabricjs.com/) (Canvas interaction)
+* **Style Framework**: TailwindCSS (UI building)
+* **PDF Generation**: jsPDF & svg2pdf
+* **Data Processing**: SheetJS (Excel parsing)
+* **Barcode Generation**: bwip-js
+* **Font Processing**: Opentype.js (font parsing)
+
+---
+
+## ⚡ Quick Start
+
+1. Open `index.html` (Chrome or Edge browser recommended).
+2. Click **"New Blank Paper"** or choose a preset from the template library.
+3. **Design**: Add text, shapes, or tables from the top toolbar.
+4. **Data Binding (optional)**: Switch to the "Data Source" panel, load a local Excel file, select an element and bind the field in the properties panel.
+5. **Output**: Click "Print" or "Export PDF" in the upper right corner.
 
 
 
-## ⌨️ 快捷键指南
+## ⌨️ Keyboard Shortcuts
 
-| 按键组合 | 功能 | 备注 |
+| Key Combination | Function | Notes |
 | :--- | :--- | :--- |
-| `Ctrl` + `C` | 复制 | 画布内元素复制 |
-| `Ctrl` + `V` | 粘贴 | 粘贴到画布 |
-| `Ctrl` + `Z` | 撤销 | 回退上一步操作 |
-| `Ctrl` + `Y` | 重做 | 恢复下一步操作 |
-| `Ctrl` + `S` | 保存 | 保存为 .paper 项目文件 |
-| `Ctrl` + `O` | 打开 | 打开 .paper 项目文件 |
-| `Ctrl` + `P` | 打印 | 调用浏览器打印 |
-| `Delete` | 删除 | 删除选中元素 |
-| `Alt` + 拖动 | 平移画布 | 抓手模式 |
-| `Shift` + 点击 | 多选 | 选择多个元素 |
-| 方向键 (`↑` `↓` `←` `→`) | 微调 | 每次移动 2px |
+| `Ctrl` + `C` | Copy | Copy elements on canvas |
+| `Ctrl` + `V` | Paste | Paste to canvas |
+| `Ctrl` + `Z` | Undo | Undo last operation |
+| `Ctrl` + `Y` | Redo | Redo last undone operation |
+| `Ctrl` + `S` | Save | Save as .paper project file |
+| `Ctrl` + `O` | Open | Open .paper project file |
+| `Ctrl` + `P` | Print | Call browser print |
+| `Delete` | Delete | Delete selected elements |
+| `Alt` + Drag | Pan canvas | Grab mode |
+| `Shift` + Click | Multi-select | Select multiple elements |
+| Arrow Keys (`↑` `↓` `←` `→`) | Nudge | Move 2px each time |
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交 Issue 或 Pull Request！
+Issues and Pull Requests are welcome!
 
-1. Fork 本仓库。
-2. 新建 Feat_xxx 分支。
-3. 提交代码。
-4. 新建 Pull Request。
+1. Fork this repository.
+2. Create a Feat_xxx branch.
+3. Commit your code.
+4. Create a Pull Request.
 
-## 📄 开源协议
+## 📄 License
 
-本项目基于 [MIT License](LICENSE) 开源。您可以免费用于个人或商业用途，但请保留原作者版权声明。
-
+This project is open source under the [MIT License](LICENSE). You can use it free of charge for personal or commercial purposes, but please retain the original author's copyright notice.
