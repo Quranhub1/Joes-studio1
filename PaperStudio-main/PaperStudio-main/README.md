@@ -1,6 +1,6 @@
-# 📄 Joe's Studio - Simple and Easy Paper Print Design Tool
+# 📄 joes studio - Simple and Easy Paper Print Design Tool
 
-**Joe's Studio** is a web-based, lightweight, and powerful visual print design tool. It requires no installation—just open it in your browser. Besides supporting the design of various standard office paper and calligraphy practice paper, it also includes a powerful **Variable Data** feature. By importing Excel data, you can easily achieve batch generation and printing of labels, certificates, badges, payroll slips, and more.
+**joes studio** is a web-based, lightweight, and powerful visual print design tool. It requires no installation—just open it in your browser. Besides supporting the design of various standard office paper and calligraphy practice paper, it also includes a powerful **Variable Data** feature. By importing Excel data, you can easily achieve batch generation and printing of labels, certificates, badges, payroll slips, and more.
 
 ---
 
@@ -17,7 +17,7 @@ Built-in multiple preset templates to meet different scenario needs, with parame
 
 ### 2. 🚀 Powerful Variable Data Printing
 
-This is Joe's Studio's killer feature, designed specifically for batch tasks:
+This is joes studio's killer feature, designed specifically for batch tasks:
 
 * **Excel Data Source**: Supports importing `.xlsx` files with automatic header recognition.
 * **Data Binding**: Bind text, barcodes, and images on the canvas to Excel fields.
