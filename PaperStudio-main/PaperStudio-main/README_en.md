@@ -1,57 +1,57 @@
-# 📄 PaperStudio - Simple and Easy-to-Use Paper Printing Design Tool
+# 📄 joes studio - Simple and Easy Paper Print Design Tool
 
-**PaperStudio** is a web-based, lightweight, and powerful visual printing design tool. It requires no installation — just open it in your browser. It supports designing various standard office papers and calligraphy practice papers, and comes with powerful **variable data** functionality. By importing Excel data, you can easily achieve batch generation and printing of labels, certificates, employee badges, pay slips, and more.
+**joes studio** is a web-based, lightweight, and powerful visual print design tool. It requires no installation—just open it in your browser. Besides supporting the design of various standard office paper and calligraphy practice paper, it also includes a powerful **Variable Data** feature. By importing Excel data, you can easily achieve batch generation and printing of labels, certificates, badges, payroll slips, and more.
 
 ---
 
-## ✨ Core Highlights
+## ✨ Key Highlights
 
 ### 1. 🎨 Rich Paper Template Library
 
-Built-in multiple preset templates to meet different scenario needs, supporting one-click parameter adjustment:
+Built-in multiple preset templates to meet different scenario needs, with parameterized one-click adjustment:
 
-* **Common Sizes**: A3, A4, A5, B4, B5 and other standard sizes, plus custom sizes.
-* **Office/Academic**: Lined paper, grid paper, English paper, music staff paper.
-* **Calligraphy/Traditional**: Tian-zi grid, Mi-zi grid, Hui-zi grid, Nine-palace grid (supports custom colors, dashed lines).
-* **Geometric Shapes**: Dot matrix paper, triangular grid, hexagonal grid.
+* **Common Sizes**: A3, A4, A5, B4, B5 standard sizes and custom sizes.
+* **Office/Learning**: Lined paper, grid paper, English paper, music staff paper.
+* **Calligraphy/Traditional Style**: Tian-zi grid, Mi-zi grid, Hui-zi grid, Jiu-gong grid (supports custom colors, dashed lines).
+* **Geometric Shapes**: Dot grid, triangle grid, hexagon grid.
 
 ### 2. 🚀 Powerful Variable Data Printing
 
-This is PaperStudio's killer feature, designed for batch tasks:
+This is joes studio's killer feature, designed specifically for batch tasks:
 
-* **Excel Data Source**: Supports importing `.xlsx` files, auto-detects headers.
+* **Excel Data Source**: Supports importing `.xlsx` files with automatic header recognition.
 * **Data Binding**: Bind text, barcodes, and images on the canvas to Excel fields.
-* **Batch Generation**: Design one template, automatically generate hundreds or thousands of pages with different content (e.g., batch print employee badges with different names and photos).
-* **Smart Serial Numbers**: Supports auto-generating incrementing/decrementing serial numbers.
+* **Batch Generation**: Design one template to automatically generate hundreds or thousands of pages with different content (e.g., batch print badges with different names and photos).
+* **Smart Serial Numbers**: Supports automatically generating incrementing/decrementing serial numbers.
 
 ### 3. 🛠️ Professional Visual Editor
 
-Canvas built on Fabric.js, providing near-desktop software operation experience:
+A canvas built on Fabric.js providing an experience close to desktop software:
 
-* **Complete Layer Management**: Supports layer locking, hiding, sorting.
-* **WYSIWYG Tables**: Built-in powerful table editor supporting cell merging, splitting, style customization.
-* **Vector Drawing**: Rectangles, circles, polygons, lines, and smart corner settings.
-* **Barcode/QR Code Generation**: Supports 30+ mainstream barcode formats including QR Code, Code128, EAN-13, with dynamic content binding.
+* **Complete Layer Management**: Supports layer locking, hiding, and sorting.
+* **WYSIWYG Table Editor**: Built-in powerful table editor supporting cell merging, splitting, and style customization.
+* **Vector Drawing**: Rectangles, circles, polygons, lines, and smart rounded corner settings.
+* **Barcode/QR Code Generation**: Supports 30+ mainstream barcode formats like QR Code, Code128, EAN-13, with dynamically bindable content.
 
-### 4. 🖨️ Flexible Output & Printing
+### 4. 🖨️ Flexible Output and Printing
 
 * **Export PDF**: Based on jsPDF, supports multi-page batch export with vector-level clarity.
-* **Native Printing**: Directly calls browser print interface, supports print preview.
+* **Native Printing**: Directly calls the browser print interface with print preview support.
 * **Local Font Support**: Directly calls fonts installed on the user's computer (no upload needed).
 
-### 5. 🔒 Security & Privacy
+### 5. 🔒 Security and Privacy
 
-* **Pure Frontend**: All data processing (including Excel parsing, image rendering) is done locally in the browser.
-* **Data Never Leaves**: Your designs and business data are not uploaded to any server, completely safe.
+* **Pure Frontend Operation**: All data processing (including Excel parsing, image rendering) is done locally in the browser.
+* **Data Never Leaves**: Your designs and business data are never uploaded to any server, absolutely safe.
 
 ---
 
 ## 💡 Application Scenarios
 
-* **Education/Training**: Customize practice sheets, letterhead, music manuscript creation.
+* **Education/Training**: Customize handwriting practice sheets, letterhead paper, music staff creation.
 * **Administrative Office**: Batch print employee badges, meeting table cards, fixed asset labels.
 * **Warehousing/Logistics**: Generate product labels with barcodes/QR codes, shipping documents.
-* **Personal Use**: Make journal pages, calendars, to-do lists.
+* **Personal Use**: Make journal inner pages, calendars, to-do lists.
 
 ---
 
@@ -69,10 +69,10 @@ Canvas built on Fabric.js, providing near-desktop software operation experience:
 ## ⚡ Quick Start
 
 1. Open `index.html` (Chrome or Edge browser recommended).
-2. Click **"New Blank Paper"** or select a preset from the template library.
+2. Click **"New Blank Paper"** or choose a preset from the template library.
 3. **Design**: Add text, shapes, or tables from the top toolbar.
-4. **Data Binding (Optional)**: Switch to the "Data Source" panel, load a local Excel file, select an element and bind a field in the properties panel.
-5. **Output**: Click "Print" or "Export PDF" in the top right corner.
+4. **Data Binding (optional)**: Switch to the "Data Source" panel, load a local Excel file, select an element and bind the field in the properties panel.
+5. **Output**: Click "Print" or "Export PDF" in the upper right corner.
 
 
 
@@ -82,8 +82,8 @@ Canvas built on Fabric.js, providing near-desktop software operation experience:
 | :--- | :--- | :--- |
 | `Ctrl` + `C` | Copy | Copy elements on canvas |
 | `Ctrl` + `V` | Paste | Paste to canvas |
-| `Ctrl` + `Z` | Undo | Undo last action |
-| `Ctrl` + `Y` | Redo | Redo last action |
+| `Ctrl` + `Z` | Undo | Undo last operation |
+| `Ctrl` + `Y` | Redo | Redo last undone operation |
 | `Ctrl` + `S` | Save | Save as .paper project file |
 | `Ctrl` + `O` | Open | Open .paper project file |
 | `Ctrl` + `P` | Print | Call browser print |
@@ -94,13 +94,13 @@ Canvas built on Fabric.js, providing near-desktop software operation experience:
 
 ## 🤝 Contributing
 
-Welcome to submit Issues or Pull Requests!
+Issues and Pull Requests are welcome!
 
 1. Fork this repository.
 2. Create a Feat_xxx branch.
-3. Submit code.
+3. Commit your code.
 4. Create a Pull Request.
 
 ## 📄 License
 
-This project is open source under the [MIT License](LICENSE). You can use it for personal or commercial purposes for free, but please retain the original author's copyright notice.
+This project is open source under the [MIT License](LICENSE). You can use it free of charge for personal or commercial purposes, but please retain the original author's copyright notice.
