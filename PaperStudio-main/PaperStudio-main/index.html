@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PaperStudio - 打印纸设计工具</title>
+    <title>PaperStudio - Paper Printing Design Tool</title>
     <link href="./static/icons.min.css" rel="stylesheet" />
     <link href="./static/coloris.min.css" rel="stylesheet" />
     <link href="./static/toastify.min.css" rel="stylesheet" />
@@ -19,7 +19,7 @@
     <script src="./static/bwip-js.min.js"></script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
-      /* 基础滚动条隐藏 */
+      /* Hide base scrollbar */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
@@ -29,7 +29,7 @@
         scrollbar-width: none;
       }
 
-      /* 自定义滚动条样式 */
+      /* Custom scrollbar style */
       .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -48,14 +48,14 @@
         background-color: #94a3b8;
       }
 
-      /* UI 交互状态 */
+      /* UI interaction state */
       .tool-btn.active {
         background-color: #fee2e2;
         color: #e11d48;
         border-color: #e11d48;
       }
 
-      /* 画布区域背景 */
+      /* Canvas area background */
       #scrollContainer {
         background-image: radial-gradient(#ddd 1px, transparent 1px);
         background-size: 20px 20px;
@@ -84,11 +84,11 @@
         background-color: #f3f4f6;
         border: 2px dashed #cbd5e1;
       }
-      /* 禁止背景层拖拽 */
+      /* Disable background layer drag */
       .layer-item.no-drag {
         cursor: default;
       }
-      /* 模态框与卡片 */
+      /* Modals and cards */
       .modal-backdrop {
         background-color: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(4px);
@@ -99,7 +99,7 @@
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       }
 
-      /* 光标状态 */
+      /* Cursor state */
       .canvas-container.grabbing-mode canvas {
         cursor: grabbing !important;
       }
@@ -108,7 +108,7 @@
         cursor: grab !important;
       }
 
-      /* 紧凑型表单控件 */
+      /* Compact form controls */
       .compact-input {
         font-size: 12px;
         padding: 4px 6px;
@@ -123,7 +123,7 @@
         align-items: center;
       }
 
-      /* 样式按钮 */
+      /* Style buttons */
       .style-btn {
         width: 28px;
         height: 28px;
@@ -138,7 +138,7 @@
         color: #000;
       }
 
-      /* 下拉菜单 */
+      /* Dropdown menu */
       .dropdown:hover .dropdown-menu {
         display: block;
       }
@@ -157,7 +157,7 @@
         width: 120px;
       }
 
-      /* 表格编辑器 */
+      /* Table Editor */
       .table-editor-grid {
         border-collapse: collapse;
         width: 100%;
@@ -204,17 +204,17 @@
         color: #b91c1c;
         font-weight: 600;
       }
-      /* 表格编辑器网格样式 */
+      /* Table Editor grid style */
       .table-editor-grid td {
         border: 1px solid #cbd5e1;
-        min-width: 60px; /* 最小宽度，防止太扁 */
+        min-width: 60px; /* Min width to prevent being too narrow */
         cursor: text;
         padding: 4px;
         position: relative;
         transition: background-color 0.1s;
       }
 
-      /* 选中高亮 */
+      /* Selection highlight */
       .table-editor-grid td.selected {
         background-color: rgba(59, 130, 246, 0.15) !important;
         box-shadow: inset 0 0 0 2px #3b82f6;
@@ -228,7 +228,7 @@
         z-index: 20;
       }
 
-      /* 悬浮工具栏 */
+      /* Floating toolbar */
       #tableFloatMenu {
         pointer-events: auto;
         will-change: top, left;
@@ -262,7 +262,7 @@
         color: #94a3b8;
       }
 
-      /* 标尺样式 */
+      /* Ruler style */
       .ruler-canvas {
         position: absolute;
         background-color: #f8fafc;
@@ -330,7 +330,7 @@
         border-color: #e11d48 !important;
       }
 
-      /* ===== 字体搜索下拉组件样式 ===== */
+      /* ===== Font search dropdown component style ===== */
       .font-select-wrapper {
         position: relative;
         width: 100%;
@@ -484,7 +484,7 @@
         text-align: center;
       }
 
-      /* 紧凑模式（用于浮动工具栏，宽度受限） */
+      /* Compact mode (for floating toolbar, width constrained) */
       .font-select-wrapper.compact .font-select-trigger {
         height: 28px;
         font-size: 11px;
@@ -499,7 +499,7 @@
       }
 
       /* ========================================= */
-      /* 打印专用样式 */
+      /* Print-specific styles */
       /* ========================================= */
 
       #printContainer {
@@ -542,17 +542,17 @@
               </div>
               <div>
                 <h1 class="text-xl font-bold tracking-tight">PaperStudio</h1>
-                <p class="text-slate-400 text-xs">简单的打印纸设计工具</p>
+                <p class="text-slate-400 text-xs">Simple Paper Printing Design Tool</p>
               </div>
             </div>
             <div class="space-y-4">
               <button onclick="App.templates.load('blank_a4')" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 rounded-xl flex items-center gap-3 transition group">
                 <i class="ph ph-plus-circle text-xl"></i>
-                <span class="font-medium">新建空白纸</span>
+                <span class="font-medium">New Blank Paper</span>
               </button>
               <button onclick="document.getElementById('projectImportInput').click()" class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center gap-3 transition">
                 <i class="ph ph-folder-open text-xl text-slate-400"></i>
-                <span class="font-medium">打开纸文件</span>
+                <span class="font-medium">Open Paper File</span>
               </button>
             </div>
           </div>
@@ -566,7 +566,7 @@
           <i class="ph ph-scroll absolute -bottom-5 -right-10 text-[200px] text-slate-800 opacity-50 rotate-12"></i>
         </div>
         <div class="w-2/3 p-8 bg-gray-50 flex flex-col">
-          <h2 class="text-lg font-bold text-slate-800 mb-4 flex justify-between items-center">从模板开始</h2>
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex justify-between items-center">Start from Template</h2>
           <div id="templateGrid" class="grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar"></div>
         </div>
       </div>
@@ -579,15 +579,15 @@
           <i class="ph ph-x text-lg"></i>
         </button>
 
-        <h3 class="text-lg font-bold text-slate-800 mb-1">联系开发者</h3>
+        <h3 class="text-lg font-bold text-slate-800 mb-1">Contact Developer</h3>
 
         <div class="bg-white p-2 rounded-xl border border-gray-100 shadow-inner inline-block mb-4">
-          <img src="./static/addme.jpg" alt="联系作者" class="w-48 h-48 object-contain rounded-lg" />
+          <img src="./static/addme.jpg" alt="Contact Author" class="w-48 h-48 object-contain rounded-lg" />
         </div>
 
         <div class="space-y-1">
-          <p class="text-sm font-medium text-slate-700">扫码添加微信</p>
-          <p class="text-sm text-slate-400">反馈建议 · 交流</p>
+          <p class="text-sm font-medium text-slate-700">Scan QR to add WeChat</p>
+          <p class="text-sm text-slate-400">Feedback · Chat</p>
         </div>
       </div>
     </div>
@@ -597,14 +597,14 @@
           <i class="ph ph-lock-key text-3xl"></i>
         </div>
 
-        <h3 class="text-xl font-bold text-slate-800 mb-2">需要访问权限</h3>
-        <p class="text-sm text-slate-500 mb-1">为了读取数据源文件，浏览器需要您的确认。</p>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">Permission Required</h3>
+        <p class="text-sm text-slate-500 mb-1">Browser permission is needed to read the data source file.</p>
         <p class="text-xs font-mono bg-gray-100 text-gray-600 py-1 px-2 rounded inline-block mb-6 max-w-full truncate" id="permFileName">filename.xlsx</p>
 
         <div class="flex gap-3 justify-center">
-          <button id="permCancelBtn" class="px-5 py-2.5 rounded-lg border border-gray-300 text-slate-600 hover:bg-gray-50 text-sm font-medium transition">取消</button>
+          <button id="permCancelBtn" class="px-5 py-2.5 rounded-lg border border-gray-300 text-slate-600 hover:bg-gray-50 text-sm font-medium transition">Cancel</button>
           <button id="permGrantBtn" class="px-5 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-bold shadow-md shadow-red-100 transition flex items-center gap-2">
-            <i class="ph ph-check-circle"></i> 授予权限
+            <i class="ph ph-check-circle"></i> Grant Permission
           </button>
         </div>
       </div>
@@ -621,14 +621,14 @@
           <i class="ph ph-heart text-2xl text-red-500"></i>
         </div>
 
-        <h3 class="text-lg font-bold text-slate-800 mb-1">感谢支持</h3>
+        <h3 class="text-lg font-bold text-slate-800 mb-1">Thank You for Support</h3>
         <div class="p-2 rounded-xl border border-orange-100 shadow-inner inline-block mb-4">
-          <img src="./static/support.jpg" alt="微信收款码" class="w-48 h-48 object-contain rounded-lg mix-blend-multiply" />
+          <img src="./static/support.jpg" alt="WeChat Payment QR" class="w-48 h-48 object-contain rounded-lg mix-blend-multiply" />
         </div>
 
         <div class="space-y-1">
-          <p class="text-sm font-medium text-slate-700">如果觉得工具好用</p>
-          <p class="text-sm text-slate-400">欢迎请作者喝杯咖啡，激励持续更新</p>
+          <p class="text-sm font-medium text-slate-700">If you find this tool useful</p>
+          <p class="text-sm text-slate-400">Consider buying the author a coffee to encourage continued updates</p>
         </div>
       </div>
     </div>
@@ -636,8 +636,8 @@
       <div class="bg-white w-[98vw] h-[95vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 z-20 bg-white shadow-sm shrink-0">
           <div>
-            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="ph ph-table text-red-600"></i> 表格编辑器</h3>
-            <p class="text-xs text-slate-400 mt-0.5">拖动分割线调整宽高，选中单元格右键或使用悬浮菜单编辑</p>
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="ph ph-table text-red-600"></i> Table Editor</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Drag dividers to resize rows/cols, right-click cells or use the floating menu to edit</p>
           </div>
           <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1 border border-gray-200">
             <i class="ph ph-minus text-xs text-gray-400 cursor-pointer hover:text-slate-700" onclick="App.tableEditor.changeZoom(-0.1)"></i>
@@ -650,7 +650,7 @@
               value="1"
               class="accent-red-600 h-1.5 w-24 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               oninput="App.tableEditor.setZoom(this.value)"
-              title="编辑器视图缩放" />
+              title="Editor view zoom" />
             <i class="ph ph-plus text-xs text-gray-400 cursor-pointer hover:text-slate-700" onclick="App.tableEditor.changeZoom(0.1)"></i>
             <span id="tableEditorZoomVal" class="text-xs font-mono text-slate-600 w-10 text-center font-bold">100%</span>
           </div>
@@ -692,24 +692,24 @@
             class="hidden absolute z-50 bg-white text-slate-700 rounded-lg shadow-2xl p-1.5 flex items-center gap-2 transform -translate-x-1/2 -translate-y-full mb-3 transition-all duration-150 border border-gray-200 ring-1 ring-black/5 font-sans">
             <div class="border-r border-gray-200 pr-2 hidden" id="floatDataBindWrapper">
               <select id="floatDataBind" class="h-7 bg-gray-50 border border-gray-300 rounded text-xs text-slate-700 focus:outline-none focus:border-red-500 w-24 hover:bg-gray-100">
-                <option value="">不绑定数据</option>
+                <option value="">No Data Binding</option>
               </select>
             </div>
-            <!-- 字体选择 -->
+            <!-- Font Selection -->
             <div class="border-r border-gray-200 pr-2">
               <select
                 id="floatFontFamily"
                 class="hidden">
-                <option value="SourceHanSerifCN-Bold">思源宋体</option>
-                <option value="SimSun">宋体</option>
-                <option value="KaiTi">楷体</option>
-                <option value="SimHei">黑体</option>
+                <option value="SourceHanSerifCN-Bold">Source Han Serif</option>
+                <option value="SimSun">SimSun</option>
+                <option value="KaiTi">KaiTi</option>
+                <option value="SimHei">SimHei</option>
                 <option value="Arial">Arial</option>
               </select>
               <div class="font-select-wrapper compact" id="floatFontFamilyPicker" style="width:90px"></div>
             </div>
 
-            <!-- 字号与加粗 -->
+            <!-- Font Size & Bold -->
             <div class="flex gap-1 border-r border-gray-200 pr-2 items-center">
               <input
                 type="number"
@@ -717,13 +717,13 @@
                 class="w-10 h-7 bg-gray-50 border border-gray-300 rounded text-center text-xs text-slate-700 focus:outline-none focus:border-red-500"
                 min="9"
                 max="72"
-                title="字号" />
+                title="Font Size" />
               <button id="floatBoldBtn" class="p-1.5 hover:bg-gray-100 rounded text-slate-500 hover:text-slate-900 transition">
                 <i class="ph ph-text-b"></i>
               </button>
             </div>
 
-            <!-- 边框设置 -->
+            <!-- Border Settings -->
             <div class="flex gap-1 border-r border-gray-200 pr-2 items-center">
               <input
                 type="number"
@@ -732,8 +732,8 @@
                 min="0"
                 max="10"
                 step="0.5"
-                title="边框宽度" />
-              <div class="relative w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center group/picker border border-transparent hover:border-gray-200" title="边框颜色">
+                title="Border Width" />
+              <div class="relative w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center group/picker border border-transparent hover:border-gray-200" title="Border Color">
                 <input type="color" id="floatBorderColorInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                 <i class="ph ph-square text-slate-400 group-hover/picker:text-slate-600"></i>
                 <div id="floatBorderColorInd" class="absolute bottom-1 right-1 w-2 h-2 rounded-full border border-gray-300 bg-slate-400 pointer-events-none"></div>
@@ -743,14 +743,14 @@
             <div class="flex gap-1 border-r border-gray-200 pr-2 items-center">
               <div
                 class="relative w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center group/picker border border-transparent hover:border-gray-200"
-                title="背景颜色"
+                title="Background Color"
                 onclick="document.getElementById('floatBgInput').click()">
                 <input type="text" id="floatBgInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" data-coloris value="#ffffff" />
                 <i class="ph ph-paint-bucket text-slate-400 group-hover/picker:text-slate-600"></i>
                 <div id="floatBgIndicator" class="absolute bottom-1 right-1 w-2 h-2 rounded-full border border-gray-300 bg-white pointer-events-none"></div>
               </div>
 
-              <div class="relative w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center group/picker border border-transparent hover:border-gray-200" title="文字颜色">
+              <div class="relative w-7 h-7 rounded hover:bg-gray-100 flex items-center justify-center group/picker border border-transparent hover:border-gray-200" title="Text Color">
                 <input type="color" id="floatTextInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                 <i class="ph ph-text-t text-slate-400 group-hover/picker:text-slate-600"></i>
                 <div id="floatTextIndicator" class="absolute bottom-1 right-1 w-2 h-2 rounded-full border border-gray-300 bg-slate-900 pointer-events-none"></div>
@@ -767,21 +767,21 @@
               <button onclick="App.tableEditor.applyStyle({ align: 'right' })" class="p-1.5 hover:bg-gray-100 rounded text-slate-500 hover:text-slate-900">
                 <i class="ph ph-text-align-right"></i>
               </button>
-              <button id="floatMergeBtn" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-500 hover:text-slate-900" title="合并">
+              <button id="floatMergeBtn" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-500 hover:text-slate-900" title="Merge">
                 <i class="ph ph-arrows-in-line-horizontal"></i><i class="ph ph-corners-out text-[25px] absolute"></i>
               </button>
-              <button id="floatSplitBtn" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-500 hover:text-slate-900" title="拆分">
+              <button id="floatSplitBtn" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-500 hover:text-slate-900" title="Split">
                 <i class="ph ph-arrows-out-line-horizontal"></i><i class="ph ph-corners-out text-[25px] absolute"></i>
               </button>
             </div>
 
             <div class="flex gap-1">
-              <button onclick="App.tableEditor.deleteCR('row')" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-400 transition group" title="删除选中行">
+              <button onclick="App.tableEditor.deleteCR('row')" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-400 transition group" title="Delete Selected Rows">
                 <i class="ph ph-rows text-lg"></i>
                 <i class="ph ph-trash text-sm absolute -bottom-1 -right-1 rounded-full p-[1px] shadow-sm"></i>
               </button>
 
-              <button onclick="App.tableEditor.deleteCR('col')" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-400 transition group" title="删除选中列">
+              <button onclick="App.tableEditor.deleteCR('col')" class="relative flex items-center justify-center p-1.5 hover:bg-gray-100 rounded text-slate-400 transition group" title="Delete Selected Columns">
                 <i class="ph ph-columns text-lg"></i>
                 <i class="ph ph-trash text-sm absolute -bottom-1 -right-1 rounded-full p-[1px] shadow-sm"></i>
               </button>
@@ -794,21 +794,21 @@
         <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0 z-20">
           <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-200">
-              <label class="text-xs text-slate-500 font-bold">行数</label>
+              <label class="text-xs text-slate-500 font-bold">Rows</label>
               <input type="number" id="tableEditorRowsInput" min="1" max="100" class="w-6 h-6 text-xs text-center focus:border-red-500 focus:outline-none transition bg-transparent" />
             </div>
             <div class="flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-200">
-              <label class="text-xs text-slate-500 font-bold">列数</label>
+              <label class="text-xs text-slate-500 font-bold">Column Count</label>
               <input type="number" id="tableEditorColsInput" min="1" max="60" class="w-6 h-6 text-xs text-center focus:border-red-500 focus:outline-none transition bg-transparent" />
             </div>
-            <button id="tableDimSyncBtn" class="hidden text-xs text-red-600 hover:text-red-800 underline">刷新</button>
+            <button id="tableDimSyncBtn" class="hidden text-xs text-red-600 hover:text-red-800 underline">Refresh</button>
           </div>
           <div class="flex gap-3 ml-auto">
             <button id="tableCancelBtn" class="px-5 py-2.5 rounded-lg border border-gray-300 text-slate-700 text-sm font-medium hover:bg-white hover:border-gray-400 transition bg-white shadow-sm">
-              取消
+              Cancel
             </button>
             <button id="tableInsertBtn" class="px-6 py-2.5 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition shadow-md shadow-red-100 flex items-center gap-2">
-              <i class="ph ph-check-circle text-lg"></i> 完成并插入
+              <i class="ph ph-check-circle text-lg"></i> Done & Insert
             </button>
           </div>
         </div>
@@ -829,11 +829,11 @@
           <button
             onclick="document.getElementById('projectImportInput').click()"
             class="hover:bg-gray-100 px-2 py-1 rounded font-medium flex items-center gap-1 transition text-slate-600"
-            title="打开 (Ctrl+O)">
-            <i class="ph ph-folder-open text-lg"></i> 打开
+            title="Open (Ctrl+O)">
+            <i class="ph ph-folder-open text-lg"></i> Open
           </button>
-          <button onclick="App.io.saveProject()" class="hover:bg-gray-100 px-2 py-1 rounded font-medium flex items-center gap-1 transition text-slate-600" title="保存 (Ctrl+S)">
-            <i class="ph ph-floppy-disk text-lg"></i> 保存
+          <button onclick="App.io.saveProject()" class="hover:bg-gray-100 px-2 py-1 rounded font-medium flex items-center gap-1 transition text-slate-600" title="Save (Ctrl+S)">
+            <i class="ph ph-floppy-disk text-lg"></i> Save
           </button>
           <div class="w-px h-4 bg-gray-300 mx-1"></div>
           <button
@@ -841,7 +841,7 @@
             onclick="App.history.undo()"
             disabled
             class="hover:bg-gray-100 px-2 py-1 rounded font-medium flex items-center gap-1 transition text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-            title="撤销 (Ctrl+Z)">
+            title="Undo (Ctrl+Z)">
             <i class="ph ph-arrow-u-up-left text-lg"></i>
           </button>
           <button
@@ -849,7 +849,7 @@
             onclick="App.history.redo()"
             disabled
             class="hover:bg-gray-100 px-2 py-1 rounded font-medium flex items-center gap-1 transition text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-            title="重做 (Ctrl+Y)">
+            title="Redo (Ctrl+Y)">
             <i class="ph ph-arrow-u-up-right text-lg"></i>
           </button>
         </div>
@@ -857,7 +857,7 @@
 
       <div class="flex items-center gap-1">
         <div class="flex items-center hover:bg-gray-100 rounded px-1.5">
-          <button onclick="App.tools.addText()" class="flex items-center gap-1 py-1.5 font-medium transition text-gray-600" title="插入文字"><i class="ph ph-text-t text-lg"></i> 文字</button>
+          <button onclick="App.tools.addText()" class="flex items-center gap-1 py-1.5 font-medium transition text-gray-600" title="Insert Text"><i class="ph ph-text-t text-lg"></i> Text</button>
 
           <div class="relative dropdown h-full">
             <button class="flex items-center justify-center px-1 py-1.5 h-full rounded-r hover:bg-gray-100 font-medium transition text-gray-600">
@@ -866,45 +866,45 @@
 
             <div class="dropdown-menu w28 left-[50%] -translate-x-[75%]">
               <button onclick="App.tools.addParagraph()" class="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-600 transition">
-                <i class="ph ph-text-align-justify text-lg"></i> 段落
+                <i class="ph ph-text-align-justify text-lg"></i> Paragraph
               </button>
               <button onclick="App.tools.addDate()" class="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-600 transition">
-                <i class="ph ph-calendar text-lg"></i> 时间
+                <i class="ph ph-calendar text-lg"></i> Date/Time
               </button>
               <button onclick="App.tools.addPageNum()" class="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-600 transition">
-                <i class="ph ph-hash text-lg"></i> 页码
+                <i class="ph ph-hash text-lg"></i> Page Number
               </button>
               <button onclick="App.tools.addSerialNumber()" class="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 text-gray-600 transition">
-                <i class="ph ph-list-numbers text-lg"></i> 序列号
+                <i class="ph ph-list-numbers text-lg"></i> Serial Number
               </button>
             </div>
           </div>
         </div>
 
         <button onclick="document.getElementById('imgUpload').click()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 font-medium transition text-gray-600">
-          <i class="ph ph-image text-lg"></i> 图片
+          <i class="ph ph-image text-lg"></i> Image
         </button>
 
         <button onclick="App.tableEditor.open()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 font-medium transition text-gray-600">
-          <i class="ph ph-table text-lg"></i> 表格
+          <i class="ph ph-table text-lg"></i> Table
         </button>
         <button onclick="App.tools.addBarcode()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 font-medium transition text-gray-600">
-          <i class="ph ph-barcode text-lg"></i> 条码
+          <i class="ph ph-barcode text-lg"></i> Barcode
         </button>
 
         <div class="relative dropdown">
           <button class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 font-medium transition text-gray-600">
-            <i class="ph ph-shapes text-lg"></i> 图形 <i class="ph ph-caret-down"></i>
+            <i class="ph ph-shapes text-lg"></i> Shapes <i class="ph ph-caret-down"></i>
           </button>
           <div class="dropdown-menu">
             <button onclick="App.tools.addLine()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 font-medium transition text-gray-600">
-              <i class="ph ph-line-segment text-lg"></i> 线条
+              <i class="ph ph-line-segment text-lg"></i> Line
             </button>
-            <button onclick="App.tools.addShape('rect')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-rectangle"></i> 矩形</button>
-            <button onclick="App.tools.addShape('circle')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-circle"></i> 圆形</button>
-            <button onclick="App.tools.addShape('triangle')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-triangle"></i> 三角形</button>
-            <button onclick="App.tools.addShape('star')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-star"></i> 角形</button>
-            <button onclick="App.tools.addShape('diamond')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-diamond"></i> 菱形</button>
+            <button onclick="App.tools.addShape('rect')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-rectangle"></i> Rectangle</button>
+            <button onclick="App.tools.addShape('circle')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-circle"></i> Circle</button>
+            <button onclick="App.tools.addShape('triangle')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-triangle"></i> Triangle</button>
+            <button onclick="App.tools.addShape('star')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-star"></i> Star</button>
+            <button onclick="App.tools.addShape('diamond')" class="w-full text-left px-2 py-2 hover:bg-gray-100 flex items-center gap-2"><i class="ph ph-diamond"></i> Diamond</button>
           </div>
         </div>
       </div>
@@ -914,19 +914,19 @@
           onclick="App.ui.showModal('sponsorModal')"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition text-xs font-bold mr-1">
           <i class="ph ph-heart-straight text-lg"></i>
-          <span>支持作者</span>
+          <span>Support Author</span>
         </button>
-        <button onclick="App.ui.showModal('contactModal')" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="联系作者">
+        <button onclick="App.ui.showModal('contactModal')" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="Contact Author">
           <i class="ph ph-wechat-logo text-lg"></i>
         </button>
-        <button onclick="App.ui.toggleFullScreen()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="全屏模式">
+        <button onclick="App.ui.toggleFullScreen()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="Fullscreen Mode">
           <i id="fsIcon" class="ph ph-corners-out text-lg"></i>
         </button>
         <button onclick="App.io.exportPDF()" class="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition">
-          <i class="ph ph-file-pdf text-lg"></i> 导出 PDF
+          <i class="ph ph-file-pdf text-lg"></i> Export PDF
         </button>
-        <button onclick="App.io.print()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition" title="打印 (Ctrl+P)">
-          <i class="ph ph-printer text-lg"></i> 打印
+        <button onclick="App.io.print()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition" title="Print (Ctrl+P)">
+          <i class="ph ph-printer text-lg"></i> Print
         </button>
       </div>
     </header>
@@ -935,59 +935,59 @@
       <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-20 overflow-y-auto no-scrollbar text-xs">
         <div class="p-4 space-y-6">
           <section>
-            <h3 class="font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1 text-sm"><i class="ph ph-files"></i> 纸张选项</h3>
+            <h3 class="font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1 text-sm"><i class="ph ph-files"></i> Paper Options</h3>
             <div class="space-y-3" id="paperOptions">
               <div class="grid grid-cols-2">
-                <label class="compact-label col-span-2">纸张尺寸</label>
+                <label class="compact-label col-span-2">Paper Size</label>
                 <select id="paperSize" onchange="App.paper.updateSize()" class="w-full border-gray-300 rounded-md border p-2 bg-gray-50 col-span-2">
                   <option value="A3">A3 (297 × 420 mm)</option>
                   <option value="A4" selected>A4 (210 × 297 mm)</option>
                   <option value="A5">A5 (148 × 210 mm)</option>
                   <option value="B4">B4 (250 × 353 mm)</option>
                   <option value="B5">B5 (176 × 250 mm)</option>
-                  <option value="Letter">Letter 美信</option>
-                  <option value="Legal">Legal 美长</option>
-                  <option value="16开">16开 (210 × 285 mm)</option>
-                  <option value="32开">32开 (185 × 260 mm)</option>
-                  <option value="方纸">方纸 (230 × 230 mm)</option>
+                  <option value="Letter">Letter (US)</option>
+                  <option value="Legal">Legal (US)</option>
+                  <option value="16K">16K (210 × 285 mm)</option>
+                  <option value="32K">32K (185 × 260 mm)</option>
+                  <option value="Square">Square (230 × 230 mm)</option>
                   <hr class="my-2 border-gray-300" />
                   <hr class="my-2 border-gray-300" />
-                  <option value="CUSTOM">自定义尺寸…</option>
+                  <option value="CUSTOM">Custom Size...</option>
                 </select>
                 <label class="flex items-center gap-1 cursor-pointer mt-3 select-none">
                   <input type="checkbox" id="paperOrientation" class="accent-red-600 rounded scale-90" onchange="App.paper.updateSize()" />
-                  <span class="text-gray-600">横向</span>
+                  <span class="text-gray-600">Landscape</span>
                 </label>
                 <label id="dualOptionWrapper" class="hidden flex items-center gap-1 cursor-pointer mt-3 select-none">
                   <input type="checkbox" id="paperDual" class="accent-red-600 rounded scale-90" onchange="App.paper.drawPaper()" />
-                  <span class="text-gray-600" title="横向纸张上左右各生成一份相同内容">对开模式</span>
+                  <span class="text-gray-600" title="Generate two identical copies side by side on landscape paper">Dual Mode</span>
                 </label>
               </div>
               <div id="customSizeInputs" class="grid grid-cols-2 gap-2 hidden">
               <div>
-                <label class="compact-label">宽(mm)</label>
+                <label class="compact-label">Width (mm)</label>
                 <input type="number" id="customW" value="210" class="w-full compact-input border rounded" oninput="App.paper.updateSize()" />
               </div>
               <div>
-                <label class="compact-label">高(mm)</label>
+                <label class="compact-label">Height (mm)</label>
                 <input type="number" id="customH" value="297" class="w-full compact-input border rounded" oninput="App.paper.updateSize()" />
               </div>
             </div>
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="compact-label">上边距</label>
+                  <label class="compact-label">Top Margin</label>
                   <input type="number" id="marginTop" value="25" min="0" class="w-full compact-input border border-gray-300 rounded" oninput="App.paper.drawGrid()" />
                 </div>
                 <div>
-                  <label class="compact-label">下边距</label>
+                  <label class="compact-label">Bottom Margin</label>
                   <input type="number" id="marginBottom" value="25" min="0" class="w-full compact-input border border-gray-300 rounded" oninput="App.paper.drawGrid()" />
                 </div>
                 <div>
-                  <label class="compact-label">左边距</label>
+                  <label class="compact-label">Left Margin</label>
                   <input type="number" id="marginLeft" value="20" min="0" class="w-full compact-input border border-gray-300 rounded" oninput="App.paper.drawGrid()" />
                 </div>
                 <div>
-                  <label class="compact-label">右边距</label>
+                  <label class="compact-label">Right Margin</label>
                   <input type="number" id="marginRight" value="20" min="0" class="w-full compact-input border border-gray-300 rounded" oninput="App.paper.drawGrid()" />
                 </div>
               </div>
@@ -996,15 +996,15 @@
           <section>
             <div class="space-y-3">
               <div>
-                <label class="compact-label">纸张类型</label>
+                <label class="compact-label">Paper Type</label>
                 <select id="paperType" onchange="App.paper.changeType(this.value, true)" class="w-full border-gray-300 rounded-md border p-2 bg-gray-50">
-                  <option value="blank" selected>空白纸</option>
+                  <option value="blank" selected>Blank Paper</option>
                 </select>
               </div>
 
               <div class="flex items-center gap-2">
                 <div class="flex-1">
-                  <label class="compact-label">背景颜色</label>
+                  <label class="compact-label">Background Color</label>
                   <div class="flex items-center gap-2">
                     <input type="color" id="paperBgColor" value="#ffffff" oninput="App.paper.drawGrid()" class="h-7 w-full p-0 border-0 rounded cursor-pointer" />
                     <button
@@ -1013,7 +1013,7 @@
                         App.paper.drawGrid();
                       "
                       class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs"
-                      title="重置为白色">
+                      title="Reset to White">
                       <i class="ph ph-arrow-counter-clockwise"></i>
                     </button>
                   </div>
@@ -1021,27 +1021,27 @@
 
                 <div class="flex items-center gap-2 flex-2" data-paper-types="ruled,grid,composition,english,music,tianzige,mizige,huizige,jiugongge,dots,triangle,hexagon">
                   <div class="flex-1">
-                    <label class="compact-label">线条颜色</label>
+                    <label class="compact-label">Line Color</label>
                     <input type="color" id="gridColor" value="#e11d48" class="h-7 w-full p-0 border-0 rounded cursor-pointer" oninput="App.paper.updateSettings()" />
                   </div>
                   <div class="w-16">
-                    <label class="compact-label">线宽</label>
+                    <label class="compact-label">Line Width</label>
                     <input type="number" id="strokeWidth" value="1" min="0" max="5" step="0.1" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                   </div>
                 </div>
               </div>
 
               <div data-paper-types="label">
-                <h3 class="font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1 text-sm"><i class="ph ph-tag"></i> 标签选项</h3>
+                <h3 class="font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1 text-sm"><i class="ph ph-tag"></i> Label Options</h3>
                 <div class="space-y-3">
-                  <!-- 标签尺寸 -->
+                  <!-- Label Dimensions -->
                   <div class="grid grid-cols-2 gap-2">
                     <div>
-                      <label class="compact-label">标签宽(mm)</label>
+                      <label class="compact-label">Label Width (mm)</label>
                       <input type="number" id="labelWidth" class="w-full compact-input border rounded" oninput="App.paper.autoLayoutLabels()" />
                     </div>
                     <div>
-                      <label class="compact-label">标签高(mm)</label>
+                      <label class="compact-label">Label Height (mm)</label>
                       <input type="number" id="labelHeight" class="w-full compact-input border rounded" oninput="App.paper.autoLayoutLabels()" />
                     </div>
                   </div>
@@ -1049,46 +1049,46 @@
                   <div id="labelLayout" class="grid grid-cols gap-2">
                     <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
                       <div>
-                        <label class="compact-label">横向个数(列)</label>
+                        <label class="compact-label">Landscape Count (Cols)</label>
                         <input type="number" id="labelCols" min="1" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                       </div>
                       <button
                         onclick="App.paper.calcLabelSizeFromGrid()"
                         class="h-[28px] w-[28px] bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 rounded flex items-center justify-center transition mb-[1px]"
-                        title="自动计算标签尺寸">
+                        title="Auto Calculate Label Size">
                         <i class="ph ph-arrows-out"></i>
                       </button>
                       <div>
-                        <label class="compact-label">纵向个数(行)</label>
+                        <label class="compact-label">Vertical Count (Rows)</label>
                         <input type="number" id="labelRows" min="1" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                       </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                       <div>
-                        <label class="compact-label">横向间距(mm)</label>
+                        <label class="compact-label">LandscapeSpacing(mm)</label>
                         <input type="number" id="labelGapH" min="0" step="0.5" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                       </div>
                       <div>
-                        <label class="compact-label">纵向间距(mm)</label>
+                        <label class="compact-label">Vertical Gap (mm)</label>
                         <input type="number" id="labelGapV" min="0" step="0.5" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label class="compact-label">打印份数</label>
+                    <label class="compact-label">Print Quantity</label>
                     <input type="number" id="labelQuantity" min="1" value="1" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                   </div>
 
                   <div class="grid grid-cols-2 gap-2 cursor-pointer select-none">
                     <label class="flex items-center">
                       <input type="checkbox" id="fitLabelSize" class="accent-red-600 rounded scale-90" onchange="App.paper.updateSize()" />
-                      <span class="compact-label mb-0 font-bold text-slate-600">单张模式</span>
+                      <span class="compact-label mb-0 font-bold text-slate-600">Single Mode</span>
                     </label>
                     <div class="flex items-center gap-2" id="showMarks">
                       <label class="flex items-center">
                         <input type="checkbox" id="showCropMarks" class="accent-red-600 rounded scale-90" onchange="App.paper.updateSettings()" />
-                        <span class="compact-label mb-0 font-bold text-slate-600">显示分隔线</span>
+                        <span class="compact-label mb-0 font-bold text-slate-600">Show Crop Marks</span>
                       </label>
                     </div>
                   </div>
@@ -1097,7 +1097,7 @@
 
               <div data-paper-types="ruled,english,composition">
                 <div class="flex justify-between mb-1">
-                  <label class="compact-label">行数</label>
+                  <label class="compact-label">Rows</label>
                   <input
                     type="number"
                     id="rowCountDisplay"
@@ -1121,49 +1121,49 @@
               <div data-paper-types="ruled,english,tianzige,mizige,huizige,jiugongge,grid,triangle,hexagon" class="flex items-center gap-2">
                 <label class="flex items-center gap-2 cursor-pointer flex-1 select-none">
                   <input type="checkbox" id="gridDashed" class="accent-red-600 rounded scale-90" onchange="App.paper.updateSettings()" />
-                  <span class="text-gray-600 compact-label mb-0">虚线</span>
+                  <span class="text-gray-600 compact-label mb-0">Dashed</span>
                 </label>
                 <div class="w-16 relative">
-                  <span class="compact-label">间距</span>
+                  <span class="compact-label">Spacing</span>
                   <input type="number" id="gridDashArray" value="4" min="0.1" max="20" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
               <div data-paper-types="huizige" class="grid grid-cols-2 gap-2 mt-2 border-t border-gray-200 pt-2">
                 <div>
-                  <label class="compact-label">回字内框宽</label>
+                  <label class="compact-label">Hui Inner Width</label>
                   <input type="number" id="huiInnerW" value="10" min="2" max="50" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">回字内框高</label>
+                  <label class="compact-label">Hui Inner Height</label>
                   <input type="number" id="huiInnerH" value="10" min="2" max="50" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
               <div data-paper-types="ruled" class="grid grid-cols-2 gap-2">
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="doubleFirst" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" checked /><span class="text-gray-600">首行双线</span></label
+                  <input type="checkbox" id="doubleFirst" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" checked /><span class="text-gray-600">Double First Line</span></label
                 >
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="doubleLast" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" checked /><span class="text-gray-600">尾行双线</span></label
+                  <input type="checkbox" id="doubleLast" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" checked /><span class="text-gray-600">Double Last Line</span></label
                 >
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="ruledClosed" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" /><span class="text-gray-600">闭合两侧</span></label
+                  <input type="checkbox" id="ruledClosed" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" /><span class="text-gray-600">Close Both Sides</span></label
                 >
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="ruledClosedDouble" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" /><span class="text-gray-600">双线闭合</span></label
+                  <input type="checkbox" id="ruledClosedDouble" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" /><span class="text-gray-600">Double Line Close</span></label
                 >
               </div>
 
               <div data-paper-types="english" class="grid grid-cols-3 gap-2">
                 <div>
-                  <label class="compact-label">行线间距 </label>
+                  <label class="compact-label">Row Line Spacing </label>
                   <input type="number" id="englishLineGap" value="6" min="2" max="20" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">行距偏移 </label>
+                  <label class="compact-label">Line Offset </label>
                   <input type="number" id="englishOffset" value="0" min="-20" max="20" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">格行间距 </label>
+                  <label class="compact-label">Grid Row Spacing </label>
                   <input type="number" id="englishGroupGap" value="6" min="0" max="40" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
@@ -1171,7 +1171,7 @@
               <div data-paper-types="composition" class="grid grid-cols-2 gap-2">
                 <div class="col-span-2">
                   <div class="flex justify-between mb-1">
-                    <label class="compact-label">每行格数</label>
+                    <label class="compact-label">Cells Per Row</label>
                     <input
                       type="number"
                       id="columnCountDisplay"
@@ -1196,7 +1196,7 @@
               <div data-paper-types="grid" class="grid grid-cols-2 gap-2">
                 <div class="col-span-2">
                   <div class="flex justify-between mb-1">
-                    <label class="compact-label">每行格数</label>
+                    <label class="compact-label">Cells Per Row</label>
                     <input
                       type="number"
                       id="gridColDisplay"
@@ -1220,67 +1220,67 @@
 
               <div data-paper-types="music" class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="compact-label">每组线数</label>
+                  <label class="compact-label">Lines Per Group</label>
                   <input type="number" id="staffLineCount" value="5" min="1" max="12" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
 
                 <div>
-                  <label class="compact-label">谱表数量</label>
+                  <label class="compact-label">Staff Count</label>
                   <input type="number" id="staffCount" value="8" min="1" max="20" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">行间距(mm)</label>
+                  <label class="compact-label">rowsSpacing(mm)</label>
                   <input type="number" id="staffLineGap" value="3" min="1" max="10" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">谱表间距(mm)</label>
+                  <label class="compact-label">Staff Spacing (mm)</label>
                   <input type="number" id="staffGroupGap" value="10" min="0" max="40" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
 
               <div data-paper-types="tianzige,mizige,huizige,jiugongge" class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="compact-label">格子大小(mm)</label>
+                  <label class="compact-label">Grid Size (mm)</label>
                   <input type="number" id="tianSize" value="20" min="6" max="40" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">中线细度</label>
+                  <label class="compact-label">Center Line Width</label>
                   <input type="number" id="tianInnerScale" value="0.5" step="0.1" min="0.1" max="2" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
               <div data-paper-types="jiugongge" class="grid grid-cols-2 gap-2 mt-2 border-t border-gray-200 pt-2">
                 <div>
-                  <label class="compact-label">内格列数 (竖分)</label>
+                  <label class="compact-label">Inner Columns (Vertical)</label>
                   <input type="number" id="jiuCols" value="3" min="0" max="10" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">内格行数 (横分)</label>
+                  <label class="compact-label">Inner Rows (Horizontal)</label>
                   <input type="number" id="jiuRows" value="3" min="0" max="10" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
               <div data-paper-types="dots" class="grid grid-cols-2 gap-2 hidden">
                 <div>
-                  <label class="compact-label">点密度(mm)</label>
+                  <label class="compact-label">Dot Density (mm)</label>
                   <input type="number" id="dotSpace" value="5" min="2" max="50" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label">圆点直径(mm)</label>
+                  <label class="compact-label">Dot Diameter (mm)</label>
                   <input type="number" id="dotSize" value="1" step="0.1" min="0.1" max="5" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
                 <div>
-                  <label class="compact-label"> <input type="checkbox" id="dotStagger" class="accent-red-600 rounded scale-90" onchange="App.paper.updateSettings()" />隔行错位</label>
+                  <label class="compact-label"> <input type="checkbox" id="dotStagger" class="accent-red-600 rounded scale-90" onchange="App.paper.updateSettings()" />Staggered Rows</label>
                 </div>
               </div>
               <div data-paper-types="triangle,hexagon" class="grid grid-cols-1 gap-2 hidden">
                 <div>
-                  <label class="compact-label">图形边长(mm)</label>
+                  <label class="compact-label">Shape Side Length (mm)</label>
                   <input type="number" id="geoSize" value="10" min="2" max="50" class="w-full compact-input border rounded" oninput="App.paper.updateSettings()" />
                 </div>
               </div>
               <div data-paper-types="grid,composition,tianzige,mizige,huizige,jiugongge" class="mt-3 border-t border-gray-200 pt-2">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                   <input type="checkbox" id="doubleBorder" class="accent-red-600 rounded scale-90" onchange="App.paper.drawGrid()" />
-                  <span class="text-gray-600 text-xs font-bold">双线边框</span>
+                  <span class="text-gray-600 text-xs font-bold">Double Border</span>
                 </label>
               </div>
             </div>
@@ -1298,51 +1298,51 @@
             <i class="ph ph-plus"></i>
           </button>
           <div class="w-px h-3 bg-gray-300"></div>
-          <button onclick="App.zoom.autoFit()" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded transition" title="自适应">
+          <button onclick="App.zoom.autoFit()" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded transition" title="Auto Fit">
             <i class="ph ph-arrows-out-simple"></i>
           </button>
         </div>
 
         <div id="topToolbar" class="h-[25px] justify-center bg-white border-b border-gray-200 flex items-center px-4 shrink-0 z-10 gap-3 select-none overflow-x-auto no-scrollbar">
           <div class="flex items-center gap-1">
-            <button onclick="App.tools.flip('x')" class="tune-btn tool-icon-btn" title="水平翻转" disabled>
+            <button onclick="App.tools.flip('x')" class="tune-btn tool-icon-btn" title="Flip Horizontal" disabled>
               <i class="ph ph-flip-horizontal"></i>
             </button>
-            <button onclick="App.tools.flip('y')" class="tune-btn tool-icon-btn" title="垂直翻转" disabled>
+            <button onclick="App.tools.flip('y')" class="tune-btn tool-icon-btn" title="Flip Vertical" disabled>
               <i class="ph ph-flip-vertical"></i>
             </button>
-            <button onclick="App.tools.rotate(-90)" class="tune-btn tool-icon-btn" title="逆时针旋转90°" disabled>
+            <button onclick="App.tools.rotate(-90)" class="tune-btn tool-icon-btn" title="Rotate 90° CCW" disabled>
               <i class="ph ph-arrow-counter-clockwise"></i>
             </button>
-            <button onclick="App.tools.rotate(90)" class="tune-btn tool-icon-btn" title="顺时针旋转90°" disabled>
+            <button onclick="App.tools.rotate(90)" class="tune-btn tool-icon-btn" title="Rotate 90° CW" disabled>
               <i class="ph ph-arrow-clockwise"></i>
             </button>
             <div class="w-px h-3 bg-gray-300"></div>
-            <button onclick="App.tools.nudge('left')" class="tune-btn tool-icon-btn" title="左移" disabled><i class="ph ph-caret-left"></i></button>
-            <button onclick="App.tools.nudge('down')" class="tune-btn tool-icon-btn" title="下移" disabled><i class="ph ph-caret-down"></i></button>
-            <button onclick="App.tools.nudge('up')" class="tune-btn tool-icon-btn" title="上移" disabled><i class="ph ph-caret-up"></i></button>
-            <button onclick="App.tools.nudge('right')" class="tune-btn tool-icon-btn" title="右移" disabled><i class="ph ph-caret-right"></i></button>
+            <button onclick="App.tools.nudge('left')" class="tune-btn tool-icon-btn" title="Move Left" disabled><i class="ph ph-caret-left"></i></button>
+            <button onclick="App.tools.nudge('down')" class="tune-btn tool-icon-btn" title="Move Down" disabled><i class="ph ph-caret-down"></i></button>
+            <button onclick="App.tools.nudge('up')" class="tune-btn tool-icon-btn" title="Move Up" disabled><i class="ph ph-caret-up"></i></button>
+            <button onclick="App.tools.nudge('right')" class="tune-btn tool-icon-btn" title="Move Right" disabled><i class="ph ph-caret-right"></i></button>
           </div>
 
           <div class="w-px h-3 bg-gray-300"></div>
 
           <div class="flex items-center gap-1">
-            <button onclick="App.ui.alignObject('left')" class="tune-btn tool-icon-btn" title="左对齐于画布" disabled>
+            <button onclick="App.ui.alignObject('left')" class="tune-btn tool-icon-btn" title="Align Left to Canvas" disabled>
               <i class="ph ph-align-left-simple"></i>
             </button>
-            <button onclick="App.ui.alignObject('centerH')" class="tune-btn tool-icon-btn" title="水平居中于画布" disabled>
+            <button onclick="App.ui.alignObject('centerH')" class="tune-btn tool-icon-btn" title="Align Center H to Canvas" disabled>
               <i class="ph ph-align-center-horizontal-simple"></i>
             </button>
-            <button onclick="App.ui.alignObject('right')" class="tune-btn tool-icon-btn" title="右对齐于画布" disabled>
+            <button onclick="App.ui.alignObject('right')" class="tune-btn tool-icon-btn" title="Align Right to Canvas" disabled>
               <i class="ph ph-align-right-simple"></i>
             </button>
-            <button onclick="App.ui.alignObject('top')" class="tune-btn tool-icon-btn" title="顶对齐于画布" disabled>
+            <button onclick="App.ui.alignObject('top')" class="tune-btn tool-icon-btn" title="Align Top to Canvas" disabled>
               <i class="ph ph-align-top-simple"></i>
             </button>
-            <button onclick="App.ui.alignObject('middle')" class="tune-btn tool-icon-btn" title="垂直居中于画布" disabled>
+            <button onclick="App.ui.alignObject('middle')" class="tune-btn tool-icon-btn" title="Align Center V to Canvas" disabled>
               <i class="ph ph-align-center-vertical-simple"></i>
             </button>
-            <button onclick="App.ui.alignObject('bottom')" class="tune-btn tool-icon-btn" title="底对齐于画布" disabled>
+            <button onclick="App.ui.alignObject('bottom')" class="tune-btn tool-icon-btn" title="Align Bottom to Canvas" disabled>
               <i class="ph ph-align-bottom-simple"></i>
             </button>
           </div>
@@ -1350,16 +1350,16 @@
           <div class="w-px h-3 bg-gray-300"></div>
 
           <div class="flex items-center gap-1">
-            <button onclick="App.ui.align('left')" class="align-btn tool-icon-btn" title="左对齐" disabled><i class="ph ph-align-left"></i></button>
-            <button onclick="App.ui.align('center')" class="align-btn tool-icon-btn" title="水平居中" disabled>
+            <button onclick="App.ui.align('left')" class="align-btn tool-icon-btn" title="Align Left" disabled><i class="ph ph-align-left"></i></button>
+            <button onclick="App.ui.align('center')" class="align-btn tool-icon-btn" title="Align Center H" disabled>
               <i class="ph ph-align-center-horizontal"></i>
             </button>
-            <button onclick="App.ui.align('right')" class="align-btn tool-icon-btn" title="右对齐" disabled><i class="ph ph-align-right"></i></button>
-            <button onclick="App.ui.align('top')" class="align-btn tool-icon-btn" title="顶对齐" disabled><i class="ph ph-align-top"></i></button>
-            <button onclick="App.ui.align('middle')" class="align-btn tool-icon-btn" title="垂直居中" disabled>
+            <button onclick="App.ui.align('right')" class="align-btn tool-icon-btn" title="Align Right" disabled><i class="ph ph-align-right"></i></button>
+            <button onclick="App.ui.align('top')" class="align-btn tool-icon-btn" title="Align Top" disabled><i class="ph ph-align-top"></i></button>
+            <button onclick="App.ui.align('middle')" class="align-btn tool-icon-btn" title="Align Center V" disabled>
               <i class="ph ph-align-center-vertical"></i>
             </button>
-            <button onclick="App.ui.align('bottom')" class="align-btn tool-icon-btn" title="底对齐" disabled>
+            <button onclick="App.ui.align('bottom')" class="align-btn tool-icon-btn" title="Align Bottom" disabled>
               <i class="ph ph-align-bottom"></i>
             </button>
           </div>
@@ -1367,24 +1367,24 @@
           <div class="w-px h-3 bg-gray-300"></div>
 
           <div class="flex items-center gap-1">
-            <button onclick="App.ui.distribute('horizontal')" class="dist-btn tool-icon-btn" title="水平分布" disabled>
+            <button onclick="App.ui.distribute('horizontal')" class="dist-btn tool-icon-btn" title="Distribute Horizontal" disabled>
               <i class="ph ph-columns"></i>
             </button>
-            <button onclick="App.ui.distribute('vertical')" class="dist-btn tool-icon-btn" title="垂直分布" disabled>
+            <button onclick="App.ui.distribute('vertical')" class="dist-btn tool-icon-btn" title="Distribute Vertical" disabled>
               <i class="ph ph-rows"></i>
             </button>
           </div>
           <div class="w-px h-3 bg-gray-300"></div>
           <div class="flex items-center gap-1">
-            <button onclick="App.tools.group()" id="btnGroup" class="tool-icon-btn" title="群组 (Ctrl+G)" disabled>
+            <button onclick="App.tools.group()" id="btnGroup" class="tool-icon-btn" title="Group (Ctrl+G)" disabled>
               <i class="ph ph-subtract-square"></i>
             </button>
-            <button onclick="App.tools.ungroup()" id="btnUngroup" class="tool-icon-btn" title="解组 (Ctrl+Shift+G)" disabled>
+            <button onclick="App.tools.ungroup()" id="btnUngroup" class="tool-icon-btn" title="Ungroup (Ctrl+Shift+G)" disabled>
               <i class="ph ph-unite-square"></i>
             </button>
           </div>
           <div class="w-px h-3 bg-gray-300"></div>
-          <button onclick="App.tools.toggleLock()" id="btnLock" class="tool-icon-btn" title="锁定/解锁 (Ctrl+L)" disabled>
+          <button onclick="App.tools.toggleLock()" id="btnLock" class="tool-icon-btn" title="Lock/Unlock (Ctrl+L)" disabled>
             <i class="ph ph-lock-key-open"></i>
           </button>
         </div>
@@ -1406,10 +1406,10 @@
           class="hidden absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-xl rounded-full px-4 py-2 border border-slate-200 flex items-center gap-3 transition-all duration-300">
           <div class="h-6 w-px bg-slate-200"></div>
           <div class="flex items-center gap-1">
-            <button onclick="App.dataSource.nav('first')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="首条">
+            <button onclick="App.dataSource.nav('first')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="First">
               <i class="ph ph-caret-double-left"></i>
             </button>
-            <button onclick="App.dataSource.nav('prev')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="上一条">
+            <button onclick="App.dataSource.nav('prev')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="Previous">
               <i class="ph ph-caret-left"></i>
             </button>
 
@@ -1424,30 +1424,30 @@
               <span class="text-xs text-slate-400 select-none">/ <span id="vdpTotal">0</span></span>
             </div>
 
-            <button onclick="App.dataSource.nav('next')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="下一条">
+            <button onclick="App.dataSource.nav('next')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="Next">
               <i class="ph ph-caret-right"></i>
             </button>
-            <button onclick="App.dataSource.nav('last')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="末条">
+            <button onclick="App.dataSource.nav('last')" class="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition" title="Last">
               <i class="ph ph-caret-double-right"></i>
             </button>
           </div>
           <div class="h-6 w-px bg-slate-200 mx-1"></div>
 
-          <label class="flex items-center gap-1.5 cursor-pointer select-none" title="勾选后，批量打印/导出将只处理当前显示的这一页">
+          <label class="flex items-center gap-1.5 cursor-pointer select-none" title="When checked, batch print/export will only process the currently displayed page">
             <input type="checkbox" id="checkOnlyCurrentPage" onchange="App.state.printCurrentOnly = this.checked" class="accent-red-600 rounded scale-90" />
-            <span class="text-xs font-bold text-slate-600 whitespace-nowrap">仅当前页</span>
+            <span class="text-xs font-bold text-slate-600 whitespace-nowrap">Current Page Only</span>
           </label>
         </div>
 
         <div class="h-5 bg-white border-t border-gray-200 flex items-center justify-between px-3 text-gray-400 shrink-0 z-30 text-xs">
           <span id="canvasSizeLabel">A4</span>
-          <span class="flex items-center"><i class="ph ph-mouse-left-click"></i>拖动平移 | 滚轮缩放 | Shift+点击 多选 | Alt+拉框 多选</span>
+          <span class="flex items-center"><i class="ph ph-mouse-left-click"></i>Drag to pan | Scroll to zoom | Shift+Click multi-select | Alt+Drag box select</span>
         </div>
-        <!-- 标签模式切换按钮 -->
+        <!-- Label Mode Toggle -->
         <div id="labelModeToggle" class="hidden absolute bottom-8 left-8 z-20">
           <button onclick="App.label.toggleMode()" class="bg-white shadow-lg rounded-lg px-4 py-2 border border-gray-200 text-xs font-medium flex items-center gap-2 hover:bg-gray-50 transition">
             <i id="labelModeIcon" class="ph ph-eye text-base"></i>
-            <span id="labelModeText">预览模式</span>
+            <span id="labelModeText">Preview Mode</span>
           </button>
         </div>
       </main>
@@ -1455,19 +1455,19 @@
       <aside class="w-64 bg-white border-l border-gray-200 flex flex-col z-20 h-full text-xs">
         <div class="h-9 border-b border-gray-200 flex bg-gray-50 shrink-0">
           <button onclick="App.ui.switchTab('props')" id="tabBtn-props" class="flex-1 font-medium text-slate-700 bg-white border-b-2 border-red-600 transition hover:bg-white focus:outline-none">
-            <i class="ph ph-sliders"></i> 属性
+            <i class="ph ph-sliders"></i> Properties
           </button>
           <button
             onclick="App.ui.switchTab('layers')"
             id="tabBtn-layers"
             class="flex-1 font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:bg-gray-100 transition focus:outline-none flex items-center justify-center gap-1">
-            <i class="ph ph-stack"></i> 图层
+            <i class="ph ph-stack"></i> Layers
           </button>
           <button
             onclick="App.ui.switchTab('data')"
             id="tabBtn-data"
             class="flex-1 font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 hover:bg-gray-100 transition focus:outline-none flex items-center justify-center gap-1">
-            <i class="ph ph-database"></i> 数据源
+            <i class="ph ph-database"></i> Data Source
           </button>
         </div>
 
@@ -1475,84 +1475,84 @@
           <div id="tabContent-props" class="absolute inset-0 flex flex-col bg-white">
             <div id="noSelection" class="flex-1 flex flex-col items-center justify-center text-gray-300 p-8 text-center">
               <i class="ph ph-cursor-click text-4xl mb-2"></i>
-              <p>选中元素以编辑</p>
+              <p>Select an element to edit</p>
             </div>
             <div id="selectionControls" class="hidden flex-1 overflow-y-auto p-3 space-y-4 text-xs">
               <section id="dataTypeTabs" class="bg-gray-100 p-1 rounded-lg grid grid-cols-4 gap-1 mb-2 select-none">
                 <button onclick="App.ui.setDataType('static')" id="dtBtn-static" class="py-1.5 text-center rounded-md transition text-[10px] font-bold text-slate-500 hover:text-slate-700">
-                  静态
+                  Static
                 </button>
                 <button onclick="App.ui.setDataType('variable')" id="dtBtn-variable" class="py-1.5 text-center rounded-md transition text-[10px] font-bold text-slate-500 hover:text-slate-700">
-                  变量
+                  Variable
                 </button>
                 <button onclick="App.ui.setDataType('serial')" id="dtBtn-serial" class="py-1.5 text-center rounded-md transition text-[10px] font-bold text-slate-500 hover:text-slate-700">
-                  序列
+                  Serial
                 </button>
-                <button onclick="App.ui.setDataType('date')" id="dtBtn-date" class="py-1.5 text-center rounded-md transition text-[10px] font-bold text-slate-500 hover:text-slate-700">时间</button>
+                <button onclick="App.ui.setDataType('date')" id="dtBtn-date" class="py-1.5 text-center rounded-md transition text-[10px] font-bold text-slate-500 hover:text-slate-700">Date/Time</button>
               </section>
 
               <section id="dataProps" class="hidden bg-white border border-gray-200 rounded-lg p-3 space-y-2 mb-3">
-                <div class="compact-label text-slate-600">变量绑定设置</div>
+                <div class="compact-label text-slate-600">Variable Binding Settings</div>
                 <div id="varSettings">
-                  <div id="noDataSourceTip" class="hidden text-[10px] text-red-500 py-1">请先在"数据源"面板加载 Excel 文件</div>
+                  <div id="noDataSourceTip" class="hidden text-[10px] text-red-500 py-1">Please load an Excel file in the "Data Source" panel first</div>
                   <div id="bindControls">
                     <div>
-                      <label class="compact-label text-slate-600">工作表</label>
+                      <label class="compact-label text-slate-600">Worksheet</label>
                       <select id="bindSheet" onchange="App.ui.updateBind('sheet', this.value)" class="w-full compact-input border rounded text-xs bg-white"></select>
                     </div>
                     <div class="mt-2">
-                      <label class="compact-label text-slate-600">绑定字段</label>
+                      <label class="compact-label text-slate-600">Bind Field</label>
                       <select id="bindField" onchange="App.ui.updateBind('field', this.value)" class="w-full compact-input border rounded text-xs bg-white"></select>
                     </div>
                   </div>
                 </div>
                 <div id="vdpImgDirCtrl" class="hidden mt-2 pt-2 border-t border-gray-100">
                   <div class="flex justify-between items-center mb-1">
-                    <label class="compact-label text-slate-600">图片文件夹</label>
-                    <span id="vdpImgDirStatus" class="text-[10px] text-orange-500 font-bold">未连接</span>
+                    <label class="compact-label text-slate-600">Image Folder</label>
+                    <span id="vdpImgDirStatus" class="text-[10px] text-orange-500 font-bold">Not Connected</span>
                   </div>
                   <button
                     onclick="App.dataSource.selectImageDir()"
                     class="w-full py-1 border rounded bg-gray-50 hover:bg-white text-xs text-slate-600 transition flex items-center justify-center gap-1">
                     <i class="ph ph-folder-open"></i>
-                    <span id="vdpImgDirBtnText">选择文件夹...</span>
+                    <span id="vdpImgDirBtnText">Select Folder...</span>
                   </button>
                 </div>
               </section>
 
               <section id="geoProps" class="border-b border-gray-100 pb-3">
                 <div class="flex justify-between items-center mb-2 border-b border-gray-100">
-                  <span class="font-bold text-slate-500">对象属性</span>
+                  <span class="font-bold text-slate-500">Object Properties</span>
                   <button
                     id="propLockBtn"
                     onclick="App.tools.toggleLock()"
                     class="text-slate-400 hover:text-red-600 transition flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100"
-                    title="锁定/解锁">
-                    <span id="propLockText" class="text-[10px]">未锁定</span>
+                    title="Lock/Unlock">
+                    <span id="propLockText" class="text-[10px]">Unlocked</span>
                     <i class="ph ph-lock-key-open text-lg" id="propLockIcon"></i>
                   </button>
                 </div>
                 <div class="grid grid-cols-3 gap-2 mb-2">
                   <div>
-                    <label class="compact-label">X 坐标</label>
+                    <label class="compact-label">X Coordinate</label>
                     <input type="number" id="propX" class="w-full compact-input border rounded" onchange="App.ui.updateGeo('left', this.value)" />
                   </div>
                   <div>
-                    <label class="compact-label">Y 坐标</label>
+                    <label class="compact-label">Y Coordinate</label>
                     <input type="number" id="propY" class="w-full compact-input border rounded" onchange="App.ui.updateGeo('top', this.value)" />
                   </div>
                   <div>
-                    <label class="compact-label">旋转∠</label>
+                    <label class="compact-label">Rotation</label>
                     <input type="number" id="propAngle" class="w-full compact-input border rounded" onchange="App.ui.updateGeo('angle', this.value)" />
                   </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="compact-label">宽度</label>
+                    <label class="compact-label">Width</label>
                     <input type="number" id="propW" class="w-full compact-input border rounded" onchange="App.ui.updateGeo('width', this.value)" />
                   </div>
                   <div>
-                    <label class="compact-label">高度</label>
+                    <label class="compact-label">Height</label>
                     <input type="number" id="propH" class="w-full compact-input border rounded" onchange="App.ui.updateGeo('height', this.value)" />
                   </div>
                 </div>
@@ -1560,27 +1560,27 @@
               <section id="affixProps" class="border-b border-gray-100 pb-3 mb-2 hidden">
                 <div class="grid grid-cols-1 gap-2">
                   <div>
-                    <label class="compact-label">前缀</label>
+                    <label class="compact-label">Prefix</label>
                     <input
                       type="text"
                       id="propPrefix"
                       class="w-full compact-input border rounded"
-                      placeholder="无"
+                      placeholder="None"
                       oninput="App.content.setAffix(App.canvas.getActiveObject(), 'prefix', this.value)" />
                   </div>
                   <div>
-                    <label class="compact-label">后缀</label>
+                    <label class="compact-label">Suffix</label>
                     <input
                       type="text"
                       id="propSuffix"
                       class="w-full compact-input border rounded"
-                      placeholder="无"
+                      placeholder="None"
                       oninput="App.content.setAffix(App.canvas.getActiveObject(), 'suffix', this.value)" />
                   </div>
                 </div>
               </section>
               <section id="transProps" class="border-b border-gray-100 pb-3">
-                <label class="compact-label flex justify-between"><span>透明度</span> <span id="opacityVal" class="text-gray-400">100%</span></label>
+                <label class="compact-label flex justify-between"><span>Opacity</span> <span id="opacityVal" class="text-gray-400">100%</span></label>
                 <input
                   type="range"
                   id="propOpacity"
@@ -1595,24 +1595,24 @@
               </section>
 
               <section id="barcodeProps" class="hidden space-y-3 border-b border-gray-100 pb-3">
-                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-barcode"></i> 条码设置</div>
+                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-barcode"></i> Barcode Settings</div>
 
                 <div>
-                  <label class="compact-label">条码类型</label>
+                  <label class="compact-label">Barcode Type</label>
                   <select id="bcType" onchange="App.barcode.applySettings()" class="w-full compact-input border rounded bg-white">
-                    <optgroup label="常用二维码">
-                      <option value="qrcode">QR Code (二维码)</option>
+                    <optgroup label="Common QR Codes">
+                      <option value="qrcode">QR Code</option>
                       <option value="microqrcode">Micro QR Code</option>
                       <option value="datamatrix">Data Matrix</option>
                       <option value="pdf417">PDF417</option>
                       <option value="micropdf417">Micro PDF417</option>
                       <option value="azteccode">Aztec Code</option>
                       <option value="maxicode">MaxiCode (UPS)</option>
-                      <option value="hanxin">Han Xin (汉信码)</option>
+                      <option value="hanxin">Han Xin Code</option>
                       <option value="dotcode">DotCode</option>
                       <option value="gridmatrix">Grid Matrix</option>
                     </optgroup>
-                    <optgroup label="常用条形码">
+                    <optgroup label="Common Barcodes">
                       <option value="code128">Code 128</option>
                       <option value="ean13">EAN-13</option>
                       <option value="ean8">EAN-8</option>
@@ -1624,7 +1624,7 @@
                       <option value="code93ext">Code 93 Extended</option>
                       <option value="rationalizedCodabar">Codabar</option>
                     </optgroup>
-                    <optgroup label="物流与供应链">
+                    <optgroup label="Logistics & Supply Chain">
                       <option value="gs1-128">GS1-128 (UCC/EAN-128)</option>
                       <option value="itf14">ITF-14</option>
                       <option value="interleaved2of5">Interleaved 2 of 5</option>
@@ -1633,32 +1633,32 @@
                       <option value="databarexpanded">GS1 DataBar Expanded</option>
                       <option value="sscc18">SSCC-18</option>
                     </optgroup>
-                    <optgroup label="工业/医疗/其他">
+                    <optgroup label="Industrial/Medical/Other">
                       <option value="code11">Code 11</option>
                       <option value="msi">MSI / Plessey</option>
                       <option value="telepen">Telepen</option>
-                      <option value="pharmacode">Pharmacode (医药码)</option>
+                      <option value="pharmacode">Pharmacode</option>
                       <option value="channelcode">Channel Code</option>
                       <option value="posicode">PosiCode</option>
                     </optgroup>
-                    <optgroup label="邮政码">
+                    <optgroup label="Postal Codes">
                       <option value="uspsimail">USPS Intelligent Mail</option>
                       <option value="postnet">USPS POSTNET</option>
                       <option value="planet">USPS PLANET</option>
                       <option value="royalmail">Royal Mail (RM4SCC)</option>
-                      <option value="japanpost">Japan Post (日本邮政)</option>
+                      <option value="japanpost">Japan Post</option>
                       <option value="auspost">Australia Post</option>
-                      <option value="kix">KIX (荷兰邮政)</option>
+                      <option value="kix">KIX</option>
                     </optgroup>
                   </select>
                 </div>
 
                 <div>
                   <div class="flex items-center justify-between mb-1">
-                    <label class="compact-label mb-0">内容数据</label>
-                    <label class="flex items-center gap-1 cursor-pointer select-none" title="引用其他对象的共享数据">
+                    <label class="compact-label mb-0">Content Data</label>
+                    <label class="flex items-center gap-1 cursor-pointer select-none" title="Use shared data from other objects">
                       <input type="checkbox" id="bcUseShared" onchange="App.barcode.toggleSharedMode(this.checked)" class="accent-red-600 rounded scale-90" />
-                      <span class="text-[10px] text-slate-500 font-bold">使用共享字段</span>
+                      <span class="text-[10px] text-slate-500 font-bold">Use Shared Field</span>
                     </label>
                   </div>
 
@@ -1675,41 +1675,41 @@
 
                 <div class="grid grid-cols-1 gap-2">
                   <div>
-                    <label class="compact-label">条码颜色</label>
+                    <label class="compact-label">Barcode Color</label>
                     <div class="h-7 border rounded p-0.5 overflow-hidden relative bg-white">
                       <input type="color" id="bcColor" oninput="App.barcode.applySettings()" class="absolute -top-2 -left-2 w-[150%] h-16 cursor-pointer" />
                     </div>
                   </div>
                 </div>
 
-                <!-- 一维码专用选项 -->
+                <!-- 1D Barcode Options -->
                 <div id="bc1DOptions" class="space-y-2">
                   <div class="flex items-center justify-between">
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                       <input type="checkbox" id="bcShowText" onchange="App.barcode.applySettings()" class="accent-red-600 rounded scale-90" checked />
-                      <span class="compact-label mb-0">显示文字</span>
+                      <span class="compact-label mb-0">Show Text</span>
                     </label>
                   </div>
                   <div class="grid grid-cols-2 gap-2">
                     <div>
-                      <label class="compact-label">文字位置</label>
+                      <label class="compact-label">Text Position</label>
                       <select id="bcTextAlign" onchange="App.barcode.applySettings()" class="w-full compact-input border rounded bg-white">
-                        <option value="center">居中</option>
-                        <option value="left">左对齐</option>
-                        <option value="right">右对齐</option>
+                        <option value="center">Center</option>
+                        <option value="left">Align Left</option>
+                        <option value="right">Align Right</option>
                       </select>
                     </div>
                     <div>
-                      <label class="compact-label">条码高度比例</label>
+                      <label class="compact-label">Barcode Height Ratio</label>
                       <input type="number" id="bcBarHeight" value="10" min="1" max="50" oninput="App.barcode.applySettings()" class="w-full compact-input border rounded" />
                     </div>
 
                     <div>
-                      <label class="compact-label">文字大小</label>
+                      <label class="compact-label">Text Size</label>
                       <input type="number" id="bcFontSize" value="10" min="5" max="72" oninput="App.barcode.applySettings()" class="w-full compact-input border rounded" />
                     </div>
                     <div>
-                      <label class="compact-label">文字间距</label>
+                      <label class="compact-label">TextSpacing</label>
                       <input type="number" id="bcTextGap" value="0" min="-10" max="20" oninput="App.barcode.applySettings()" class="w-full compact-input border rounded" />
                     </div>
                   </div>
@@ -1717,7 +1717,7 @@
 
                 <div id="bc2DOptions" class="hidden space-y-2">
                   <div>
-                    <label class="compact-label">纠错等</label>
+                    <label class="compact-label">Error Correction</label>
                     <select id="bcEcc" onchange="App.barcode.applySettings()" class="w-full compact-input border rounded bg-white">
                       <option value="L">L (7%)</option>
                       <option value="M">M (15%)</option>
@@ -1731,21 +1731,21 @@
               <section id="textProps" class="hidden space-y-2">
                 <div class="flex gap-1 items-end">
                   <div class="flex-1">
-                    <label class="compact-label">字体</label>
-                    <!-- 隐藏的 select 用于兼容原有逻辑 -->
+                    <label class="compact-label">Font</label>
+                    <!-- Hidden select for backward compatibility -->
                     <select id="propFont" class="hidden">
-                      <option value="SourceHanSerifCN-Bold">思源宋体</option>
-                      <option value="SimSun">宋体</option>
-                      <option value="KaiTi">楷体</option>
-                      <option value="SimHei">黑体</option>
-                      <option value="FangSong">仿宋</option>
+                      <option value="SourceHanSerifCN-Bold">Source Han Serif</option>
+                      <option value="SimSun">SimSun</option>
+                      <option value="KaiTi">KaiTi</option>
+                      <option value="SimHei">SimHei</option>
+                      <option value="FangSong">FangSong</option>
                       <option value="Arial">Arial</option>
                       <option value="'Times New Roman'">Times New Roman</option>
                     </select>
                     <div class="font-select-wrapper" id="propFontPicker"></div>
                   </div>
                   <div class="w-16">
-                    <label class="compact-label">字号</label>
+                    <label class="compact-label">Font Size</label>
                     <input type="number" id="propSize" oninput="App.ui.setProp('fontSize', Utils.pt2px(this.value))" class="w-full compact-input border rounded" />
                   </div>
                 </div>
@@ -1760,7 +1760,7 @@
                     <button id="btnUnderline" onclick="App.ui.toggleStyle('underline')" class="style-btn hover:bg-gray-50">
                       <i class="ph ph-text-underline"></i>
                     </button>
-                    <button id="btnVertical" onclick="App.ui.toggleVertical()" class="style-btn hover:bg-gray-50" title="竖排文字">
+                    <button id="btnVertical" onclick="App.ui.toggleVertical()" class="style-btn hover:bg-gray-50" title="Vertical Text">
                       <i class="ph ph-text-t rotate-90"></i>
                     </button>
                   </div>
@@ -1769,22 +1769,22 @@
                   </div>
                 </div>
                 <div class="flex border rounded overflow-hidden flex-1">
-                  <button onclick="App.ui.setProp('textAlign', 'left')" class="flex-1 py-1 hover:bg-gray-50 border-r flex justify-center" title="左对齐">
+                  <button onclick="App.ui.setProp('textAlign', 'left')" class="flex-1 py-1 hover:bg-gray-50 border-r flex justify-center" title="Align Left">
                     <i class="ph ph-text-align-left"></i>
                   </button>
-                  <button onclick="App.ui.setProp('textAlign', 'center')" class="flex-1 py-1 hover:bg-gray-50 border-r flex justify-center" title="居中">
+                  <button onclick="App.ui.setProp('textAlign', 'center')" class="flex-1 py-1 hover:bg-gray-50 border-r flex justify-center" title="Center">
                     <i class="ph ph-text-align-center"></i>
                   </button>
-                  <button onclick="App.ui.setProp('textAlign', 'right')" class="flex-1 py-1 hover:bg-gray-50 flex justify-center" title="右对齐">
+                  <button onclick="App.ui.setProp('textAlign', 'right')" class="flex-1 py-1 hover:bg-gray-50 flex justify-center" title="Align Right">
                     <i class="ph ph-text-align-right"></i>
                   </button>
-                  <button onclick="App.ui.setProp('textAlign', 'justify')" class="flex-1 py-1 hover:bg-gray-50 flex justify-center" title="两端对齐">
+                  <button onclick="App.ui.setProp('textAlign', 'justify')" class="flex-1 py-1 hover:bg-gray-50 flex justify-center" title="Justify">
                     <i class="ph ph-text-align-justify"></i>
                   </button>
                 </div>
                 <div>
                   <label class="compact-label flex justify-between"
-                    ><span>行高</span>
+                    ><span>Line Height</span>
                     <input
                       type="number"
                       id="lineHeightVal"
@@ -1811,7 +1811,7 @@
                 </div>
                 <div>
                   <label class="compact-label flex justify-between"
-                    ><span>字间距</span>
+                    ><span>Letter Spacing</span>
                     <input
                       type="number"
                       id="charSpacingVal"
@@ -1837,47 +1837,47 @@
                 </div>
               </section>
               <section id="dateProps" class="hidden space-y-3 border-b border-gray-100 pb-3">
-                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-calendar"></i> 日期时间设置</div>
+                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-calendar"></i> Date & Time Settings</div>
                 <div class="flex items-center gap-4 bg-gray-50 p-2 rounded border border-gray-200">
                   <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="dateShowDate" class="accent-red-600 rounded scale-90" onchange="App.ui.updateDateConfig('showDate', this.checked)" />
-                    <span class="text-xs font-bold text-slate-700">显示日期</span>
+                    <span class="text-xs font-bold text-slate-700">Show Date</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="dateShowTime" class="accent-red-600 rounded scale-90" onchange="App.ui.updateDateConfig('showTime', this.checked)" />
-                    <span class="text-xs font-bold text-slate-700">显示时间</span>
+                    <span class="text-xs font-bold text-slate-700">Show Date/Time</span>
                   </label>
                 </div>
 
                 <div id="dateFormatWrapper">
-                  <label class="compact-label">日期格式</label>
+                  <label class="compact-label">Date Format</label>
                   <select id="dateFormat" onchange="App.ui.updateDateConfig('dateFormat', this.value)" class="w-full compact-input border rounded bg-white"></select>
                 </div>
 
                 <div id="timeFormatWrapper">
-                  <label class="compact-label">时间格式</label>
+                  <label class="compact-label">Date/Time Format</label>
                   <select id="timeFormat" onchange="App.ui.updateDateConfig('timeFormat', this.value)" class="w-full compact-input border rounded bg-white"></select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="compact-label" title="正数向后推，负数向前推">天数偏移</label>
+                    <label class="compact-label" title="Positive pushes forward, negative pulls backward">Days Offset</label>
                     <input type="number" id="dateOffsetDays" value="0" class="w-full compact-input border rounded" onchange="App.ui.updateDateConfig('offsetDays', parseInt(this.value))" />
                   </div>
                   <div>
-                    <label class="compact-label" title="用于调整时区或特定时间">分钟偏移</label>
+                    <label class="compact-label" title="Used to adjust timezone or specific Date/Time">Minutes Offset</label>
                     <input type="number" id="dateOffsetMinutes" value="0" class="w-full compact-input border rounded" onchange="App.ui.updateDateConfig('offsetMinutes', parseInt(this.value))" />
                   </div>
                 </div>
               </section>
 
               <section id="pageNumProps" class="hidden space-y-3 border-b border-gray-100 pb-3">
-                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-hash"></i> 页码设置</div>
+                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-hash"></i> Page Number Settings</div>
 
                 <div>
-                  <label class="compact-label">页码格式</label>
+                  <label class="compact-label">Page Number Format</label>
                   <select id="pageFormat" onchange="App.ui.updatePageConfig('format', this.value)" class="w-full compact-input border rounded bg-white">
-                    <option value="第 {page} 页">第 1 页</option>
+                    <option value="Page {page}">Page 1</option>
                     <option value="{page}">1</option>
                     <option value="- {page} -">- 1 -</option>
                     <option value="Page {page}">Page 1</option>
@@ -1886,42 +1886,42 @@
                 </div>
 
                 <div>
-                  <label class="compact-label">起始页码</label>
+                  <label class="compact-label">Start Page Number</label>
                   <input type="number" id="pageStartFrom" value="1" min="0" class="w-full compact-input border rounded" onchange="App.ui.updatePageConfig('startFrom', parseInt(this.value))" />
                 </div>
               </section>
               <section id="serialProps" class="hidden space-y-3 border-b border-gray-100 pb-3">
-                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-list-numbers"></i> 序列号设置</div>
+                <div class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-list-numbers"></i> Serial Number Settings</div>
 
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="compact-label">起始值</label>
+                    <label class="compact-label">Start Value</label>
                     <input type="text" id="serialStartValue" value="1" class="w-full compact-input border rounded" oninput="App.ui.updateSerialConfig('startValue', this.value)" />
                   </div>
                   <div>
-                    <label class="compact-label">间隔值</label>
+                    <label class="compact-label">Step</label>
                     <input type="number" id="serialStep" value="1" min="1" class="w-full compact-input border rounded" onchange="App.ui.updateSerialConfig('step', parseInt(this.value))" />
                   </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="compact-label">重复次数</label>
+                    <label class="compact-label">Repeat Count</label>
                     <input type="number" id="serialRepeat" value="1" min="1" class="w-full compact-input border rounded" onchange="App.ui.updateSerialConfig('repeat', parseInt(this.value))" />
                   </div>
                   <div>
-                    <label class="compact-label">变化类型</label>
+                    <label class="compact-label">Change Type</label>
                     <select id="serialChangeType" onchange="App.ui.updateSerialConfig('changeType', this.value)" class="w-full compact-input border rounded bg-white">
-                      <option value="increment">递增</option>
-                      <option value="decrement">递减</option>
+                      <option value="increment">Increment</option>
+                      <option value="decrement">Decrement</option>
                     </select>
                   </div>
                 </div>
 
                 <div id="serialGenerateCountWrapper" class="hidden">
                   <label class="compact-label flex items-center gap-1">
-                    生成数量
-                    <span class="text-[10px] text-orange-600">(影响页面总数)</span>
+                    Generate Count
+                    <span class="text-[10px] text-orange-600">(Affects total pages)</span>
                   </label>
                   <input
                     type="number"
@@ -1934,19 +1934,19 @@
 
                 <div class="bg-gray-50 border border-gray-200 rounded p-2 text-[10px] text-red-700">
                   <i class="ph ph-info"></i>
-                  <span id="serialPreviewText">预览: 1, 1, 2, 2, 3, 3...</span>
+                  <span id="serialPreviewText">Preview: 1, 1, 2, 2, 3, 3...</span>
                 </div>
               </section>
               <section id="lineProps" class="hidden space-y-2">
                 <div class="flex items-center gap-2">
                   <div class="flex-1">
-                    <label class="compact-label">线颜色</label>
+                    <label class="compact-label">Line Color</label>
                     <div class="flex-1 h-7 border rounded p-0.5 overflow-hidden flex items-center relative">
                       <input type="color" id="lineColor" oninput="App.ui.setProp('stroke', this.value)" class="absolute -top-2 -left-2 w-[150%] h-20 cursor-pointer p-0 border-0" />
                     </div>
                   </div>
                   <div class="w-16">
-                    <label class="compact-label">线宽</label>
+                    <label class="compact-label">Line Width</label>
                     <input type="number" id="lineStrokeWidth" min="0" max="50" step="0.1" oninput="App.ui.setProp('strokeWidth', parseFloat(this.value))" class="w-full compact-input border rounded" />
                   </div>
                 </div>
@@ -1954,10 +1954,10 @@
                 <div class="flex items-center gap-2 pt-1 border-t border-gray-100">
                   <label class="flex items-center gap-2 cursor-pointer flex-1 select-none">
                     <input type="checkbox" id="lineDashCheck" class="accent-red-600 rounded scale-90" onchange="App.ui.updateLineDash()" />
-                    <span class="text-gray-600 compact-label mb-0">虚线</span>
+                    <span class="text-gray-600 compact-label mb-0">Dashed</span>
                   </label>
                   <div class="w-16">
-                    <label class="compact-label">间距</label>
+                    <label class="compact-label">Spacing</label>
                     <input type="number" id="lineDashVal" value="4" min="0.1" max="50" step="0.1" class="w-full compact-input border rounded" oninput="App.ui.updateLineDash()" />
                   </div>
                 </div>
@@ -1967,10 +1967,10 @@
                 <div class="flex gap-2">
                   <div class="flex-1">
                     <div class="flex justify-between items-center mb-1">
-                      <label class="compact-label mb-0">填充</label>
-                      <label class="flex items-center gap-1 cursor-pointer select-none" title="无填充(透明)">
+                      <label class="compact-label mb-0">Fill</label>
+                      <label class="flex items-center gap-1 cursor-pointer select-none" title="No Fill (Transparent)">
                         <input type="checkbox" id="shapeNoFill" class="accent-red-600 rounded scale-75" onchange="App.ui.toggleShapeFill()" />
-                        <span class="text-[10px] text-gray-400">无</span>
+                        <span class="text-[10px] text-gray-400">None</span>
                       </label>
                     </div>
                     <div class="h-8 border rounded p-0.5 overflow-hidden relative bg-white transition" id="shapeFillWrapper">
@@ -1979,14 +1979,14 @@
                   </div>
 
                   <div class="flex-1">
-                    <label class="compact-label mb-1 block">边框颜色</label>
+                    <label class="compact-label mb-1 block">Border Color</label>
                     <div class="h-8 border rounded p-0.5 overflow-hidden relative bg-white">
                       <input type="color" id="shapeStroke" oninput="App.ui.setProp('stroke', this.value)" class="absolute -top-2 -left-2 w-[150%] h-16 cursor-pointer" />
                     </div>
                   </div>
 
                   <div class="w-16">
-                    <label class="compact-label mb-1 block">线宽</label>
+                    <label class="compact-label mb-1 block">Line Width</label>
                     <input
                       type="number"
                       id="shapeStrokeWidth"
@@ -2000,26 +2000,26 @@
                 <div id="shapeDash" class="flex items-center gap-2 pt-2 border-t border-gray-100 mt-2">
                   <label class="flex items-center gap-2 cursor-pointer flex-1 select-none">
                     <input type="checkbox" id="shapeDashCheck" class="accent-red-600 rounded scale-90" onchange="App.ui.updateShapeDash()" />
-                    <span class="text-gray-600 compact-label mb-0">虚线描边</span>
+                    <span class="text-gray-600 compact-label mb-0">Dashed Stroke</span>
                   </label>
                   <div class="w-16">
-                    <label class="compact-label">间距</label>
+                    <label class="compact-label">Spacing</label>
                     <input type="number" id="shapeDashVal" value="5" min="1" max="50" class="w-full compact-input border rounded" oninput="App.ui.updateShapeDash()" />
                   </div>
                 </div>
                 <div id="rectCornerControl" class="hidden space-y-2 pt-2 border-t border-gray-200">
-                  <!-- 类型选择与总控 -->
+                  <!-- Type Selection & Master Control -->
                   <div class="flex items-end gap-2">
                     <div class="w-1/3">
-                      <label class="compact-label">角类型</label>
+                      <label class="compact-label">Corner Style</label>
                       <select id="cornerStyle" onchange="App.tools.updateSmartCorner('style', this.value)" class="w-full compact-input border rounded bg-white">
-                        <option value="round">圆角</option>
-                        <option value="bevel">斜角</option>
+                        <option value="round">Round</option>
+                        <option value="bevel">Bevel</option>
                       </select>
                     </div>
                     <div class="flex-1">
                       <label class="compact-label flex justify-between"
-                        ><span>角尺寸</span>
+                        ><span>Corner Size</span>
                         <input
                           type="number"
                           id="masterRadiusVal"
@@ -2043,19 +2043,19 @@
 
                   <div class="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded border border-gray-200">
                     <div class="relative">
-                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">左上</span>
+                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">Top-Left</span>
                       <input type="number" id="cornerTL" min="0" oninput="App.tools.updateSmartCorner('tl', this.value)" class="w-full compact-input border rounded text-right pl-6" />
                     </div>
                     <div class="relative">
-                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">右上</span>
+                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">Top-Right</span>
                       <input type="number" id="cornerTR" min="0" oninput="App.tools.updateSmartCorner('tr', this.value)" class="w-full compact-input border rounded text-right pl-6" />
                     </div>
                     <div class="relative">
-                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">左下</span>
+                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">Bottom-Left</span>
                       <input type="number" id="cornerBL" min="0" oninput="App.tools.updateSmartCorner('bl', this.value)" class="w-full compact-input border rounded text-right pl-6" />
                     </div>
                     <div class="relative">
-                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">右下</span>
+                      <span class="absolute left-1 top-1 text-[10px] text-gray-400">Bottom-Right</span>
                       <input type="number" id="cornerBR" min="0" oninput="App.tools.updateSmartCorner('br', this.value)" class="w-full compact-input border rounded text-right pl-6" />
                     </div>
                   </div>
@@ -2064,58 +2064,58 @@
 
               <section id="tableProps" class="hidden space-y-2 border-b border-gray-100 pb-3">
                 <button onclick="App.tableEditor.open(App.canvas.getActiveObject())" class="w-full py-2 bg-red-50 text-red-600 border border-red-200 rounded font-medium transition">
-                  <i class="ph ph-table text-base mr-1"></i> 编辑表格
+                  <i class="ph ph-table text-base mr-1"></i> Edit Table
                 </button>
-                <p class="text-[11px] text-gray-400 leading-relaxed">提示：请使用表格工具调整行列、合并拆分以及单元格样式。</p>
+                <p class="text-[11px] text-gray-400 leading-relaxed">Tip: Use table tools to adjust rows/cols, merge/split cells, and change cell styles.</p>
               </section>
 
               <section id="imgProps" class="hidden space-y-3">
                 <button
                   onclick="document.getElementById('imgReplaceInput').click()"
                   class="w-full py-2 bg-gray-100 text-slate-700 border border-gray-300 rounded font-medium hover:bg-gray-200 transition text-xs">
-                  <i class="ph ph-arrows-clockwise"></i> 替换图片
+                  <i class="ph ph-arrows-clockwise"></i> Replace Image
                 </button>
 
                 <div id="imgNormalControls" class="space-y-2">
                   <div class="flex gap-2">
                     <button onclick="App.tools.setAsBackground()" class="flex-1 py-2 bg-red-50 text-red-600 border border-red-200 rounded font-medium hover:bg-red-100 transition text-xs">
-                      <i class="ph ph-image-square"></i> 设为背景
+                      <i class="ph ph-image-square"></i> Set as Background
                     </button>
-                    <button onclick="App.tools.fillPaper()" class="flex-1 py-2 border bg-gray-100 rounded font-medium transition text-xs"><i class="ph ph-arrows-out-simple"></i> 铺满页面</button>
+                    <button onclick="App.tools.fillPaper()" class="flex-1 py-2 border bg-gray-100 rounded font-medium transition text-xs"><i class="ph ph-arrows-out-simple"></i> Fill Page</button>
                   </div>
                 </div>
 
                 <div id="imgBgControls" class="hidden space-y-3 pt-2 border-t border-gray-100">
                   <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="checkPrintBg" onchange="App.tools.togglePrintBackground(this.checked)" class="accent-red-600 rounded scale-90" />
-                    <span class="text-xs font-bold text-slate-700">打印/导出时显示</span>
+                    <span class="text-xs font-bold text-slate-700">Show when printing/exporting</span>
                   </label>
-                  <p class="text-[10px] text-gray-400">关闭后，背景图仅在设计时可见，不会被打印或导出为PDF。</p>
+                  <p class="text-[10px] text-gray-400">When off, background image is visible only in design mode and will not be printed or exported to PDF.</p>
 
                   <button
                     onclick="App.paper.clearBackground()"
                     class="w-full py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded font-medium transition text-xs flex items-center justify-center gap-1">
-                    <i class="ph ph-trash"></i> 删除背景图片
+                    <i class="ph ph-trash"></i> Delete Background Image
                   </button>
                 </div>
               </section>
 
               <section id="sharedProps" class="hidden space-y-3 pt-2 border-t border-gray-100 mt-2">
                 <div class="flex items-center justify-between mb-2">
-                  <label class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-arrows-left-right"></i>字段数据共享</label>
+                  <label class="font-bold text-xs text-slate-500 mb-2 flex items-center gap-1"><i class="ph ph-arrows-left-right"></i>Field Data Sharing</label>
                 </div>
                 <div class="flex gap-4 mb-2 text-xs px-1 select-none">
                   <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="syncMode" value="none" class="accent-red-600" onchange="App.ui.toggleSyncMode('none')" />
-                    <span>无</span>
+                    <span>None</span>
                   </label>
                   <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="syncMode" value="share" class="accent-red-600" onchange="App.ui.toggleSyncMode('share')" />
-                    <span>共享</span>
+                    <span>Share</span>
                   </label>
                   <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="syncMode" value="ref" class="accent-red-600" onchange="App.ui.toggleSyncMode('ref')" />
-                    <span>引用</span>
+                    <span>Reference</span>
                   </label>
                 </div>
                 <div id="syncPanel_share" class="hidden space-y-2">
@@ -2125,12 +2125,12 @@
                       id="propSharedInput"
                       class="w-full compact-input border rounded disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                       onkeydown="if (event.key === 'Enter') App.ui.saveSharedId();"
-                      placeholder="输入共享名 (如: price)" />
+                      placeholder="Enter shared name (e.g. price)" />
                     <button
                       id="propSharedBtn"
                       onclick="App.ui.saveSharedId()"
                       class="px-3 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition text-xs whitespace-nowrap font-medium">
-                      保存
+                      Save
                     </button>
                   </div>
                   <div class="flex justify-between items-center">
@@ -2140,9 +2140,9 @@
 
                 <div id="syncPanel_ref" class="hidden">
                   <select id="propSharedSelect" onchange="App.ui.applyRefId(this.value)" class="w-full compact-input border rounded bg-white border-red-200">
-                    <option value="">选择共享字段</option>
+                    <option value="">Select Shared Field</option>
                   </select>
-                  <p class="text-[10px] text-gray-400 mt-1">选择已存在共享字段，内容将自动同步。</p>
+                  <p class="text-[10px] text-gray-400 mt-1">Select an existing shared field and content will auto-sync.</p>
                 </div>
               </section>
             </div>
@@ -2159,11 +2159,11 @@
                   <i class="ph ph-microsoft-excel-logo text-3xl text-green-600"></i>
                 </div>
                 <div>
-                  <h3 class="font-bold text-slate-700">导入 Excel 数据</h3>
-                  <p class="text-xs text-gray-400 mt-1">支持 .xlsx / .xls 格式</p>
+                  <h3 class="font-bold text-slate-700">Import Excel Data</h3>
+                  <p class="text-xs text-gray-400 mt-1">Supports .xlsx / .xls format</p>
                 </div>
                 <button onclick="App.dataSource.openFile()" class="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition text-xs font-medium flex items-center gap-2">
-                  <i class="ph ph-file-plus"></i> 选择本地文件
+                  <i class="ph ph-file-plus"></i> Select Local File
                 </button>
               </div>
               <div id="dataLoadedState" class="hidden flex-col h-full">
@@ -2171,14 +2171,14 @@
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-2 overflow-hidden">
                       <i class="ph ph-file-xls text-green-600 text-lg shrink-0"></i>
-                      <span id="dsFileName" class="font-bold text-xs truncate" title="文件名">filename.xlsx</span>
+                      <span id="dsFileName" class="font-bold text-xs truncate" title="File Name">filename.xlsx</span>
                     </div>
-                    <button onclick="App.dataSource.close()" class="text-slate-400 hover:text-red-500 transition shrink-0" title="断开连接">
+                    <button onclick="App.dataSource.close()" class="text-slate-400 hover:text-red-500 transition shrink-0" title="Disconnect">
                       <i class="ph ph-trash"></i>
                     </button>
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">工作表 (Sheet)</label>
+                    <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Worksheet (Sheet)</label>
                     <div class="flex items-center gap-1">
                       <select
                         id="dsSheetSelect"
@@ -2187,7 +2187,7 @@
                       <button
                         onclick="App.dataSource.batchUpdateBinding()"
                         class="h-[30px] px-2 bg-white border border-gray-300 rounded text-slate-600 hover:text-red-600 hover:border-red-300 transition"
-                        title="重新绑定">
+                        title="Rebind">
                         <i class="ph ph-arrows-left-right"></i>
                       </button>
                     </div>
@@ -2196,19 +2196,19 @@
 
                 <div class="flex-1 overflow-hidden flex flex-col">
                   <div class="flex justify-between items-end mb-2 border-b border-gray-100 pb-1">
-                    <span class="font-bold text-xs text-slate-500">字段列表</span>
-                    <span id="dsRowCount" class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-mono">0 条数据</span>
+                    <span class="font-bold text-xs text-slate-500">Field List</span>
+                    <span id="dsRowCount" class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-mono">0 records</span>
                   </div>
                   <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 rounded border border-gray-100 p-2">
                     <ul id="dsFieldList" class="space-y-1"></ul>
                   </div>
-                  <p class="text-[10px] text-slate-400 mt-2 leading-relaxed"><i class="ph ph-info"></i> 提示：切换到"属性设置"选中文字，开启"可变数据"以绑定字段。</p>
+                  <p class="text-[10px] text-slate-400 mt-2 leading-relaxed"><i class="ph ph-info"></i> Tip: Switch to "Properties", select text, enable "Variable Data" to bind fields.</p>
                 </div>
 
                 <button
                   onclick="App.dataSource.reloadFromFile()"
                   class="mt-3 w-full py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-medium transition flex items-center justify-center gap-2">
-                  <i class="ph ph-arrows-clockwise"></i> 重新读取文件
+                  <i class="ph ph-arrows-clockwise"></i> Reload File
                 </button>
               </div>
             </div>
@@ -2218,7 +2218,7 @@
     </div>
     <div id="loadingOverlay" class="hidden fixed inset-0 z-[60] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent"></div>
-      <p class="mt-4 text-slate-600 font-medium animate-pulse">正在加载模板...</p>
+      <p class="mt-4 text-slate-600 font-medium animate-pulse">Loading templates...</p>
     </div>
     <script>
       const CONFIG = {
@@ -2254,15 +2254,15 @@
             w: 215.9,
             h: 355.6,
           },
-          "16开": {
+          "16K": {
             w: 210,
             h: 285,
           },
-          "32开": {
+          "32K": {
             w: 185,
             h: 260,
           },
-          方纸: {
+          Square: {
             w: 230,
             h: 230,
           },
@@ -2329,28 +2329,28 @@
         },
 
         {
-          l: "2024年01月30日",
-          v: "YYYY年MM月DD日",
+          l: "Jan 30, 2024",
+          v: "YYYY-MM-DD",
         },
         {
-          l: "2024年01月",
-          v: "YYYY年MM月",
+          l: "Jan 2024",
+          v: "YYYY-MM",
         },
         {
-          l: "01月30日",
-          v: "MM月DD日",
+          l: "Jan 30",
+          v: "MM-DD",
         },
         {
-          l: "2024年",
-          v: "YYYY年",
+          l: "2024",
+          v: "YYYY",
         },
 
         {
-          l: "30/01/2024 (日月年)",
+          l: "30/01/2024 (DD/MM/YYYY)",
           v: "DD/MM/YYYY",
         },
         {
-          l: "01/30/2024 (月日年)",
+          l: "01/30/2024 (MM/DD/YYYY)",
           v: "MM/DD/YYYY",
         },
         {
@@ -2359,28 +2359,28 @@
         },
 
         {
-          l: "2024 (仅年)",
+          l: "2024 (Year only)",
           v: "YYYY",
         },
         {
-          l: "2024年",
-          v: "YYYY年",
+          l: "2024",
+          v: "YYYY",
         },
         {
-          l: "01 (仅月)",
+          l: "01 (Month only)",
           v: "MM",
         },
         {
-          l: "01月",
-          v: "MM月",
+          l: "01",
+          v: "MM",
         },
         {
-          l: "30 (仅日)",
+          l: "30 (Day only)",
           v: "DD",
         },
         {
-          l: "30日",
-          v: "DD日",
+          l: "30",
+          v: "DD",
         },
       ];
       const TIME_FMT_OPTS = [
@@ -2418,54 +2418,54 @@
           v: "A h:mm",
         },
         {
-          l: "2:30 (无AM/PM)",
+          l: "2:30 (NoneAM/PM)",
           v: "h:mm",
         },
 
         {
-          l: "14时30分59秒",
-          v: "HH时mm分ss秒",
+          l: "14:30:59",
+          v: "HH:mm:ss",
         },
         {
-          l: "14时30分",
-          v: "HH时mm分",
+          l: "14:30",
+          v: "HH:mm",
         },
         {
-          l: "30分59秒",
-          v: "mm分ss秒",
+          l: "30:59",
+          v: "mm:ss",
         },
         {
-          l: "14点30分",
-          v: "HH点mm分",
+          l: "14:30",
+          v: "HH:mm",
         },
 
         {
-          l: "14 (仅时-24)",
+          l: "14 (Hour-24)",
           v: "HH",
         },
         {
-          l: "14时",
-          v: "HH时",
+          l: "14 (Hour-24)",
+          v: "HH",
         },
         {
-          l: "2 (仅时-12)",
+          l: "2 (Hour-12)",
           v: "h",
         },
         {
-          l: "30 (仅分)",
+          l: "30 (Minute)",
           v: "mm",
         },
         {
-          l: "30分",
-          v: "mm分",
+          l: "30 (Minute)",
+          v: "mm",
         },
         {
-          l: "59 (仅秒)",
+          l: "59 (Second)",
           v: "ss",
         },
         {
-          l: "59秒",
-          v: "ss秒",
+          l: "59 (Second)",
+          v: "ss",
         },
       ];
       const Utils = {
@@ -2819,22 +2819,22 @@
                 this.fonts.set(family, blob);
                 return blob;
               } catch (e) {
-                console.warn("无法加载默认字体", e);
+                console.warn("Cannot load default font", e);
               }
             }
 
             if (this.availableFonts.length === 0) await this.queryLocalFonts();
-            // 3. 核心修复：优先进行【精确匹配】(匹配具体的字重/字形)
+            // 3. Core fix: prioritize exact match (matching specific weight/style)
             let fontMetadata = this.availableFonts.find((f) =>
               f.postscriptName === family || f.fullName === family
             );
             if (!fontMetadata) {
               const map = {
-                SimSun:["simsun", "宋体"],
-                SimHei: ["simhei", "黑体"],
-                KaiTi:["kaiti", "楷体", "kaiti_gb2312"],
-                FangSong:["fangsong", "仿宋"],
-                "Microsoft YaHei": ["yahei", "微软雅黑"],
+                SimSun:["simsun", "SimSun"],
+                SimHei: ["simhei", "SimHei"],
+                KaiTi:["kaiti", "KaiTi", "kaiti_gb2312"],
+                FangSong:["fangsong", "FangSong"],
+                "Microsoft YaHei": ["yahei", "Microsoft YaHei"],
                 Arial: ["arial"],
                 "Times New Roman": ["times new roman", "times"]
               };
@@ -2859,7 +2859,7 @@
                 const ttfBuffer = this._extractTTCtoTTF(arrayBuffer);
                 finalBlob = new Blob([ttfBuffer], { type: "font/ttf" });
               } catch (err) {
-                console.error("TTC 解析失败", err);
+                console.error("TTC parsing failed", err);
               }
             }
 
@@ -3071,7 +3071,7 @@
                   }
                 }
               } catch (checkErr) {
-                console.warn("检查重复句柄失败，将创建新 ID", checkErr);
+                console.warn("Duplicate handle check failed, will create new ID", checkErr);
               }
 
               if (!finalHandleId) {
@@ -3082,7 +3082,7 @@
             } catch (err) {
               if (err.name !== "AbortError") {
                 console.error(err);
-                Utils.toast("打开文件失败", "error");
+                Utils.toast("Failed to open file", "error");
               }
             }
           },
@@ -3119,7 +3119,7 @@
               };
               cancelBtn.onclick = () => {
                 cleanup();
-                Utils.toast("已取消加载数据源", "info");
+                Utils.toast("Data source loading cancelled", "info");
                 resolve(false);
               };
             });
@@ -3162,7 +3162,7 @@
               } catch (fileErr) {
                 if (fileErr.name === "NotFoundError" || fileErr.name === "NotReadableError") {
                   if (handleId) await idbKeyval.del(handleId);
-                  Utils.toast(`文件已失效: ${handle.name}`, "error");
+                  Utils.toast(`File expired: ${handle.name}`, "error");
                   this.close();
                   return;
                 }
@@ -3184,7 +3184,7 @@
                 return ws["!ref"];
               });
               if (validSheetNames.length === 0) {
-                Utils.toast("导入失败：表格内容为空", "error");
+                Utils.toast("Import failed: table content is empty", "error");
                 this.close();
                 return;
               }
@@ -3213,7 +3213,7 @@
               this.updateNavUI();
             } catch (e) {
               console.error(e);
-              Utils.toast("文件读取失败", "error");
+              Utils.toast("File read failed", "error");
               this.close();
             } finally {
               App.canvas.renderOnAddRemove = true;
@@ -3367,10 +3367,10 @@
               if (name === s.currentSheet) opt.selected = true;
               sheetSel.appendChild(opt);
             });
-            rowCount.innerText = `${s.data.length} 条数据`;
+            rowCount.innerText = `${s.data.length} records`;
             fieldList.innerHTML = "";
             if (s.headers.length === 0) {
-              fieldList.innerHTML = '<li class="text-center text-gray-400 py-4 text-xs">暂无字段</li>';
+              fieldList.innerHTML = '<li class="text-center text-gray-400 py-4 text-xs">No fields</li>';
             } else {
               s.headers.forEach((h) => {
                 const li = document.createElement("li");
@@ -3385,10 +3385,10 @@
           },
           batchUpdateBinding: function () {
             const s = App.state.dataSource;
-            if (!s.isActive || !s.currentSheet) return Utils.toast("请先加载数据源", "error");
+            if (!s.isActive || !s.currentSheet) return Utils.toast("Please load data source first", "error");
             const targetSheet = s.currentSheet;
             const validFields = s.headers;
-            if (!validFields || validFields.length === 0) return Utils.toast("目标工作表为空或无字段", "error");
+            if (!validFields || validFields.length === 0) return Utils.toast("Target worksheet is empty or has no fields", "error");
             let count = 0;
             const tryUpdate = (binding) => {
               if (binding && binding.type === "variable") {
@@ -3414,9 +3414,9 @@
               });
               if (count > 0) {
                 App.label.renderPreview();
-                Utils.toast(`已更新${count}个字段`);
+                Utils.toast(`Updated ${count} fields`);
               } else {
-                Utils.toast("未找到可匹配字段或无需更新", "info");
+                Utils.toast("No matching fields found or no update needed", "info");
               }
               return;
             }
@@ -3445,9 +3445,9 @@
               this.refreshBindingState();
               App.ui.updateInspector();
               App.history.saveState();
-              Utils.toast(`已更新 ${count} 个字段`);
+              Utils.toast(`Updated ${count} fields`);
             } else {
-              Utils.toast("未找到可匹配字段或无需更新", "info");
+              Utils.toast("No matching fields found or no update needed", "info");
             }
           },
 
@@ -3614,15 +3614,15 @@
                   blobUrl = URL.createObjectURL(blob);
                 }
               } catch (e) {
-                console.warn("Load img failed", e);
+                console.warn("Load image failed", e);
               }
             }
 
             if (!blobUrl) {
               const errSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="#f3f4f6">
                             <rect width="100" height="100" fill="#f3f4f6" stroke="#d1d5db" stroke-width="2"/>
-                            <text x="50" y="50" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">加载失败</text>
-                            <text x="50" y="62" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">${filename || "未找到绑定字段"}</text></svg>`;
+                            <text x="50" y="50" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">Loading failed</text>
+                            <text x="50" y="62" font-family="sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">${filename || "No bound field found"}</text></svg>`;
               blobUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(errSvg);
             }
 
@@ -3762,7 +3762,7 @@
               if (perm !== "granted") return;
               const file = await s.fileHandle.getFile();
               if (file.lastModified > s.lastModified + 1000) {
-                Utils.toast("数据源已更新！");
+                Utils.toast("Data source updated!");
                 await this.loadFromHandle(s.fileHandle, s.fileHandleId);
               }
             } catch (e) {}
@@ -3780,7 +3780,7 @@
               if (handle) {
                 await this.loadFromHandle(handle, fileHandleId);
               } else {
-                Utils.toast(`无法找到关联文件: ${fileName}`, "error");
+                Utils.toast(`Cannot find associated file: ${fileName}`, "error");
                 this.close();
               }
             } catch (e) {
@@ -3790,7 +3790,7 @@
           },
           selectImageDir: async function () {
             const act = App.canvas.getActiveObject();
-            if (!act || act.type !== "image") return Utils.toast("请先选中一个图片对象", "error");
+            if (!act || act.type !== "image") return Utils.toast("Please select an image object first", "error");
             try {
               const handle = await window.showDirectoryPicker({
                 id: "vdp_images_dir_common",
@@ -3809,7 +3809,7 @@
                   }
                 }
               } catch (checkErr) {
-                console.warn("检查重复文件夹句柄失败，将创建新 ID", checkErr);
+                console.warn("Duplicate folder handle check failed, will create new ID", checkErr);
               }
 
               if (!finalHandleId) {
@@ -3827,7 +3827,7 @@
                 imgDirId: finalHandleId,
                 imgDirName: handle.name,
               });
-              Utils.toast(`已绑定文件夹: ${handle.name}`);
+              Utils.toast(`Folder bound: ${handle.name}`);
               const binding = act.dataBinding;
               if (binding && binding.type === "variable") {
                 const pageIndex = App.state.currentDataIndex || 0;
@@ -3843,7 +3843,7 @@
             } catch (err) {
               if (err.name !== "AbortError") {
                 console.error(err);
-                Utils.toast("无法访问文件夹", "error");
+                Utils.toast("Cannot access folder", "error");
               }
             }
           },
@@ -3874,7 +3874,7 @@
                   App.state.dataSource.imgDirCache[dirId] = handle;
                 }
               } catch (e) {
-                console.warn("读取文件夹句柄失败", e);
+                console.warn("Failed to read folder handle", e);
               }
             }
 
@@ -3906,10 +3906,10 @@
         paper: {
           defaults: {
             blank: {
-              label: "空白纸",
+              label: "Blank Paper",
             },
             ruled: {
-              label: "横线纸",
+              label: "Ruled Paper",
               rowCount: 20,
               strokeWidth: 1,
               gridColor: "#e11d48",
@@ -3918,7 +3918,7 @@
               ruledClosed: false,
             },
             grid: {
-              label: "方格纸",
+              label: "Grid Paper",
               gridColumns: 24,
               strokeWidth: 1,
               gridColor: "#e11d48",
@@ -3926,7 +3926,7 @@
               gridDashed: false,
             },
             composition: {
-              label: "作文纸",
+              label: "Composition Paper",
               columnCount: 12,
               rowCount: 15,
               strokeWidth: 1,
@@ -3934,7 +3934,7 @@
               doubleBorder: true,
             },
             english: {
-              label: "英文纸",
+              label: "English Paper",
               rowCount: 10,
               englishLineGap: 3,
               englishGroupGap: 10,
@@ -3942,7 +3942,7 @@
               strokeWidth: 1,
             },
             music: {
-              label: "乐谱纸",
+              label: "Music Staff Paper",
               staffCount: 12,
               staffLineGap: 2.5,
               staffGroupGap: 12,
@@ -3951,7 +3951,7 @@
               gridColor: "#8a91a8",
             },
             tianzige: {
-              label: "田字格",
+              label: "Tian Zi Grid",
               tianSize: 18,
               tianInnerScale: 0.5,
               strokeWidth: 1,
@@ -3959,7 +3959,7 @@
               gridDashed: true,
             },
             mizige: {
-              label: "米字格",
+              label: "Mi Zi Grid",
               tianSize: 18,
               tianInnerScale: 0.5,
               strokeWidth: 1,
@@ -3967,7 +3967,7 @@
               gridDashed: true,
             },
             huizige: {
-              label: "回字格",
+              label: "Hui Zi Grid",
               tianSize: 18,
               tianInnerScale: 0.4,
               strokeWidth: 1,
@@ -3977,7 +3977,7 @@
               gridDashed: true,
             },
             jiugongge: {
-              label: "宫格纸",
+              label: "Jiugong Grid",
               tianSize: 18,
               tianInnerScale: 0.4,
               strokeWidth: 1,
@@ -3986,7 +3986,7 @@
               jiuRows: 3,
             },
             dots: {
-              label: "点阵纸",
+              label: "Dot Matrix Paper",
               dotSpace: 5,
               dotSize: 0.5,
               gridColor: "#e11d48",
@@ -3997,7 +3997,7 @@
               otStagger: false,
             },
             triangle: {
-              label: "等距网格",
+              label: "Isometric Grid",
               geoSize: 10,
               strokeWidth: 1,
               gridColor: "#e11d48",
@@ -4007,7 +4007,7 @@
               marginRight: 0,
             },
             hexagon: {
-              label: "六边形网格",
+              label: "Hexagon Grid",
               strokeWidth: 1,
               gridColor: "#e11d48",
               marginTop: 0,
@@ -4016,7 +4016,7 @@
               marginRight: 0,
             },
             label: {
-              label: "标签打印",
+              label: "Label Print",
               labelWidth: 105,
               labelHeight: 74.2,
               labelCols: 2,
@@ -4337,7 +4337,7 @@
               });
             },
 
-            // --- 辅助：田字格/米字格/回字格/九宫格通用绘制 ---
+            // --- Helper: Universal drawing for Tian-zi/Mi-zi/Hui-zi/Jiugong grids ---
             drawTianBase: function (cfg, canvas, options = {}) {
               const borderPad = cfg.doubleBorder ? 4 + cfg.strokeWidth : cfg.strokeWidth / 2;
               const startX = Math.max(cfg.marginLeft, borderPad);
@@ -4986,7 +4986,7 @@
               }
             }
 
-            const labelText = `${isDesign ? "标签设计" : fitLabel && type === "label" ? "单张标签" : sizeKey} (${w} x ${h} mm)`;
+            const labelText = `${isDesign ? "Label Design" : fitLabel && type === "label" ? "Single Label" : sizeKey} (${w} x ${h} mm)`;
             if (el("canvasSizeLabel")) el("canvasSizeLabel").innerText = labelText;
             App.state.currentPaper = { w, h };
             App.state.baseWidth = w * CONFIG.MM_TO_PX;
@@ -5066,7 +5066,7 @@
               App.ui.updateInspector();
               App.ui.updateLayerList();
               App.history.saveState();
-              Utils.toast("背景图片已移除");
+              Utils.toast("Background image removed");
             });
           },
           autoLayoutLabels: function () {
@@ -5128,7 +5128,7 @@
             const gapV = val("labelGapV");
             const cols = parseInt(el("labelCols").value) || 1;
             const rows = parseInt(el("labelRows").value) || 1;
-            if (cols < 1 || rows < 1) return Utils.toast("行列数必须大于0", "error");
+            if (cols < 1 || rows < 1) return Utils.toast("Row/column count must be greater than 0", "error");
             const availW = finalSheetW - marginLeft - marginRight;
             const availH = finalSheetH - marginTop - marginBottom;
             const totalGapW = (cols - 1) * gapH;
@@ -5138,7 +5138,7 @@
             newW = Math.floor(newW * 10) / 10;
             newH = Math.floor(newH * 10) / 10;
             if (newW <= 0 || newH <= 0) {
-              return Utils.toast("计算结果无效，请检查边距或间距设置", "error");
+              return Utils.toast("Calculation result is invalid, please check margin or spacing settings", "error");
             }
 
             el("labelWidth").value = newW;
@@ -5537,8 +5537,8 @@
             window.addEventListener("beforeunload", (e) => {
               if (App.state.hasUnsavedChanges) {
                 e.preventDefault();
-                e.returnValue = "未保存更改";
-                return "未保存更改";
+                e.returnValue = "Unsaved changes";
+                return "Unsaved changes";
               }
             });
           },
@@ -5642,7 +5642,7 @@
               const select = document.getElementById(id);
               if (!select) return;
               const seen = new Set([...select.options].map((o) => o.value));
-              if (!seen.has("---sep---")) select.add(new Option("--- 本地系统字体 ---", "---sep---", true, true));
+              if (!seen.has("---sep---")) select.add(new Option("--- Local System Fonts ---", "---sep---", true, true));
               for (const f of sortedFonts) {
                 if (!seen.has(f.postscriptName)) {
                   seen.add(f.postscriptName);
@@ -5676,7 +5676,7 @@
 
           addText: function () {
             this._addToCanvas(
-              new fabric.IText("双击编辑文本", {
+              new fabric.IText("Double-click to edit text", {
                 ...this._getCenter(),
                 fontSize: Utils.pt2px(20),
                 fontFamily: "SimSun",
@@ -5691,7 +5691,7 @@
           },
 
           addParagraph: function () {
-            const textbox = new fabric.Textbox("在此输入段落文本...\n支持自动换行。", {
+            const textbox = new fabric.Textbox("Enter paragraph text here...\nAuto-wrap supported.", {
               left: 100,
               top: 100,
               width: App.state.baseWidth - Utils.mm2px(50),
@@ -5724,7 +5724,7 @@
             const isDyn = App.state.dataSource.isActive || App.state.paperType === "label";
             const opts = isDyn
               ? {
-                  text: "时间预览",
+                  text: "Date/Time Preview",
                   left: App.state.baseWidth / 2,
                   top: App.state.baseHeight - Utils.mm2px(20),
                   originX: "center",
@@ -5734,7 +5734,7 @@
                   editable: false,
                 }
               : {
-                  text: "____年__月__日",
+                  text: "____-__-__",
 
                   left: App.state.baseWidth - cfg.marginRight,
                   top: Math.max(Utils.mm2px(5), cfg.marginTop - 35),
@@ -5774,7 +5774,7 @@
           addPageNum: function () {
             const hasDataSource = App.state.dataSource.isActive || App.state.paperType === "label";
             const cfg = App.paper.getSettings();
-            const pageObj = new fabric.IText(hasDataSource ? "第 1 页" : "第   页", {
+            const pageObj = new fabric.IText(hasDataSource ? "Page 1" : "Page   ", {
               left: App.state.baseWidth / 2,
               top: App.state.baseHeight - Utils.mm2px(20),
               fontSize: Utils.pt2px(20),
@@ -5787,7 +5787,7 @@
             if (hasDataSource) {
               pageObj.isDynamicPageNum = true;
               pageObj.pageConfig = {
-                format: "第 {page} 页",
+                format: "Page {page}",
                 startFrom: 1,
               };
             }
@@ -5952,7 +5952,7 @@
 
             if (!act || (act.type !== "image" && !isBgMode)) {
               input.value = "";
-              return Utils.toast("请先选中图片", "error");
+              return Utils.toast("Please select an image", "error");
             }
 
             if (isBgMode && App.state.paperType === "label" && App.state.label.mode === "preview") {
@@ -5964,7 +5964,7 @@
               if (isBgMode) {
                 const w = App.state.baseWidth;
                 const h = App.state.baseHeight;
-                // 原逻辑看似是 scaleX/scaleY 直接拉伸适配，或者按比例。
+                // Original logic seems to scaleX/scaleY direct stretch, or proportional.
 
                 imgObj.scaleX = w / imgObj.width;
                 imgObj.scaleY = h / imgObj.height;
@@ -5972,9 +5972,9 @@
                 imgObj.top = h / 2;
                 imgObj.originX = "center";
                 imgObj.originY = "center";
-                Utils.toast("背景已更新");
+                Utils.toast("Background updated");
               } else {
-                Utils.toast("图片已替换");
+                Utils.toast("Image replaced");
               }
             };
             if (isBgMode && !act) {
@@ -6012,13 +6012,13 @@
                   App.state.editingBackground = true;
                   App.ui.updateInspector();
                   App.history.saveState();
-                  Utils.toast("已设为背景");
+                  Utils.toast("Set as background");
                 },
                 {
                   ...act.toObject(["originX", "originY", "left", "top", "scaleX", "scaleY", "angle", "opacity"]),
                 },
               );
-            } else Utils.toast("请先选中一张图片", "error");
+            } else Utils.toast("Please select an image", "error");
           },
 
           togglePrintBackground: function (checked) {
@@ -6029,7 +6029,7 @@
           },
           fillPaper: function () {
             const act = App.canvas.getActiveObject();
-            if (!act || act.type !== "image") return Utils.toast("请先选中一张图片", "error");
+            if (!act || act.type !== "image") return Utils.toast("Please select an image", "error");
             const w = App.state.baseWidth;
             const h = App.state.baseHeight;
             act.set({
@@ -6056,14 +6056,14 @@
               const lockedCount = objects.length - toDelete.length;
               if (toDelete.length > 0) {
                 toDelete.forEach((o) => App.canvas.remove(o));
-                if (lockedCount > 0) Utils.toast(`已删除 ${toDelete.length} 个对象，${lockedCount} 个锁定对象被保留`);
+                if (lockedCount > 0) Utils.toast(`Deleted ${toDelete.length} objects, ${lockedCount} locked objects preserved`);
               } else {
-                Utils.toast("所选对象全部已锁定，无法删除", "error");
+                Utils.toast("All selected objects are locked, cannot delete", "error");
               }
               App.canvas.discardActiveObject();
             } else {
               if (act.lockMovementX) {
-                Utils.toast("对象已锁定，无法删除", "error");
+                Utils.toast("Object is locked, cannot delete", "error");
                 return;
               }
 
@@ -6171,7 +6171,7 @@
               const obj = await App.barcode.createOrUpdate(null, config);
               this._addToCanvas(obj);
             } catch (e) {
-              Utils.toast("创建条码失败: " + e.message, "error");
+              Utils.toast("Failed to create barcode: " + e.message, "error");
             }
           },
           group: function () {
@@ -6188,7 +6188,7 @@
             const act = App.canvas.getActiveObject();
             if (!act || act.type !== "group") return;
             if (act.isTable || act.isBarcode) {
-              Utils.toast("特殊组件无法解组", "info");
+              Utils.toast("Special component cannot be ungrouped", "info");
               return;
             }
 
@@ -6227,7 +6227,7 @@
             App.canvas.requestRenderAll();
             App.ui.updateInspector();
             App.history.saveState();
-            Utils.toast(newState ? "对象已锁定" : "对象已解锁");
+            Utils.toast(newState ? "Object locked" : "Object unlocked");
           },
           _updateImageSrc: function (fabricObj, file, callback) {
             const reader = new FileReader();
@@ -6493,11 +6493,11 @@
               this.state.colWidths = d.colWidths || Array(d.cols).fill(d.cellWidth || 100);
               this.state.rowHeights = d.rowHeights || Array(d.rows).fill(d.cellHeight || 44);
               this.state.data = this.normalizeCells(d.cells);
-              this.els.insertBtn.innerHTML = '<i class="ph ph-check-circle text-lg"></i> 更新表格';
+              this.els.insertBtn.innerHTML = '<i class="ph ph-check-circle text-lg"></i> Update Table';
             } else {
               this.state.editingTarget = null;
               this.resetData(3, 3);
-              this.els.insertBtn.innerHTML = '<i class="ph ph-plus-circle text-lg"></i> 插入表格';
+              this.els.insertBtn.innerHTML = '<i class="ph ph-plus-circle text-lg"></i> Insert Table';
             }
             this.updateInputs();
             this.renderGrid();
@@ -6556,12 +6556,12 @@
 
           deleteCR: function (type) {
             const sels = this.getSelectedCells();
-            if (!sels.length) return Utils.toast("请先选择单元格", "error");
+            if (!sels.length) return Utils.toast("Please select cells first", "error");
             const indices = new Set();
             sels.forEach((s) => indices.add(type === "row" ? s.row : s.col));
             const sortedIndices = Array.from(indices).sort((a, b) => b - a);
-            if (type === "row" && this.state.rows - sortedIndices.length < 1) return Utils.toast("至少保留一行", "error");
-            if (type === "col" && this.state.cols - sortedIndices.length < 1) return Utils.toast("至少保留一列", "error");
+            if (type === "row" && this.state.rows - sortedIndices.length < 1) return Utils.toast("Keep at least one row", "error");
+            if (type === "col" && this.state.cols - sortedIndices.length < 1) return Utils.toast("Keep at least one column", "error");
             if (type === "row") {
               sortedIndices.forEach((idx) => {
                 this.state.data.splice(idx, 1);
@@ -6578,7 +6578,7 @@
             this.clearSelection();
             this.updateInputs();
             this.renderGrid();
-            Utils.toast(`已删除 ${sortedIndices.length} ${type === "row" ? "行" : "列"}`);
+            Utils.toast(`Deleted ${sortedIndices.length} ${type === "row" ? "rows" : "cols"}`);
           },
 
           renderGrid: function () {
@@ -6625,7 +6625,7 @@
               const zoom = this.state.zoom || 1;
               const currentVal = this.state.resizing.includes("col") ? e.clientX : e.clientY;
               const startVal = this.state.resizeStartVal;
-              // 如果是 left/top 边缘，鼠标向负方向移动时，尺寸应该增加，所以要反向计算
+              // If left/top edge, moving mouse in negative direction increases size, so reverse calculation
               let delta = (currentVal - startVal) / zoom;
               if (this.state.resizing === "col-left" || this.state.resizing === "row-top") {
                 delta = -delta;
@@ -6793,7 +6793,7 @@
               bindWrapper.classList.remove("hidden");
               const cellData = this.getSelectedCells()[0].cell;
               const currentSheet = ds.currentSheet;
-              bindSelect.innerHTML = '<option value="">不绑定数据</option>';
+              bindSelect.innerHTML = '<option value="">No Data Binding</option>';
               if (hasDataSource) {
                 ds.headers.forEach((header) => {
                   const optionValue = `${currentSheet}:${header}`;
@@ -6810,7 +6810,7 @@
 
               if (hasSharedVars) {
                 const groupShared = document.createElement("optgroup");
-                groupShared.label = "共享字段";
+                groupShared.label = "Shared Field";
                 sharedKeys.forEach((key) => {
                   const optionValue = `ref:${key}`;
                   const opt = document.createElement("option");
@@ -6885,15 +6885,15 @@
 
           mergeSelection: function () {
             const cells = this.getSelectedCells();
-            if (cells.length < 2) return Utils.toast("请选择至少两个单元格", "error");
+            if (cells.length < 2) return Utils.toast("Please select at least two cells", "error");
             const rows = cells.map((c) => c.row),
               cols = cells.map((c) => c.col);
             const minRow = Math.min(...rows),
               maxRow = Math.max(...rows),
               minCol = Math.min(...cols),
               maxCol = Math.max(...cols);
-            if ((maxRow - minRow + 1) * (maxCol - minCol + 1) !== cells.length) return Utils.toast("请选择矩形区域", "error");
-            if (cells.some(({ cell }) => cell.rowspan > 1 || cell.colspan > 1)) return Utils.toast("区域含已合并单元格", "error");
+            if ((maxRow - minRow + 1) * (maxCol - minCol + 1) !== cells.length) return Utils.toast("Please select a rectangular area", "error");
+            if (cells.some(({ cell }) => cell.rowspan > 1 || cell.colspan > 1)) return Utils.toast("Area contains merged cells", "error");
             const base = this.state.data[minRow][minCol];
             let mergedText = base.text;
             cells.forEach((c, idx) => {
@@ -6985,10 +6985,10 @@
 
             if (this.state.editingTarget) {
               this._replaceTableOnCanvas(this.state.editingTarget, config);
-              Utils.toast("表格已更新");
+              Utils.toast("Table updated");
             } else {
               App.tools._addToCanvas(this.buildFabricTable(config));
-              Utils.toast("表格已插入");
+              Utils.toast("Table inserted");
             }
             if (App.dataSource) App.dataSource.refreshBindingState();
             this.close();
@@ -7171,7 +7171,7 @@
 
           generateSVG: function (config) {
             try {
-              if (!config.text || String(config.text).trim() === "") throw new Error("数据为空");
+              if (!config.text || String(config.text).trim() === "") throw new Error("Data is empty");
               const is2D = this.is2DType(config.type);
               const opts = {
                 bcid: config.type,
@@ -7411,7 +7411,7 @@
                 const row = ds.data[App.state.currentDataIndex || 0];
                 newValue = row ? String(row[act.dataBinding.field] || "") : "";
               } else {
-                newValue = act.dataBinding.field ? `{${act.dataBinding.field}}` : act.isBarcode ? "123456" : "变量预览";
+                newValue = act.dataBinding.field ? `{${act.dataBinding.field}}` : act.isBarcode ? "123456" : "Variable preview";
               }
             } else if (type === "serial") {
               act.isSerialNumber = true;
@@ -7763,7 +7763,7 @@
             if (propLockBtn && act) {
               const isLocked = act.lockMovementX;
               propLockIcon.className = isLocked ? "ph ph-lock-key text-red-600 text-lg" : "ph ph-lock-key-open text-lg";
-              propLockText.innerText = isLocked ? "已锁定" : "未锁定";
+              propLockText.innerText = isLocked ? "Locked" : "Unlocked";
               propLockText.className = isLocked ? "text-[10px] text-red-600 font-bold" : "text-[10px] text-slate-400";
             }
 
@@ -7895,11 +7895,11 @@
             const select = document.getElementById("propSharedSelect");
             const act = App.canvas.getActiveObject();
             const currentId = act ? act.sharedId : "";
-            select.innerHTML = '<option value="">选择共享字段</option>';
+            select.innerHTML = '<option value="">Select Shared Field</option>';
             const keys = App.content.getAvailableSharedIds();
             if (keys.length === 0) {
               const opt = document.createElement("option");
-              opt.text = "(暂无共享字段)";
+              opt.text = "(No shared fields)";
               opt.disabled = true;
               select.add(opt);
             }
@@ -7915,14 +7915,14 @@
           saveSharedId: function () {
             const input = document.getElementById("propSharedInput");
             const val = input.value.trim();
-            if (!val) return Utils.toast("请输入共享名称", "error");
+            if (!val) return Utils.toast("Please enter shared name", "error");
             const act = App.canvas.getActiveObject();
             if (!act) return;
             const exists = App.canvas.getObjects().some((obj) => {
               return obj !== act && obj.sharedId === val && obj.syncMode === "share";
             });
             if (exists) {
-              return Utils.toast(`共享名称 "${val}" 已存在，请使用其他名称`, "error");
+              return Utils.toast(`Shared name "${val}" already exists, please use another name`, "error");
             }
             act.set({
               sharedId: val,
@@ -7930,7 +7930,7 @@
             });
             App.content.render(act);
             App.history.saveState();
-            Utils.toast(`已设置共享字段: ${val}`);
+            Utils.toast(`Shared field set: ${val}`);
             App.ui.updateInspector();
           },
           applyRefId: function (val) {
@@ -7963,7 +7963,7 @@
             document.getElementById("syncPanel_ref")?.classList.add("hidden");
             document.getElementById("syncPanel_share")?.classList.add("hidden");
             App.history.saveState();
-            Utils.toast("已取消同步");
+            Utils.toast("Sync cancelled");
             App.ui.updateInspector();
           },
 
@@ -8010,12 +8010,12 @@
                   if (obj.imgDirId && obj.imgDirName) {
                     statusText.innerText = `📁 ${obj.imgDirName}`;
                     statusText.className = "text-[10px] text-green-600 font-bold truncate max-w-[120px] inline-block align-bottom";
-                    btnText.innerText = "更改文件夹...";
+                    btnText.innerText = "Change Folder...";
                     statusText.title = obj.imgDirName;
                   } else {
-                    statusText.innerText = "未单独设置";
+                    statusText.innerText = "Not Set";
                     statusText.className = "text-[10px] text-orange-500 font-bold";
-                    btnText.innerText = "设置图片文件夹...";
+                    btnText.innerText = "Set Image Folder...";
                   }
                 }
               } else {
@@ -8045,11 +8045,11 @@
             const cfg = act.dateConfig;
             if (key === "showDate" && !value && !cfg.showTime) {
               document.getElementById("dateShowDate").checked = true;
-              return Utils.toast("日期和时间至少显示一项", "info");
+              return Utils.toast("Show at least one of date or time", "info");
             }
             if (key === "showTime" && !value && !cfg.showDate) {
               document.getElementById("dateShowTime").checked = true;
-              return Utils.toast("日期和时间至少显示一项", "info");
+              return Utils.toast("Show at least one of date or time", "info");
             }
 
             cfg[key] = value;
@@ -8099,7 +8099,7 @@
 
             const previewText = preview.join(", ") + "...";
             const el = document.getElementById("serialPreviewText");
-            if (el) el.innerText = "预览: " + previewText;
+            if (el) el.innerText = "Preview: " + previewText;
           },
           _getUIProxy: function () {
             return (id) => {
@@ -8238,11 +8238,11 @@
                 input.disabled = true;
               }
               if (btn) {
-                btn.innerText = "删除";
+                btn.innerText = "Delete";
                 btn.onclick = () => App.ui.clearSyncData();
               }
               if (hint) {
-                hint.innerHTML = `提示：在其他字段前后缀中输入<b class="text-red-600">{${sharedId}}</b>可引用。`;
+                hint.innerHTML = `Tip: Enter <b class="text-red-600">{${sharedId}}</b> in other field prefixes/suffixs to Reference.`;
               }
             } else if (currentMode === "ref") {
               refPanel.classList.remove("hidden");
@@ -8255,11 +8255,11 @@
                 input.disabled = false;
               }
               if (btn) {
-                btn.innerText = "保存";
+                btn.innerText = "Save";
                 btn.onclick = () => App.ui.saveSharedId();
               }
               if (hint) {
-                hint.innerHTML = `提示：在其他字段前后缀中输入 {共享字段名} 可引用。`;
+                hint.innerHTML = `Tip: Enter {Shared Field Name} in other field prefixes/suffixs to Reference.`;
               }
             }
 
@@ -8362,7 +8362,7 @@
               const fieldSel = ui("bindField").el;
               if (fieldSel) {
                 fieldSel.innerHTML = "";
-                if (headers.length === 0) fieldSel.add(new Option("无字段", ""));
+                if (headers.length === 0) fieldSel.add(new Option("No fields", ""));
                 else headers.forEach((f) => fieldSel.add(new Option(f, f)));
                 fieldSel.value = (act.dataBinding && act.dataBinding.field) || "";
               }
@@ -8407,7 +8407,7 @@
               div.className = `${baseClass} ${isSelected ? activeClass : normalClass}`;
               if (!isBg && !isLabelPreview) div.setAttribute("draggable", "true");
               const deleteBtnHtml = `
-                <button class="del-btn w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-600 hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="删除">
+                <button class="del-btn w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-600 hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-all shrink-0" title="Delete">
                     <i class="ph ph-trash"></i>
                 </button>`;
               div.innerHTML = `
@@ -8484,7 +8484,7 @@
 
                     App.label.renderPreview();
                     this.updateLayerList();
-                    Utils.toast("已在预览中删除图层");
+                    Utils.toast("Deleted layers in preview");
                   } else {
                     if (isBg) {
                       App.paper.clearBackground();
@@ -8507,25 +8507,25 @@
               const checkType = (typeStr) => o.type === typeStr;
               if (o.isBarcode) {
                 icon = "ph-barcode";
-                label = "条码";
+                label = "Barcode";
               } else if (o.isTable) {
                 icon = "ph-table";
-                label = "表格";
+                label = "Table";
               } else if ((o.type || "").includes("text")) {
                 icon = "ph-text-t";
-                label = o.text ? o.text.substring(0, 12) : "文本";
+                label = o.text ? o.text.substring(0, 12) : "Text";
               } else if (checkType("image")) {
                 icon = "ph-image";
-                label = "图片";
+                label = "Image";
               } else if (checkType("line")) {
                 icon = "ph-line-segment";
-                label = "线条";
+                label = "Line";
               } else if (["rect", "circle", "triangle"].includes(o.type)) {
                 icon = "ph-shapes";
-                label = "形状";
+                label = "Shape";
               } else if (checkType("group")) {
                 icon = "ph-squares-four";
-                label = "组合";
+                label = "Group";
               }
 
               list.appendChild(
@@ -8541,7 +8541,7 @@
               list.appendChild(
                 renderItem({
                   icon: "ph-image-square",
-                  name: "【背景】图片",
+                  name: "[Background] Image",
                   obj: bgObj,
                   isBg: true,
                 }),
@@ -8650,11 +8650,11 @@
             const select = document.getElementById("bcSharedSelect");
             const act = App.canvas.getActiveObject();
             const currentRefId = act ? act.refId : "";
-            select.innerHTML = '<option value="">选择共享字段</option>';
+            select.innerHTML = '<option value="">Select Shared Field</option>';
             const keys = App.content.getAvailableSharedIds();
             if (keys.length === 0) {
               const opt = document.createElement("option");
-              opt.text = "(暂无可用字段)";
+              opt.text = "(No available fields)";
               opt.disabled = true;
               select.add(opt);
             }
@@ -8744,7 +8744,7 @@
           align: function (mode) {
             const activeObj = App.canvas.getActiveObject();
             const queue = App.state.selectionQueue;
-            if (!activeObj || activeObj.type !== "activeSelection" || queue.length < 2) return Utils.toast("请按住 Shift 依次点击选择对象进行对齐", "info");
+            if (!activeObj || activeObj.type !== "activeSelection" || queue.length < 2) return Utils.toast("Hold Shift and click objects sequentially for row alignment", "info");
             const anchor = queue[0];
             App.canvas.discardActiveObject();
             const aRect = anchor.getBoundingRect(true);
@@ -8809,7 +8809,7 @@
 
           distribute: function (mode) {
             const act = App.canvas.getActiveObject();
-            if (!act || act.type !== "activeSelection" || act.getObjects().length < 3) return Utils.toast("至少需要3个元素", "info");
+            if (!act || act.type !== "activeSelection" || act.getObjects().length < 3) return Utils.toast("Need at least 3 elements", "info");
             const objs = act.getObjects();
             App.canvas.discardActiveObject();
             const isH = mode === "horizontal";
@@ -8833,7 +8833,7 @@
           },
         },
 
-        // --- IO (导入/导出) ---
+        // --- IO (Import/Export) ---
         io: {
           _getFontCss: () =>
             [...document.styleSheets]
@@ -8972,7 +8972,7 @@
               this._createPrintIframe(allPagesHtml, css);
             } catch (e) {
               console.error(e);
-              Utils.toast("打印生成失败: " + e.message, "error");
+              Utils.toast("Print generation failed: " + e.message, "error");
             } finally {
               if (shouldBatch) {
                 if (isLabelPreview || isLabelDesign) {
@@ -8991,7 +8991,7 @@
             const oldTxt = btn ? btn.innerHTML : "";
             if (btn) {
               btn.disabled = true;
-              btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> 处理中...`;
+              btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> Processing...`;
             }
 
             const originalIndex = App.state.currentDataIndex;
@@ -9012,7 +9012,7 @@
                 }
               });
               if (App.fontManager.availableFonts.length === 0) {
-                 App.ui.showLoading("首次导出需加载系统字体...");
+                 App.ui.showLoading("First export needs to load system fonts...");
                  await App.fontManager.queryLocalFonts();
               }
 
@@ -9043,14 +9043,14 @@
                 compress: true,
               });
               try {
-                App.ui.showLoading("正在渲染PDF..");
+                App.ui.showLoading("Rendering PDF...");
                 await App.fontManager.applyToJsPDF(pdf, Array.from(usedFonts));
               } catch(fontErr) {
-                console.warn("字体应用到 PDF 失败:", fontErr);
+                console.warn("Failed to apply fonts to PDF:", fontErr);
               }
 
               const settings = App.paper.getSettings();
-              const typeLabel = App.paper.defaults[settings.type]?.label || "设计稿";
+              const typeLabel = App.paper.defaults[settings.type]?.label || "Design";
               for (let i = 0; i < loopCount; i++) {
                 if (shouldBatch) {
                   if (isLabelPreview) {
@@ -9061,7 +9061,7 @@
                   }
                 }
 
-                App.ui.showLoading(`正在生成第 ${i + 1} 页...`);
+                App.ui.showLoading(`Generating page ${i + 1}...`);
                 const vC =  await this._getExportCanvas(); 
                 vC.setViewportTransform([1, 0, 0, 1, 0, 0]);
                 const svg = vC.toSVG({
@@ -9075,13 +9075,13 @@
                 });
               }
 
-              App.ui.showLoading("正在保存 PDF...");
+              App.ui.showLoading("Saving PDF...");
               const fileName = `${typeLabel}_${Date.now()}.pdf`;
               pdf.save(fileName);
-              Utils.toast(`PDF 导出成功 (${loopCount} 页)`);
+              Utils.toast(`PDF exported successfully (${loopCount} pages)`);
 } catch (e) {
               console.error(e);
-              Utils.toast("导出失败: " + e.message, "error");
+              Utils.toast("Export failed: " + e.message, "error");
             } finally {
               if (shouldBatch) {
                 if (isLabelPreview) {
@@ -9149,7 +9149,7 @@
                     imgDirId: dsState.imgDirId,
                   }
                 : null;
-            const typeLabel = App.paper.defaults[settings.type]?.label || "设计稿";
+            const typeLabel = App.paper.defaults[settings.type]?.label || "Design";
             const blob = new Blob(
               [
                 JSON.stringify({
@@ -9174,7 +9174,7 @@
             a.download = `${typeLabel}_${Date.now()}.paper`;
             a.click();
             URL.revokeObjectURL(a.href);
-            Utils.toast("项目已保存");
+            Utils.toast("Project saved");
             App.state.hasUnsavedChanges = false;
           },
 
@@ -9294,25 +9294,25 @@
                 App.history.reset();
                 App.state.hasUnsavedChanges = false;
                 App.ui.hideLoading();
-                Utils.toast("项目加载成功");
+                Utils.toast("Project loaded successfully");
               };
               data.canvasData ? App.canvas.loadFromJSON(data.canvasData, done) : done();
             } catch (e) {
               console.error(e);
-              Utils.toast("数据解析异常: " + e.message, "error");
+              Utils.toast("Data parsing error: " + e.message, "error");
               App.ui.hideLoading();
             }
           },
 
           loadProject: function (file) {
             if (!file) return;
-            App.ui.showLoading("打开中...");
+            App.ui.showLoading("Opening...");
             const r = new FileReader();
             r.onload = (e) => {
               try {
                 this.loadProjectData(JSON.parse(e.target.result));
               } catch {
-                Utils.toast("文件格式错误", "error");
+                Utils.toast("File format error", "error");
               } finally {
                 App.ui.hideLoading();
               }
@@ -9348,7 +9348,7 @@
               if (c.barcodeConfig) c.barcodeConfig = JSON.parse(JSON.stringify(c.barcodeConfig));
               if (c.syncMode === "share" && c.sharedId) {
                 c.syncMode = "ref";
-                Utils.toast("已粘贴为引用对象");
+                Utils.toast("Pasted as referenced object");
               }
 
               if (c.isTable && c.tableData) {
@@ -9403,7 +9403,7 @@
             let raw = "";
             if (obj.syncMode === "ref" && obj.refId) {
               const parent = this.findObjectBySharedId(obj.refId);
-              raw = parent ? this.compute(parent, true) : "{引用丢失}";
+              raw = parent ? this.compute(parent, true) : "{Reference lost}";
             } else {
               raw = String(obj.rawContent !== undefined ? obj.rawContent : obj.text || "");
             }
@@ -9476,7 +9476,7 @@
                 this.setRawContent(parent, val);
                 return;
               } else {
-                Utils.toast("关联源不存在，已转为静态文本");
+                Utils.toast("Associated source not found, converted to static text");
                 obj.syncMode = "none";
                 obj.refId = null;
               }
@@ -9799,11 +9799,11 @@
             const span = btn.querySelector("span");
             if (App.state.label.mode === "design") {
               icon.className = "ph ph-eye text-base";
-              span.innerText = "预览模式";
+              span.innerText = "Preview Mode";
               if (toolbar) toolbar.classList.remove("pointer-events-none");
             } else {
               icon.className = "ph ph-pencil-simple text-base";
-              span.innerText = "设计模式";
+              span.innerText = "Design Mode";
               if (toolbar) toolbar.classList.add("pointer-events-none");
             }
           },
@@ -9822,20 +9822,20 @@
                   d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
                   d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${
                     t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'
-                  }</div><div><h3 class="font-bold text-slate-700 text-sm">${t.name}</h3><p class="text-slate-400 text-xs">${t.desc || "无描述"}</p></div>`;
+                  }</div><div><h3 class="font-bold text-slate-700 text-sm">${t.name}</h3><p class="text-slate-400 text-xs">${t.desc || "No description"}</p></div>`;
                   d.onclick = () => this.load(t.id);
                   grid.appendChild(d);
                 });
               }
             } catch {
-              Utils.toast("模板加载失败", "error");
+              Utils.toast("Template loading failed", "error");
             }
           },
 
           load: async function (id) {
             if (id === "blank_a4" || !this.data.find((i) => i.id === id)?.url) {
               App.dataSource.close();
-              App.ui.showLoading("创建中...");
+              App.ui.showLoading("Creating...");
               setTimeout(() => {
                 App.paper.changeType("blank", true);
                 const defaults = {
@@ -9864,12 +9864,12 @@
 
             const t = this.data.find((i) => i.id === id);
             if (t?.url) {
-              App.ui.showLoading("下载模板...");
+              App.ui.showLoading("Downloading template...");
               try {
                 await App.dataSource.close();
                 App.io.loadProjectData(await (await fetch(t.url)).json());
               } catch {
-                Utils.toast("加载失败", "error");
+                Utils.toast("Loading failed", "error");
                 App.ui.hideLoading();
               }
             }
@@ -9984,12 +9984,12 @@
           };
           const trigger = document.createElement('div');
           trigger.className = 'font-select-trigger';
-          trigger.innerHTML = `<span class="font-select-trigger-label">加载中...</span><i class="ph ph-caret-down font-select-trigger-icon"></i>`;
+          trigger.innerHTML = `<span class="font-select-trigger-label">Loading...</span><i class="ph ph-caret-down font-select-trigger-icon"></i>`;
           const dropdown = document.createElement('div');
           dropdown.className = 'font-select-dropdown';
           dropdown.innerHTML = `
             <div class="font-select-search-box">
-              <input type="text" class="font-select-search-input" placeholder="搜索字体…" />
+              <input type="text" class="font-select-search-input" placeholder="Search fonts..." />
             </div>
             <div class="font-select-list"></div>
           `;
@@ -10034,7 +10034,7 @@
             if (!anyVisible) {
               const empty = document.createElement('div');
               empty.className = 'font-select-empty';
-              empty.textContent = '没有匹配的字体';
+              empty.textContent = 'No matching fonts';
               listEl.appendChild(empty);
             }
           };
@@ -10096,7 +10096,7 @@
           document.addEventListener('click', (e) => {
             if (!container.contains(e.target) && !dropdown.contains(e.target)) close();
           }, true);
-          // 滚动/resize 时重新定位
+          // Reposition on scroll/resize
           window.addEventListener('scroll', () => { if (isOpen) positionDropdown(); }, true);
           window.addEventListener('resize', () => { if (isOpen) positionDropdown(); });
           syncLabel();
