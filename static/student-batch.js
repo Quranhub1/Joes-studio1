@@ -47,7 +47,10 @@
       registrationno: ["registrationno", "registrationnumber", "regno", "admissionno"],
       class: ["class", "classroom", "form", "grade", "level"],
       stream: ["stream", "classstream"],
-      gender: ["gender", "sex"],
+      gender: ["gender", "sex", "biologicalsex"],
+      sex: ["sex", "gender", "biologicalsex"],
+      sitting: ["sitting", "exam", "examination", "examname", "examinationname", "session", "examinationsession"],
+      issuedby: ["issuedby", "issued", "issuedbyoffice", "issuingoffice", "issuer", "issuedbykshs"],
       dob: ["dob", "dateofbirth", "birthdate", "birthday"],
       photo: ["photo", "photofile", "photofilename", "photoimage", "image", "imagefile", "picture", "studentphoto", "studentimage"],
       barcode: ["barcode", "barcodeno", "barcodevalue"],
@@ -178,6 +181,26 @@
             const value = el.getAttribute(attr);
             if (value) add(value.replace(/^{{\\s*|\\s*}}$/g, ""));
           });
+        });
+      } catch (_) {}
+
+      // Recognize ordinary KSHS examination-card HTML templates that use
+      // semantic element IDs instead of visible {{placeholders}}.
+      try {
+        const doc = new DOMParser().parseFromString(text, "text/html");
+        const semanticIds = {
+          "out-photo":"photo","in-photo":"photo","out-name":"name","in-name":"name",
+          "out-regno":"regno","in-regno":"regno","out-sex":"sex","in-sex":"sex",
+          "out-sitting":"sitting","in-sitting":"sitting","out-course":"course","in-course":"course",
+          "out-issuedby":"issuedby","in-issuedby":"issuedby"
+        };
+        Object.entries(semanticIds).forEach(([id, field]) => { if (doc.getElementById(id)) add(field); });
+        const labelMap = [["student photo","photo"],["photo","photo"],["name","name"],["reg no","regno"],
+          ["registration no","regno"],["registration number","regno"],["sex","sex"],["gender","sex"],
+          ["sitting","sitting"],["course","course"],["issued by","issuedby"]];
+        doc.querySelectorAll("label,span,div,td,th,p,strong,b").forEach(el => {
+          const label=this.normalize(el.textContent||"");
+          for (const [needle,field] of labelMap) if (label===this.normalize(needle)) { add(field); break; }
         });
       } catch (_) {}
 
@@ -419,6 +442,20 @@
           if (!attr.value.includes("{{")) continue;
           const replaced = this.replacePlaceholders(attr.value, row);
           el.setAttribute(attr.name, replaced);
+        }
+
+        // Support the supplied KSHS Examination Card's fixed IDs.
+        const fixedIds = {
+          "out-photo":"photo","in-photo":"photo","out-name":"name","in-name":"name",
+          "out-regno":"regno","in-regno":"regno","out-sex":"sex","in-sex":"sex",
+          "out-sitting":"sitting","in-sitting":"sitting","out-course":"course","in-course":"course",
+          "out-issuedby":"issuedby","in-issuedby":"issuedby"
+        };
+        const fixedField = fixedIds[el.id];
+        if (fixedField) {
+          const value = this.resolveValue(row, fixedField);
+          if (el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(value));
+          else if (!/^in-/.test(el.id)) el.textContent = value ?? "";
         }
 
         const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
