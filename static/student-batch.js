@@ -730,57 +730,126 @@
         if (host) host.innerHTML = "";
         return;
       }
+
       if (this._previewTimer) clearTimeout(this._previewTimer);
       this._previewTimer = setTimeout(async () => {
         try {
-          host.innerHTML = '<div class="flex items-center justify-center min-h-[220px] text-sm text-slate-400">Generating live preview…</div>';
+          host.innerHTML = '<div class="flex items-center justify-center min-h-[220px] text-sm text-slate-400">Generating live print preview…</div>';
+
           const sample = this.state.rows[0] || this.samplePreviewRow();
           const { body } = await this.buildHtmlCard(sample);
           const layout = this.layout();
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
+
+          // Render the preview as a real sheet. Card positions and sizes are
+          // calculated from the same millimetre layout used by PDF generation,
+          // rather than using a CSS grid that can stretch/overlap cards.
+          const maxPageWidth = Math.min(900, Math.max(420, host.clientWidth - 24));
+          const pageScale = maxPageWidth / layout.sheet.w;
+          const pageWidth = Math.round(layout.sheet.w * pageScale);
+          const pageHeight = Math.round(layout.sheet.h * pageScale);
+          const nativeCardWidth = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 85.6) * 96 / 25.4));
+          const nativeCardHeight = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 54) * 96 / 25.4));
+
           const page = document.createElement("div");
           page.className = "student-batch-preview-page";
           page.style.cssText = [
-            "position:relative","display:grid",
-            "grid-template-columns:repeat(" + layout.cols + ", minmax(0, 1fr))",
-            "gap:" + Math.max(4, Number(this.state.gapY) || 0) + "px " + Math.max(4, Number(this.state.gapX) || 0) + "px",
-            "box-sizing:border-box","padding:" + Math.max(6, Number(this.state.margin) || 0) + "px",
-            "background:#fff","overflow:hidden",
-            "width:" + Math.min(900, Math.max(320, layout.sheet.w * 2.8)) + "px",
-            "min-height:" + Math.min(1000, Math.max(360, layout.sheet.h * 2.8)) + "px",
-            "margin:0 auto","align-content:start"
+            "position:relative",
+            "box-sizing:border-box",
+            "flex:none",
+            "width:" + pageWidth + "px",
+            "height:" + pageHeight + "px",
+            "margin:0 auto",
+            "background:#fff",
+            "border:1px solid #cbd5e1",
+            "box-shadow:0 3px 12px rgba(15,23,42,.12)",
+            "overflow:hidden"
           ].join(";");
+
           for (let i = 0; i < previewCount; i++) {
-            const card = document.createElement("div");
-            card.className = "student-batch-preview-card";
-            card.style.cssText = [
-              "position:relative","width:100%",
-              "aspect-ratio:" + layout.card.w + "/" + layout.card.h,
-              "overflow:hidden","background:#fff","box-sizing:border-box"
+            const slot = i;
+            const col = slot % layout.cols;
+            const row = Math.floor(slot / layout.cols);
+
+            const xMm = Number(this.state.margin) + col * (layout.card.w + Number(this.state.gapX));
+            const yMm = Number(this.state.margin) + row * (layout.card.h + Number(this.state.gapY));
+            const xPx = xMm * pageScale;
+            const yPx = yMm * pageScale;
+            const cardWidthPx = layout.card.w * pageScale;
+            const cardHeightPx = layout.card.h * pageScale;
+
+            const frame = document.createElement("div");
+            frame.className = "student-batch-preview-card";
+            frame.style.cssText = [
+              "position:absolute",
+              "left:" + xPx + "px",
+              "top:" + yPx + "px",
+              "width:" + cardWidthPx + "px",
+              "height:" + cardHeightPx + "px",
+              "overflow:hidden",
+              "box-sizing:border-box",
+              "background:#fff"
             ].join(";");
+
+            const cardStage = document.createElement("div");
+            cardStage.style.cssText = [
+              "position:absolute",
+              "left:0",
+              "top:0",
+              "width:" + nativeCardWidth + "px",
+              "height:" + nativeCardHeight + "px",
+              "transform-origin:top left",
+              "transform:scale(" + (cardWidthPx / nativeCardWidth) + ")",
+              "overflow:hidden"
+            ].join(";");
+
             const style = document.createElement("style");
             style.textContent = this.state.htmlStyles;
-            card.appendChild(style);
+            cardStage.appendChild(style);
+
             const clone = body.cloneNode(true);
             clone.removeAttribute("id");
-            clone.style.width = "100%";
-            clone.style.height = "100%";
-            clone.style.maxWidth = "100%";
-            clone.style.maxHeight = "100%";
-            card.appendChild(clone);
-            page.appendChild(card);
+            clone.style.width = (Number(this.state.cardWidthMm) || 85.6) + "mm";
+            clone.style.height = (Number(this.state.cardHeightMm) || 54) + "mm";
+            clone.style.maxWidth = "none";
+            clone.style.maxHeight = "none";
+            clone.style.margin = "0";
+            clone.style.position = "relative";
+            cardStage.appendChild(clone);
+
+            frame.appendChild(cardStage);
+            page.appendChild(frame);
           }
+
           host.innerHTML = "";
+          host.style.display = "flex";
+          host.style.flexDirection = "column";
+          host.style.alignItems = "stretch";
+          host.style.justifyContent = "flex-start";
           host.appendChild(page);
+
           const info = document.createElement("div");
           info.className = "text-xs text-slate-500 text-center mt-2";
-          info.textContent = "Live preview generated automatically • " + previewCount + " card" + (previewCount === 1 ? "" : "s") + " • " + this.state.orientation + " • " + this.state.sheetSize;
+          info.textContent =
+            "Live print preview • page 1 • " + previewCount + " card" +
+            (previewCount === 1 ? "" : "s") + " • " +
+            this.state.orientation + " • " + this.state.sheetSize +
+            " • " + layout.cols + " × " + layout.rows + " layout";
           host.appendChild(info);
+
           const status = document.getElementById("studentBatchPreviewStatus");
-          if (status) status.textContent = "Live preview generated automatically • " + previewCount + " cards • " + this.state.orientation;
+          if (status) {
+            status.textContent =
+              "Live print preview • " + previewCount + " cards on page 1 • " +
+              layout.cols + " × " + layout.rows + " • " + this.state.orientation;
+          }
         } catch (e) {
           console.error("Student batch preview failed", e);
-          host.innerHTML = '<div class="flex flex-col items-center justify-center min-h-[220px] text-sm text-red-500 text-center p-4"><strong>Preview failed</strong><span class="mt-1">' + escapeHtml(e.message || "Unable to render the template.") + "</span></div>";
+          host.innerHTML =
+            '<div class="flex flex-col items-center justify-center min-h-[220px] text-sm text-red-500 text-center p-4">' +
+            "<strong>Preview failed</strong><span class=\"mt-1\">" +
+            escapeHtml(e.message || "Unable to render the template.") +
+            "</span></div>";
         }
       }, 0);
     },
