@@ -156,8 +156,8 @@
       this.state.cardHeightMm = size.h;
 
       this.state.mapping = this.autoMapHtml();
-      this.renderTemplatePreview();
       this.refresh();
+      this.previewBatch();
       Utils.toast("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " placeholders detected");
     },
 
@@ -724,6 +724,126 @@
       return { card, sheet, cols: best.cols, rows: best.rows, perPage: requested, scale: best.scale };
     },
 
+    async previewBatch() {
+      const host = document.getElementById("studentBatchPreview");
+      if (!host || this.state.templateMode !== "html" || !this.state.htmlText) {
+        if (host) host.innerHTML = "";
+        return;
+      }
+
+      if (this._previewTimer) clearTimeout(this._previewTimer);
+      this._previewTimer = setTimeout(async () => {
+        try {
+          host.innerHTML = '<div class="flex items-center justify-center h-full text-sm text-slate-400">Generating preview…</div>';
+
+          // Preview must use the same HTML template renderer used by PDF
+          // generation. This prevents the preview and the final document
+          // from becoming two different versions of reality.
+          const sample = this.state.rows[0] || this.samplePreviewRow();
+          const { body } = await this.buildHtmlCard(sample);
+
+          const layout = this.layout();
+          const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
+          const page = document.createElement("div");
+          page.className = "student-batch-preview-page";
+          page.style.cssText = [
+            "position:relative",
+            "display:grid",
+            "grid-template-columns:repeat(" + layout.cols + ", minmax(0, 1fr))",
+            "gap:" + Math.max(4, Number(this.state.gapY) || 0) + "px " + Math.max(4, Number(this.state.gapX) || 0) + "px",
+            "box-sizing:border-box",
+            "padding:" + Math.max(6, Number(this.state.margin) || 0) + "px",
+            "background:#fff",
+            "overflow:hidden",
+            "width:" + Math.min(900, Math.max(320, layout.sheet.w * 2.8)) + "px",
+            "min-height:" + Math.min(1000, Math.max(360, layout.sheet.h * 2.8)) + "px",
+            "margin:0 auto",
+            "align-content:start"
+          ].join(";");
+
+          for (let i = 0; i < previewCount; i++) {
+            const card = document.createElement("div");
+            card.className = "student-batch-preview-card";
+            card.style.cssText = [
+              "position:relative",
+              "width:100%",
+              "aspect-ratio:" + layout.card.w + "/" + layout.card.h,
+              "overflow:hidden",
+              "background:#fff",
+              "box-sizing:border-box"
+            ].join(";");
+
+            const style = document.createElement("style");
+            style.textContent = this.state.htmlStyles;
+            card.appendChild(style);
+
+            const clone = body.cloneNode(true);
+            clone.removeAttribute("id");
+            clone.style.width = "100%";
+            clone.style.height = "100%";
+            clone.style.maxWidth = "100%";
+            clone.style.maxHeight = "100%";
+            card.appendChild(clone);
+            page.appendChild(card);
+          }
+
+          host.innerHTML = "";
+          host.appendChild(page);
+
+          const info = document.createElement("div");
+          info.className = "text-xs text-slate-500 text-center mt-2";
+          info.textContent = "Live preview • " + previewCount + " card" + (previewCount === 1 ? "" : "s") +
+            " • " + this.state.orientation + " • " + this.state.sheetSize;
+          host.appendChild(info);
+        } catch (e) {
+          console.error("Student batch preview failed", e);
+          host.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-sm text-red-500 text-center p-4"><strong>Preview failed</strong><span class="mt-1">' +
+            escapeHtml(e.message || "Unable to render the template.") + '</span></div>';
+        }
+      }, 0);
+    },
+
+    samplePreviewRow() {
+      const sample = {};
+      const defaults = {
+        name: "Kampala School Student",
+        studentname: "Kampala School Student",
+        firstname: "Kampala",
+        lastname: "Student",
+        othernames: "Sample",
+        regno: "KSHS/2026/0001",
+        registrationno: "KSHS/2026/0001",
+        registrationnumber: "KSHS/2026/0001",
+        sex: "FEMALE",
+        gender: "FEMALE",
+        sitting: "END OF SEMESTER EXAMINATION",
+        exam: "END OF SEMESTER EXAMINATION",
+        course: "Certificate in Biomedical Engineering",
+        programme: "Certificate in Biomedical Engineering",
+        issuedby: "Examinations Office",
+        photo: "",
+      };
+      this.state.templateFields.forEach(field => {
+        const n = this.normalize(field);
+        const value = defaults[n] ?? "";
+        sample[field] = value;
+      });
+      return sample;
+    },
+
+    previewCardCount() {
+      const mode = String(
+        document.querySelector('input[name="studentBatchMode"]:checked')?.value ||
+        document.getElementById("studentBatchMode")?.value ||
+        this.state.templateMode ||
+        "single"
+      ).toLowerCase();
+
+      if (mode === "single") return 1;
+      if (mode === "filled") return Math.max(1, this.state.rows.length || 1);
+      return Math.max(1, Number(this.state.cardsPerPage) || 1);
+    },
+
     renderTemplatePreview() {
       const host = document.getElementById("studentBatchPreview");
       if (!host || this.state.templateMode !== "html") return;
@@ -748,193 +868,3 @@
       const fileEl = document.getElementById("studentBatchTemplateName");
       const excelEl = document.getElementById("studentBatchExcelName");
       const countEl = document.getElementById("studentBatchCount");
-      const layoutEl = document.getElementById("studentBatchLayout");
-      const fieldsEl = document.getElementById("studentBatchFields");
-      const sizeEl = document.getElementById("studentBatchCardSize");
-      const photoEl = document.getElementById("studentBatchPhotoName");
-
-      if (fileEl) fileEl.textContent = this.state.templateName || "No template selected";
-      if (excelEl) excelEl.textContent = this.state.rows.length ? "Excel data loaded" : "No Excel file selected";
-      if (countEl) countEl.textContent = String(this.state.rows.length);
-      if (photoEl) photoEl.textContent = this.state.photoFiles.size ? "Photo folder indexed" : "No photo folder (optional)";
-      if (sizeEl) sizeEl.textContent = (Number(this.state.cardWidthMm).toFixed(1) + " × " + Number(this.state.cardHeightMm).toFixed(1) + " mm");
-
-      const l = this.layout();
-      if (layoutEl) layoutEl.textContent = l.cols + " × " + l.rows + " = " + l.perPage + " cards/page • " + this.state.orientation + " • " + this.state.resolution + " DPI";
-
-      if (fieldsEl) {
-        if (!this.state.templateFields.length) {
-          fieldsEl.innerHTML = '<span class="text-slate-400">Load an HTML template to detect {{placeholders}}.</span>';
-        } else {
-          fieldsEl.innerHTML = this.state.templateFields.map(field => {
-            const header = this.state.mapping[field];
-            return '<div class="flex items-center justify-between gap-2 py-1 border-b border-slate-100 last:border-0">' +
-              '<span class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</span>' +
-              (header
-                ? '<span class="text-[11px] text-green-700 font-semibold truncate">✓ ' + escapeHtml(header) + '</span>'
-                : '<span class="text-[11px] text-orange-600 font-semibold">⚠ not found</span>') +
-              '</div>';
-          }).join("");
-        }
-      }
-
-      const generate = document.getElementById("studentBatchGenerate");
-      if (generate) generate.disabled = !this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length;
-    },
-
-    async generate() {
-      if (!this.state.rows.length || !this.state.templateFile) {
-        Utils.toast("Select an HTML template and Excel data first.", "error");
-        return;
-      }
-
-      const missing = this.state.templateFields.filter(f => !this.state.mapping[f]);
-
-      // Excel may contain many more columns than the card uses. Conversely,
-      // the template may contain fields that are not represented in Excel.
-      // Neither situation blocks generation. Unmatched template fields are
-      // printed with "....." so the card can be completed manually.
-      if (missing.length) {
-        Utils.toast("Generated with " + missing.length + " manual-fill field(s): " + missing.join(", "));
-      }
-
-      const layout = this.layout();
-      const copies = Math.max(1, Number(this.state.copies) || 1);
-      const totalCards = this.state.rows.length * copies;
-      const totalPages = Math.ceil(totalCards / layout.perPage);
-      const pdf = new window.jspdf.jsPDF({
-        orientation: layout.sheet.w > layout.sheet.h ? "l" : "p",
-        unit: "mm",
-        format: [layout.sheet.w, layout.sheet.h],
-        compress: true,
-      });
-
-      const originalIndex = App.state.currentDataIndex || 0;
-      const originalSheet = App.state.dataSource.currentSheet;
-      const originalOnly = App.state.printCurrentOnly;
-      const oldData = App.state.dataSource.data;
-      const oldHeaders = App.state.dataSource.headers;
-      const oldActive = App.state.dataSource.isActive;
-
-      try {
-        App.ui.showLoading("Preparing HTML batch...");
-        let cardNumber = 0;
-
-        for (let rowIndex = 0; rowIndex < this.state.rows.length; rowIndex++) {
-          for (let copy = 0; copy < copies; copy++) {
-            const canvas = this.state.templateMode === "html"
-              ? await this.renderHtmlCard(this.state.rows[rowIndex])
-              : await this.renderPaperCard(rowIndex);
-
-            if (cardNumber > 0 && cardNumber % layout.perPage === 0) {
-              pdf.addPage([layout.sheet.w, layout.sheet.h], layout.sheet.w > layout.sheet.h ? "l" : "p");
-            }
-
-            const slot = cardNumber % layout.perPage;
-            const col = slot % layout.cols;
-            const row = Math.floor(slot / layout.cols);
-            const x = Number(this.state.margin) + col * (layout.card.w + Number(this.state.gapX));
-            const y = Number(this.state.margin) + row * (layout.card.h + Number(this.state.gapY));
-            const image = canvas.toDataURL("image/png", 1);
-            pdf.addImage(image, "PNG", x, y, layout.card.w, layout.card.h, undefined, "FAST");
-            cardNumber++;
-            if (cardNumber === 1 || cardNumber % Math.max(1, Math.floor(totalCards / 20)) === 0 || cardNumber === totalCards) {
-              App.ui.showLoading("Generating card " + cardNumber + " of " + totalCards + "...");
-            }
-          }
-        }
-
-        const safeName = (this.state.templateName || "student_cards")
-          .replace(/\.(html?|paper)$/i, "")
-          .replace(/[^a-z0-9_-]+/gi, "_");
-        pdf.save(safeName + "_batch_" + new Date().toISOString().slice(0, 10) + ".pdf");
-        Utils.toast("Batch complete: " + totalCards + " cards on " + totalPages + " pages.");
-      } catch (e) {
-        console.error(e);
-        Utils.toast("Batch generation failed: " + e.message, "error");
-      } finally {
-        App.state.dataSource.data = oldData;
-        App.state.dataSource.headers = oldHeaders;
-        App.state.dataSource.isActive = oldActive;
-        App.state.printCurrentOnly = originalOnly;
-        if (this.state.templateMode === "paper") await App.dataSource.renderPage(originalIndex);
-        App.ui.hideLoading();
-      }
-    },
-
-    async renderPaperCard(studentIndex) {
-      const oldData = App.state.dataSource.data;
-      const oldHeaders = App.state.dataSource.headers;
-      const oldActive = App.state.dataSource.isActive;
-      App.state.dataSource.data = this.state.rows;
-      App.state.dataSource.headers = this.state.headers;
-      App.state.dataSource.isActive = true;
-      App.state.dataSource.currentSheet = "Batch";
-      await App.dataSource.renderPage(studentIndex);
-      const exportCanvas = await App.io._getExportCanvas();
-      exportCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-      const image = document.createElement("canvas");
-      image.width = exportCanvas.getWidth() * 2;
-      image.height = exportCanvas.getHeight() * 2;
-      image.getContext("2d").drawImage(exportCanvas.lowerCanvasEl, 0, 0, image.width, image.height);
-      exportCanvas.dispose();
-      App.state.dataSource.data = oldData;
-      App.state.dataSource.headers = oldHeaders;
-      App.state.dataSource.isActive = oldActive;
-      return image;
-    },
-
-    cleanupPreview() {
-      const host = document.getElementById("studentBatchPreview");
-      if (host) host.innerHTML = "";
-    },
-  };
-
-  function columnName(index) {
-    let n = Number(index) + 1;
-    let out = "";
-    while (n > 0) {
-      const r = (n - 1) % 26;
-      out = String.fromCharCode(65 + r) + out;
-      n = Math.floor((n - 1) / 26);
-    }
-    return out;
-  }
-
-  function fileNameSafe(name) {
-    return String(name || "").replace(/[^a-z0-9_.-]+/gi, "_");
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  window.JoesStudentBatch = Batch;
-  window.addEventListener("load", () => {
-    document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
-    document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
-    document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
-    document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
-    document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
-    document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
-    ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
-      document.getElementById(id)?.addEventListener("input", () => {
-        const keyMap = {
-          studentBatchMargin: "margin",
-          studentBatchGapX: "gapX",
-          studentBatchGapY: "gapY",
-          studentBatchCopies: "copies"
-        };
-        if (id === "studentBatchSheetSize") Batch.state.sheetSize = document.getElementById(id).value;
-        else if (keyMap[id]) Batch.state[keyMap[id]] = Number(document.getElementById(id).value);
-        Batch.refresh();
-      });
-    });
-    Batch.refresh();
-  });
-})();
