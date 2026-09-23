@@ -394,7 +394,8 @@
           const imagePath = imageMap[relId];
           if (!Number.isFinite(row) || !imagePath) continue;
 
-          const imageFile = zip.file(imagePath);
+          const imageFile = zip.file(imagePath.replace(/^\//, ""));
+
           if (!imageFile) continue;
           const blob = await imageFile.async("blob");
           const dataUrl = await this.fileToDataUrl(blob);
@@ -411,6 +412,13 @@
       const cleanTarget = String(target || "").split("#")[0];
       const base = referencePath.split("/");
       base.pop();
+
+      // In an OOXML .rels file, relationship targets are resolved relative
+      // to the owning part's directory, not the _rels directory itself.
+      // Example: xl/worksheets/_rels/sheet1.xml.rels + ../drawings/drawing1.xml
+      // resolves to xl/drawings/drawing1.xml.
+      if (base[base.length - 1] === "_rels") base.pop();
+
       for (const part of cleanTarget.split("/")) {
         if (!part || part === ".") continue;
         if (part === "..") base.pop();
@@ -663,11 +671,10 @@
         if (/^https?:/i.test(src)) img.setAttribute("crossorigin", "anonymous");
       });
 
-      // Inline template images before the card is used by the live preview.
-      // The preview must show the same badge asset that the PDF renderer sees,
-      // rather than relying on a cross-origin URL that may disappear inside
-      // cloned/serialized DOM. This also applies independently to every card.
-      await this.inlineExportImages(body);
+      // Do not replace external template images with a failed fetch in the
+      // live preview. Browsers can display the badge directly even when the
+      // source does not grant CORS. Keep the real src for preview; the PDF
+      // renderer separately inlines images when it rasterizes the card.
 
       for (const el of all) {
         for (const attr of Array.from(el.attributes)) {
