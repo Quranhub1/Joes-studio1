@@ -723,10 +723,12 @@
         // Prefer a grid whose cells are closest to the real card proportions.
         // If several grids are close, prefer the one with the larger cards.
         const area = cellW * cellH;
+        const shapePenalty = Math.abs(Math.log(cols / rows));
+        const score = aspectPenalty + shapePenalty * 0.25;
         if (!best ||
-            aspectPenalty < best.aspectPenalty ||
-            (Math.abs(aspectPenalty - best.aspectPenalty) < 0.08 && area > best.area)) {
-          best = { cols, rows, cellW, cellH, aspectPenalty, area };
+            score < best.score ||
+            (Math.abs(score - best.score) < 0.08 && area > best.area)) {
+          best = { cols, rows, cellW, cellH, aspectPenalty, shapePenalty, score, area };
         }
       }
       if (!best) {
