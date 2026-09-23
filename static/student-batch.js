@@ -547,7 +547,7 @@
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
-      const body = doc.querySelector("[data-card], .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+      const body = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
@@ -713,11 +713,10 @@
       const gy = Number(this.state.gapY) || 0;
       const requested = Math.max(1, Number(this.state.cardsPerPage) || 1);
 
-      // Treat the selected cards-per-page as a real print grid. The old
-      // implementation kept the card's native size, which left a huge amount
-      // of empty paper and made the six cards look stranded in one corner.
-      // Each grid cell now occupies the available page area, so the preview
-      // and PDF use the same full-page placement.
+      // Keep the real card aspect ratio. Cards are enlarged uniformly until
+      // they fill the available grid as much as physically possible. This
+      // avoids the previous two bad extremes: cards stranded in one corner
+      // and cards stretched independently in X/Y.
       let best = null;
       for (let cols = 1; cols <= requested; cols++) {
         const rows = Math.ceil(requested / cols);
@@ -727,33 +726,21 @@
 
         const cellW = availableW / cols;
         const cellH = availableH / rows;
-        const cellAspect = cellW / cellH;
-        const cardAspect = baseCard.w / baseCard.h;
-        const aspectPenalty = Math.abs(Math.log(cellAspect / cardAspect));
-
-        // Prefer a grid whose cells are closest to the real card proportions.
-        // If several grids are close, prefer the one with the larger cards.
-        const area = cellW * cellH;
+        const scale = Math.min(cellW / baseCard.w, cellH / baseCard.h);
+        const usedW = baseCard.w * scale;
+        const usedH = baseCard.h * scale;
+        const fill = (usedW * usedH) / (cellW * cellH);
         const shapePenalty = Math.abs(Math.log(cols / rows));
-        const score = aspectPenalty + shapePenalty * 0.25;
-        if (!best ||
-            score < best.score ||
-            (Math.abs(score - best.score) < 0.08 && area > best.area)) {
-          best = { cols, rows, cellW, cellH, aspectPenalty, shapePenalty, score, area };
+        const score = fill - shapePenalty * 0.03;
+
+        if (!best || score > best.score) {
+          best = { cols, rows, cellW, cellH, scale, usedW, usedH, score };
         }
       }
-      if (!best) {
-        best = {
-          cols: 1,
-          rows: 1,
-          cellW: Math.max(1, sheet.w - margin * 2),
-          cellH: Math.max(1, sheet.h - margin * 2),
-          aspectPenalty: 0,
-          area: 1
-        };
-      }
 
-      const card = { w: best.cellW, h: best.cellH };
+      if (!best) best = { cols: 1, rows: 1, cellW: sheet.w - margin * 2, cellH: sheet.h - margin * 2, scale: 1, usedW: baseCard.w, usedH: baseCard.h, score: 0 };
+
+      const card = { w: best.usedW, h: best.usedH };
       this.state.columns = best.cols;
       this.state.rowsPerPage = best.rows;
       return {
@@ -762,8 +749,9 @@
         cols: best.cols,
         rows: best.rows,
         perPage: requested,
-        scaleX: best.cellW / baseCard.w,
-        scaleY: best.cellH / baseCard.h
+        scale: best.scale,
+        cellW: best.cellW,
+        cellH: best.cellH
       };
     },
 
@@ -821,8 +809,10 @@
             const slot = i;
             const col = slot % layout.cols;
             const row = Math.floor(slot / layout.cols);
-            const xMm = Number(this.state.margin) + col * (layout.card.w + Number(this.state.gapX));
-            const yMm = Number(this.state.margin) + row * (layout.card.h + Number(this.state.gapY));
+            const cellXmm = Number(this.state.margin) + col * (layout.cellW + Number(this.state.gapX));
+            const cellYmm = Number(this.state.margin) + row * (layout.cellH + Number(this.state.gapY));
+            const xMm = cellXmm + (layout.cellW - layout.card.w) / 2;
+            const yMm = cellYmm + (layout.cellH - layout.card.h) / 2;
             const xPx = xMm * pageScale;
             const yPx = yMm * pageScale;
             const cardWidthPx = layout.card.w * pageScale;
@@ -1041,8 +1031,10 @@
             const slot = cardNumber % layout.perPage;
             const col = slot % layout.cols;
             const row = Math.floor(slot / layout.cols);
-            const x = Number(this.state.margin) + col * (layout.card.w + Number(this.state.gapX));
-            const y = Number(this.state.margin) + row * (layout.card.h + Number(this.state.gapY));
+            const cellX = Number(this.state.margin) + col * (layout.cellW + Number(this.state.gapX));
+            const cellY = Number(this.state.margin) + row * (layout.cellH + Number(this.state.gapY));
+            const x = cellX + (layout.cellW - layout.card.w) / 2;
+            const y = cellY + (layout.cellH - layout.card.h) / 2;
             const image = canvas.toDataURL("image/png", 1);
             pdf.addImage(image, "PNG", x, y, layout.card.w, layout.card.h, undefined, "FAST");
             cardNumber++;
@@ -1093,7 +1085,7 @@
     },
 
     cleanupPreview() {
-      const host = document.getElementById("studentBatchPreview");
+      const host = document.getElementById("studentBatchPrintPreview");
       if (host) host.innerHTML = "";
     },
   };
