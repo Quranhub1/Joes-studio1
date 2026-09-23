@@ -136,7 +136,7 @@
       // Prefer the actual card container when the template contains a full
       // HTML document. This prevents headers, school branding, instructions,
       // and other page-level content from becoming the generated "card".
-      const root = doc.querySelector("[data-card], .student-card, #student-card, .id-card, #id-card, .card");
+      const root = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card");
       const cardRoot = root || doc.body;
       if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
 
@@ -246,7 +246,7 @@
       if (Number(attrW) > 0 && Number(attrH) > 0) return { w: Number(attrW), h: Number(attrH) };
 
       const css = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
-      const classMatch = css.match(/(?:\.student-card|\.card|\#student-card|\#card)[^{]*\{([^}]*)\}/i);
+      const classMatch = css.match(/(?:\.exam-card|\.student-card|\.card|\#student-card|\#card)[^{]*\{([^}]*)\}/i);
       const block = classMatch ? classMatch[1] : css;
       const w = this.parseCssLength((block.match(/\bwidth\s*:\s*([^;]+)/i) || [])[1]);
       const h = this.parseCssLength((block.match(/\bheight\s*:\s*([^;]+)/i) || [])[1]);
@@ -848,8 +848,12 @@
 
             const clone = builtCards[i].cloneNode(true);
             clone.removeAttribute("id");
-            clone.style.width = (Number(this.state.cardWidthMm) || 85.6) + "mm";
-            clone.style.height = (Number(this.state.cardHeightMm) || 54) + "mm";
+            clone.style.width = nativeCardWidth + "px";
+            clone.style.height = nativeCardHeight + "px";
+            clone.style.minWidth = nativeCardWidth + "px";
+            clone.style.minHeight = nativeCardHeight + "px";
+            clone.style.maxWidth = nativeCardWidth + "px";
+            clone.style.maxHeight = nativeCardHeight + "px";
             clone.style.maxWidth = "none";
             clone.style.maxHeight = "none";
             clone.style.margin = "0";
@@ -923,7 +927,7 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
-      const source = doc.querySelector("[data-card], .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+      const source = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
