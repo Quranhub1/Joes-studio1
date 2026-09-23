@@ -344,35 +344,72 @@
           blankrows: false
         });
 
-        // Real-world school workbooks often have a title/logo/instructions
-        // above the header row. Find the most plausible header row instead of
-        // assuming row 1 is the header.
+        // Real-world school workbooks may contain titles, merged headings,
+        // logos, blank spacer rows, or instructions before the actual table.
+        // Find a row that behaves like a header AND has real records beneath it.
         const nonEmpty = row => row.filter(v => String(v ?? "").trim() !== "");
+        const normalizedCells = row => nonEmpty(row).map(v => this.normalize(v)).filter(Boolean);
         const keywordScore = row => {
-          const text = row.map(v => this.normalize(v)).join(" ");
-          const keys = ["name","student","registration","regno","admission","id","course","class","stream","gender","dob","dateofbirth","photo","year"];
+          const text = normalizedCells(row).join(" ");
+          const keys = [
+            "name","student","registration","regno","admission","studentno","studentnumber",
+            "id","course","programme","program","class","stream","gender","sex","dob",
+            "dateofbirth","photo","image","picture","sitting","exam","issuedby","year"
+          ];
           return keys.reduce((n, k) => n + (text.includes(k) ? 1 : 0), 0);
         };
+
+        const scan = matrix.slice(0, Math.min(matrix.length, 150));
         let headerIndex = -1;
         let bestScore = -Infinity;
-        const scan = matrix.slice(0, Math.min(matrix.length, 100));
-        scan.forEach((row, i) => {
-          const cells = nonEmpty(row);
-          if (!cells.length) return;
-          const keyword = keywordScore(row);
-          const nextRows = scan.slice(i + 1).filter(r => nonEmpty(r).length).length;
-          const uniqueCells = new Set(cells.map(v => this.normalize(v)).filter(Boolean)).size;
-          // Prefer semantic headers, but never reject a perfectly valid custom
-          // header simply because its name is unknown to us.
-          const score = keyword * 100 + Math.min(cells.length, 50) + Math.min(nextRows, 20) + uniqueCells;
+        let bestDataRows = [];
+
+        scan.forEach((candidate, i) => {
+          const headerCells = normalizedCells(candidate);
+          if (!headerCells.length) return;
+
+          const width = headerCells.length;
+          const candidateHeaders = new Set(headerCells);
+          let usableRows = 0;
+          let populatedCells = 0;
+
+          for (let j = i + 1; j < matrix.length; j++) {
+            const row = matrix[j];
+            const cells = nonEmpty(row);
+            if (!cells.length) continue;
+
+            const filled = row.slice(0, Math.max(width, 1)).filter(v => String(v ?? "").trim() !== "").length;
+            // A record should contain actual values, not just another heading.
+            if (filled > 0) {
+              usableRows++;
+              populatedCells += filled;
+            }
+
+            if (usableRows >= 50) break;
+          }
+
+          const keyword = keywordScore(candidate);
+          const unique = candidateHeaders.size;
+          const hasEnoughColumns = width >= 2;
+          const dataEvidence = Math.min(usableRows, 30);
+          const density = usableRows ? populatedCells / Math.max(1, usableRows * width) : 0;
+
+          // Strongly favor rows followed by records. This prevents a workbook
+          // title such as "STUDENT EXAMINATION CARDS" from being mistaken for
+          // the header simply because it contains the word student.
+          let score = dataEvidence * 100 + keyword * 20 + Math.min(width, 50) + unique;
+          score += hasEnoughColumns ? 25 : -20;
+          score += Math.round(density * 20);
+
           if (score > bestScore) {
             bestScore = score;
             headerIndex = i;
+            bestDataRows = [];
           }
         });
 
         if (headerIndex < 0) {
-          throw new Error("The selected worksheet contains no readable cells.");
+          throw new Error("The selected worksheet contains no readable table.");
         }
 
         const rawHeaders = matrix[headerIndex] || [];
@@ -380,18 +417,19 @@
         const used = new Set();
         rawHeaders.forEach((value, i) => {
           let header = String(value ?? "").trim();
-          if (!header) header = "Column " + String.fromCharCode(65 + (i % 26));
+          if (!header) header = "Column " + columnName(i);
           let base = header;
           let n = 2;
-          while (used.has(header)) header = base + " " + n++;
-          used.add(header);
+          while (used.has(this.normalize(header))) header = base + " " + n++;
+          used.add(this.normalize(header));
           headers.push(header);
         });
 
-        let dataMatrix = matrix.slice(headerIndex + 1).filter(row => nonEmpty(row).length > 0);
-        // If the workbook has no explicit header row, a single populated row
-        // is still useful as a one-record dataset. Keep it rather than failing.
-        if (!dataMatrix.length && matrix[headerIndex]?.length) dataMatrix = [];
+        const dataMatrix = matrix.slice(headerIndex + 1).filter(row => {
+          const cells = nonEmpty(row);
+          return cells.length > 0;
+        });
+
         const rows = dataMatrix.map(row => {
           const obj = {};
           headers.forEach((header, i) => {
@@ -401,7 +439,10 @@
         }).filter(row => Object.values(row).some(v => String(v ?? "").trim() !== ""));
 
         if (!rows.length) {
-          throw new Error("The selected worksheet has a header row but no student records beneath it.");
+          // Do not reject a workbook merely because the first selected sheet
+          // has headers without records. Give a precise message and keep the
+          // importer ready for another sheet.
+          throw new Error("The selected worksheet has headers but no student records. Choose the sheet containing the student table.");
         }
 
         this.state.rows = rows;
@@ -423,7 +464,7 @@
         this.state.photoFiles.set(file.name.replace(/\.[^.]+$/, "").toLowerCase(), file);
       }
       this.refresh();
-      Utils.toast(this.state.photoFiles.size / 2 + " photo files indexed");
+      Utils.toast(Math.floor(this.state.photoFiles.size / 2) + " photo files indexed • Excel photo fields will be matched automatically");
     },
 
     resolveValue(row, field) {
@@ -447,9 +488,34 @@
       if (!value) return "";
       const raw = String(value).trim();
       if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
-      const clean = raw.split(/[\\/]/).pop().toLowerCase();
-      const file = this.state.photoFiles.get(clean) || this.state.photoFiles.get(clean.replace(/\.[^.]+$/, ""));
-      return file ? await this.fileToDataUrl(file) : raw;
+
+      const clean = raw.split(/[\\/]/).pop().trim().toLowerCase();
+      const stem = clean.replace(/\.[^.]+$/, "");
+      const candidates = [
+        clean, stem,
+        stem.replace(/\s+/g, ""),
+        stem.replace(/[^a-z0-9]/gi, ""),
+      ];
+
+      let file = null;
+      for (const key of candidates) {
+        file = this.state.photoFiles.get(key);
+        if (file) break;
+      }
+
+      // Final fallback: compare normalized filename stems. This handles Excel
+      // values such as "STU-001", "stu_001.jpg", or "photos/stu 001.png".
+      if (!file) {
+        const target = this.normalize(stem);
+        for (const [key, candidate] of this.state.photoFiles.entries()) {
+          if (this.normalize(key.replace(/\.[^.]+$/, "")) === target) {
+            file = candidate;
+            break;
+          }
+        }
+      }
+
+      return file ? await this.fileToDataUrl(file) : "";
     },
 
     replacePlaceholders(html, row) {
@@ -678,9 +744,13 @@
 
       const missing = this.state.templateFields.filter(f => !this.state.mapping[f]);
       if (missing.length) {
-        Utils.toast("Unmatched template fields: " + missing.join(", "), "error");
+        Utils.toast("Template fields missing from Excel: " + missing.join(", "), "error");
         return;
       }
+
+      // Excel may contain many more columns than the card uses. That is
+      // intentional: only fields referenced by the template are rendered.
+      // Unused spreadsheet columns are ignored and never block generation.
 
       const layout = this.layout();
       const copies = Math.max(1, Number(this.state.copies) || 1);
@@ -773,6 +843,17 @@
       if (host) host.innerHTML = "";
     },
   };
+
+  function columnName(index) {
+    let n = Number(index) + 1;
+    let out = "";
+    while (n > 0) {
+      const r = (n - 1) % 26;
+      out = String.fromCharCode(65 + r) + out;
+      n = Math.floor((n - 1) / 26);
+    }
+    return out;
+  }
 
   function fileNameSafe(name) {
     return String(name || "").replace(/[^a-z0-9_.-]+/gi, "_");
