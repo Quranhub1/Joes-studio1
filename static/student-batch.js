@@ -552,6 +552,14 @@
       body.innerHTML = html;
 
       const all = body.querySelectorAll("*");
+      // Mark external images for CORS-aware preview/export. In particular,
+      // the KSHS badge is an external image and must not be treated as a
+      // decorative browser-only asset.
+      body.querySelectorAll("img[src]").forEach(img => {
+        const src = String(img.getAttribute("src") || "");
+        if (/^https?:/i.test(src)) img.setAttribute("crossorigin", "anonymous");
+      });
+
       for (const el of all) {
         for (const attr of Array.from(el.attributes)) {
           if (!attr.value.includes("{{")) continue;
