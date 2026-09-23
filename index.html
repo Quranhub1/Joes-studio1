@@ -8946,6 +8946,8 @@
               `<html><head><style>@page{size:${App.state.currentPaper.w}mm ${App.state.currentPaper.h}mm;margin:0}body{margin:0;display:flex;justify-content:center}${css}</style></head><body>${content}</body></html>`,
             );
             doc.close();
+            setTimeout(() => { try { f.contentWindow.print(); } catch (e) { console.error("Print dialog failed", e); } }, 500);
+            return f;
           },
 
            _getExportCanvas: async function () {
@@ -9053,7 +9055,7 @@
       `;
               }
 
-              allPagesHtml += `<script>setTimeout(() => { window.print(); }, 500);<\/script>`;
+
               const css = this._getFontCss() + " body { display: block !important; margin: 0; } @page { margin: 0; }";
               this._createPrintIframe(allPagesHtml, css);
             } catch (e) {
