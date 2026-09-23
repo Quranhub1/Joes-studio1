@@ -475,6 +475,13 @@
       return h && row[h] !== undefined ? row[h] : "";
     },
 
+    displayValue(row, field) {
+      const value = this.resolveValue(row, field);
+      // A template field may intentionally have no Excel column. Keep the
+      // field visible in the printed card and leave a manual-fill marker.
+      return String(value ?? "").trim() === "" ? "....." : value;
+    },
+
     async fileToDataUrl(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -524,7 +531,7 @@
 
       return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
         const field = String(name).trim();
-        return escapeHtml(values[field] ?? this.resolveValue(row, field));
+        return escapeHtml(this.displayValue(row, field));
       });
     },
 
@@ -551,19 +558,31 @@
         if (idMatch) {
           const field = idMatch[1].replace(/[-_]+/g, " ");
           const value = this.resolveValue(row, field);
-          if (el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(value));
-          else if (!/^in[-_]/i.test(el.id)) el.textContent = value ?? "";
+          if (el.tagName === "IMG") {
+            const photo = await this.resolvePhoto(value);
+            if (photo) el.setAttribute("src", photo);
+            else el.setAttribute("alt", ".....");
+          } else if (!/^in[-_]/i.test(el.id)) {
+            el.textContent = this.displayValue(row, field);
+          }
         }
 
         const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
         if (bind) {
           const value = this.resolveValue(row, bind);
-          if (el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(value));
-          else el.textContent = value ?? "";
+          if (el.tagName === "IMG") {
+            const photo = await this.resolvePhoto(value);
+            if (photo) el.setAttribute("src", photo);
+            else el.setAttribute("alt", ".....");
+          } else el.textContent = this.displayValue(row, bind);
         }
 
         const srcBind = el.getAttribute("data-bind-src");
-        if (srcBind && el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(this.resolveValue(row, srcBind)));
+        if (srcBind && el.tagName === "IMG") {
+          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind));
+          if (photo) el.setAttribute("src", photo);
+          else el.setAttribute("alt", ".....");
+        }
 
         const qrBind = el.getAttribute("data-bind-qr");
         const barcodeBind = el.getAttribute("data-bind-barcode");
@@ -743,14 +762,14 @@
       }
 
       const missing = this.state.templateFields.filter(f => !this.state.mapping[f]);
-      if (missing.length) {
-        Utils.toast("Template fields missing from Excel: " + missing.join(", "), "error");
-        return;
-      }
 
-      // Excel may contain many more columns than the card uses. That is
-      // intentional: only fields referenced by the template are rendered.
-      // Unused spreadsheet columns are ignored and never block generation.
+      // Excel may contain many more columns than the card uses. Conversely,
+      // the template may contain fields that are not represented in Excel.
+      // Neither situation blocks generation. Unmatched template fields are
+      // printed with "....." so the card can be completed manually.
+      if (missing.length) {
+        Utils.toast("Generated with " + missing.length + " manual-fill field(s): " + missing.join(", "));
+      }
 
       const layout = this.layout();
       const copies = Math.max(1, Number(this.state.copies) || 1);
