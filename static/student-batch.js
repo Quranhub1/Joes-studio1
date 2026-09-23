@@ -130,7 +130,7 @@
         const header = findHeader(clean);
         if (header) {
           map[clean] = header;
-          obj.dataBinding.field = header;
+          obj.dataBinding.field = header;\n          obj.dataBinding.sheet = "Batch";
         }
       });
 
@@ -140,7 +140,7 @@
     getCardSize() {
       const paper = App.state.currentPaper || {};
       return {
-        w: Number(paper.w) / (window.CONFIG?.MM_TO_PX || 3.7795275591),
+        w: Number(paper.w) / 3.7795275591,
         h: Number(paper.h) / (App.CONFIG?.MM_TO_PX || 3.7795275591),
       };
     },
