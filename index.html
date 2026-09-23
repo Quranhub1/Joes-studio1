@@ -17,6 +17,7 @@
     <script src="./static/xlsx.full.min.js"></script>
     <script src="./static/idb-keyval.umd.js"></script>
     <script src="./static/bwip-js.min.js"></script>
+    <script src="./static/student-batch.js"></script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
       /* Hide base scrollbar */
@@ -2883,7 +2884,7 @@
           this.templates.init();
           this.events.initHotkeys();
           this.events.initEvents();
-          if ("queryLocalFonts" in window) setTimeout(() => this.loadLocalFonts(), 1000);
+          /* Local font access requires user activation; load it when the font picker is opened. */
         },
 
         fontManager: {
