@@ -817,27 +817,55 @@
 
     <input type="file" id="projectImportInput" hidden accept=".paper" />
     <div id="studentBatchModal" class="hidden fixed inset-0 z-[80] flex items-center justify-center modal-backdrop">
-      <div class="bg-white rounded-2xl shadow-2xl w-[760px] max-w-[94vw] max-h-[90vh] overflow-y-auto">
+      <div class="bg-white rounded-2xl shadow-2xl w-[860px] max-w-[96vw] max-h-[92vh] overflow-y-auto">
         <div class="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="ph ph-identification-card text-red-600"></i> Student Card Batch Generator</h2>
-            <p class="text-xs text-slate-500 mt-1">One template → Excel records → print-ready batch PDF</p>
+            <p class="text-xs text-slate-500 mt-1">HTML template → automatic placeholder matching → Excel → print-ready cards</p>
           </div>
           <button onclick="JoesStudentBatch.close()" class="w-9 h-9 rounded-full hover:bg-gray-100 text-slate-500"><i class="ph ph-x text-lg"></i></button>
         </div>
+
         <div class="p-6 grid grid-cols-2 gap-4">
           <section class="border border-slate-200 rounded-xl p-4">
-            <h3 class="font-bold text-slate-700 mb-2">1. Card Template</h3>
+            <h3 class="font-bold text-slate-700 mb-2">1. HTML Card Template</h3>
             <p id="studentBatchTemplateName" class="text-xs text-slate-500 truncate mb-3">No template selected</p>
-            <button onclick="JoesStudentBatch.chooseTemplate()" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700"><i class="ph ph-folder-open mr-1"></i> Open .paper Template</button>
-            <p class="text-[10px] text-slate-400 mt-2">The template can be created from your card image and saved locally.</p>
+            <button onclick="JoesStudentBatch.chooseTemplate()" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700"><i class="ph ph-file-html mr-1"></i> Open HTML Template</button>
+            <p class="text-[10px] text-slate-400 mt-2">Gemini-generated HTML is supported. Use placeholders such as {{StudentName}} and {{RegistrationNumber}}.</p>
+            <div class="mt-3 flex items-center justify-between text-[10px] text-slate-500">
+              <span>Detected card size</span><strong id="studentBatchCardSize">85.6 × 54.0 mm</strong>
+            </div>
           </section>
+
           <section class="border border-slate-200 rounded-xl p-4">
             <h3 class="font-bold text-slate-700 mb-2">2. Student Excel Data</h3>
             <p id="studentBatchExcelName" class="text-xs text-slate-500 truncate mb-3">No Excel file selected</p>
             <button onclick="JoesStudentBatch.chooseExcel()" class="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-800"><i class="ph ph-file-xls mr-1"></i> Import Excel</button>
             <p class="text-[10px] text-slate-400 mt-2"><span id="studentBatchCount">0</span> student records detected.</p>
           </section>
+
+          <section class="col-span-2 border border-slate-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-slate-700">Automatic Field Matching</h3>
+              <span class="text-[10px] text-slate-400">No manual mapping required when names match</span>
+            </div>
+            <div id="studentBatchFields" class="max-h-44 overflow-y-auto bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs">
+              <span class="text-slate-400">Load an HTML template to detect {{placeholders}}.</span>
+            </div>
+          </section>
+
+          <section class="col-span-2 grid grid-cols-[1fr_auto] gap-4">
+            <div class="border border-slate-200 rounded-xl p-4">
+              <h3 class="font-bold text-slate-700 mb-2">Optional Student Photos</h3>
+              <p id="studentBatchPhotoName" class="text-xs text-slate-500 truncate mb-3">No photo folder selected</p>
+              <button onclick="JoesStudentBatch.choosePhotos()" class="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200"><i class="ph ph-folder-open mr-1"></i> Select Photo Folder</button>
+              <p class="text-[10px] text-slate-400 mt-2">If Excel contains a Photo filename, Joes Studio matches it to the selected folder.</p>
+            </div>
+            <div id="studentBatchPreview" class="min-w-[180px] min-h-[130px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+              <span class="text-[10px] text-slate-400">Template preview</span>
+            </div>
+          </section>
+
           <section class="col-span-2 bg-slate-50 rounded-xl p-4 border border-slate-200">
             <h3 class="font-bold text-slate-700 mb-3">3. Print Sheet</h3>
             <div class="grid grid-cols-5 gap-3">
@@ -863,14 +891,16 @@
             <div class="mt-3 text-xs text-slate-500"><i class="ph ph-calculator"></i> Automatic layout: <strong id="studentBatchLayout">0 × 0 = 0 cards per A4</strong></div>
           </section>
         </div>
+
         <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
           <button onclick="JoesStudentBatch.close()" class="px-5 py-2.5 rounded-lg border border-gray-300 text-slate-600 font-medium">Cancel</button>
           <button id="studentBatchGenerate" onclick="JoesStudentBatch.generate()" disabled class="px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700"><i class="ph ph-stack mr-1"></i> Generate Batch PDF</button>
         </div>
       </div>
     </div>
-    <input type="file" id="studentBatchTemplateInput" hidden accept=".paper,application/json" />
+    <input type="file" id="studentBatchTemplateInput" hidden accept=".html,.htm,.paper,application/json,text/html" />
     <input type="file" id="studentBatchExcelInput" hidden accept=".xlsx,.xls,.csv" />
+    <input type="file" id="studentBatchPhotoInput" hidden webkitdirectory directory multiple accept="image/*" />
 
     <input type="file" id="imgUpload" hidden accept="image/*" />
     <input type="file" id="imgReplaceInput" hidden accept="image/*" />
