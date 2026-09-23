@@ -140,7 +140,7 @@
     getCardSize() {
       const paper = App.state.currentPaper || {};
       return {
-        w: Number(paper.w) / (App.CONFIG?.MM_TO_PX || 3.7795275591),
+        w: Number(paper.w) / (window.CONFIG?.MM_TO_PX || 3.7795275591),
         h: Number(paper.h) / (App.CONFIG?.MM_TO_PX || 3.7795275591),
       };
     },
