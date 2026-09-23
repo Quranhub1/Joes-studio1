@@ -646,11 +646,43 @@
       return canvas;
     },
 
+    async inlineExportImages(root) {
+      const images = Array.from(root.querySelectorAll("img"));
+      await Promise.all(images.map(async img => {
+        const src = String(img.getAttribute("src") || "").trim();
+        if (!src || /^(?:data:|blob:)/i.test(src)) return;
+
+        // External images such as the KSHS badge must be inlined before the
+        // card is serialized into a data-SVG. Browsers may show the image in
+        // the live preview but silently drop it when that SVG is rasterized
+        // for the PDF. Fetching it into a data URL makes the preview/export
+        // renderer deterministic.
+        img.setAttribute("crossorigin", "anonymous");
+        try {
+          const response = await fetch(src, { mode: "cors", credentials: "omit", cache: "force-cache" });
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          const blob = await response.blob();
+          const dataUrl = await this.fileToDataUrl(blob);
+          if (dataUrl) img.setAttribute("src", dataUrl);
+        } catch (error) {
+          // Keep the original source as a last-resort browser rendering path.
+          // Do not replace the actual badge with a fake placeholder.
+          console.warn("Could not inline card image for PDF export:", src, error);
+        }
+      }));
+    },
+
     async domToCanvas(element, wMm, hMm) {
       const width = Math.max(1, Math.round(wMm * 96 / 25.4));
       const height = Math.max(1, Math.round(hMm * 96 / 25.4));
       const clone = element.cloneNode(true);
       clone.style.visibility = "visible";
+      clone.style.position = "static";
+      clone.style.left = "0";
+      clone.style.top = "0";
+      clone.style.width = width + "px";
+      clone.style.height = height + "px";
+      await this.inlineExportImages(clone);
       clone.style.position = "static";
       clone.style.left = "0";
       clone.style.top = "0";
