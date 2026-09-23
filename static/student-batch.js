@@ -29,6 +29,7 @@
       orientation: "portrait",
       cardsPerPage: 6,
       resolution: 300,
+      embeddedPhotos: new Map(),
     },
 
     normalize(value) {
@@ -335,11 +336,104 @@
       return map;
     },
 
+    async extractEmbeddedExcelImages(buffer) {
+      const result = new Map();
+      if (!window.JSZip) return result;
+
+      try {
+        const zip = await window.JSZip.loadAsync(buffer);
+        const sheetPath = "xl/worksheets/sheet1.xml";
+        const relPath = "xl/worksheets/_rels/sheet1.xml.rels";
+        const sheetFile = zip.file(sheetPath);
+        const relFile = zip.file(relPath);
+        if (!sheetFile || !relFile) return result;
+
+        const relXml = await relFile.async("text");
+        const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
+        const relMap = {};
+        relDoc.querySelectorAll("Relationship").forEach(rel => {
+          const id = rel.getAttribute("Id");
+          const target = rel.getAttribute("Target");
+          if (id && target) relMap[id] = this.resolveZipPath(relPath, target);
+        });
+
+        const sheetXml = await sheetFile.async("text");
+        const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
+        const drawing = sheetDoc.querySelector("drawing");
+        if (!drawing) return result;
+
+        const drawingPath = relMap[drawing.getAttribute("r:id")];
+        if (!drawingPath) return result;
+
+        const drawingFile = zip.file(drawingPath);
+        const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
+        const drawingRelFile = zip.file(drawingRelPath);
+        if (!drawingFile || !drawingRelFile) return result;
+
+        const drawingRelXml = await drawingRelFile.async("text");
+        const drawingRelDoc = new DOMParser().parseFromString(drawingRelXml, "application/xml");
+        const imageMap = {};
+        drawingRelDoc.querySelectorAll("Relationship").forEach(rel => {
+          const id = rel.getAttribute("Id");
+          const target = rel.getAttribute("Target");
+          if (id && target) imageMap[id] = this.resolveZipPath(drawingRelPath, target);
+        });
+
+        const drawingXml = await drawingFile.async("text");
+        const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
+        const anchors = Array.from(drawingDoc.querySelectorAll("twoCellAnchor, oneCellAnchor"));
+
+        for (const anchor of anchors) {
+          const from = anchor.querySelector("from");
+          const blip = anchor.querySelector("blip");
+          if (!from || !blip) continue;
+
+          const rowNode = from.querySelector("row");
+          const relId = blip.getAttribute("r:embed") || blip.getAttribute("embed");
+          const row = Number(rowNode?.textContent);
+          const imagePath = imageMap[relId];
+          if (!Number.isFinite(row) || !imagePath) continue;
+
+          const imageFile = zip.file(imagePath);
+          if (!imageFile) continue;
+          const blob = await imageFile.async("blob");
+          const dataUrl = await this.fileToDataUrl(blob);
+          if (dataUrl) result.set(row, dataUrl);
+        }
+      } catch (error) {
+        console.warn("Embedded Excel image extraction failed:", error);
+      }
+
+      return result;
+    },
+
+    resolveZipPath(referencePath, target) {
+      const cleanTarget = String(target || "").split("#")[0];
+      const base = referencePath.split("/");
+      base.pop();
+      for (const part of cleanTarget.split("/")) {
+        if (!part || part === ".") continue;
+        if (part === "..") base.pop();
+        else base.push(part);
+      }
+      return base.join("/");
+    },
+
+    zipSiblingRelsPath(path) {
+      const parts = path.split("/");
+      const file = parts.pop();
+      return parts.concat(["_rels", file + ".rels"]).join("/");
+    },
+
     async loadExcel(file) {
       if (!file) return;
       try {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+        // SheetJS reads cell values, but Excel-embedded photos live in the
+        // workbook ZIP drawing/media parts rather than cell values. Extract
+        // those photos separately and associate them with their anchored row.
+        this.state.embeddedPhotos = await this.extractEmbeddedExcelImages(buffer);
         const sheetName = workbook.SheetNames[0];
         if (!sheetName) throw new Error("The workbook has no worksheets.");
         const worksheet = workbook.Sheets[sheetName];
@@ -452,7 +546,13 @@
           throw new Error("The selected worksheet has headers but no student records. Choose the sheet containing the student table.");
         }
 
-        this.state.rows = rows;
+        this.state.rows = rows.map((row, dataIndex) => {
+          const copy = { ...row };
+          const excelRowIndex = headerIndex + 1 + dataIndex;
+          const embedded = this.state.embeddedPhotos.get(excelRowIndex);
+          if (embedded) copy.__embeddedPhoto = embedded;
+          return copy;
+        });
         this.state.headers = headers;
         if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
         else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
@@ -498,7 +598,10 @@
       });
     },
 
-    async resolvePhoto(value) {
+    async resolvePhoto(value, row) {
+      // Embedded Excel photos are attached to the worksheet row, not stored
+      // as a normal cell value. Prefer the extracted row image when present.
+      if (row?.__embeddedPhoto) return row.__embeddedPhoto;
       if (!value) return "";
       const raw = String(value).trim();
       if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
