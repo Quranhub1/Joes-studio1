@@ -184,23 +184,22 @@
         });
       } catch (_) {}
 
-      // Recognize ordinary KSHS examination-card HTML templates that use
-      // semantic element IDs instead of visible {{placeholders}}.
+      // Recognize arbitrary template fields expressed through semantic IDs.
+      // Examples: out-name/in-name, out-program/in-program, out-index/in-index.
+      // The field name is derived from the ID, never hard-coded.
       try {
         const doc = new DOMParser().parseFromString(text, "text/html");
-        const semanticIds = {
-          "out-photo":"photo","in-photo":"photo","out-name":"name","in-name":"name",
-          "out-regno":"regno","in-regno":"regno","out-sex":"sex","in-sex":"sex",
-          "out-sitting":"sitting","in-sitting":"sitting","out-course":"course","in-course":"course",
-          "out-issuedby":"issuedby","in-issuedby":"issuedby"
-        };
-        Object.entries(semanticIds).forEach(([id, field]) => { if (doc.getElementById(id)) add(field); });
-        const labelMap = [["student photo","photo"],["photo","photo"],["name","name"],["reg no","regno"],
-          ["registration no","regno"],["registration number","regno"],["sex","sex"],["gender","sex"],
-          ["sitting","sitting"],["course","course"],["issued by","issuedby"]];
-        doc.querySelectorAll("label,span,div,td,th,p,strong,b").forEach(el => {
-          const label=this.normalize(el.textContent||"");
-          for (const [needle,field] of labelMap) if (label===this.normalize(needle)) { add(field); break; }
+        doc.querySelectorAll("[id]").forEach(el => {
+          const id = String(el.id || "").trim();
+          const match = id.match(/^(?:out|in|field|data)[-_](.+)$/i);
+          if (match) add(match[1].replace(/[-_]+/g, " "));
+        });
+        // Also recognize explicit data-field attributes with arbitrary names.
+        doc.querySelectorAll("[data-field],[data-bind],[data-bind-src],[data-bind-qr],[data-bind-barcode]").forEach(el => {
+          ["data-field","data-bind","data-bind-src","data-bind-qr","data-bind-barcode"].forEach(attr => {
+            const value = el.getAttribute(attr);
+            if (value) add(value.replace(/^{{\\s*|\\s*}}$/g, ""));
+          });
         });
       } catch (_) {}
 
@@ -328,11 +327,17 @@
           return keys.reduce((n, k) => n + (text.includes(k) ? 1 : 0), 0);
         };
         let headerIndex = -1;
-        let bestScore = -1;
-        matrix.slice(0, Math.min(matrix.length, 50)).forEach((row, i) => {
+        let bestScore = -Infinity;
+        const scan = matrix.slice(0, Math.min(matrix.length, 100));
+        scan.forEach((row, i) => {
           const cells = nonEmpty(row);
-          if (cells.length < 2) return;
-          const score = keywordScore(row) * 10 + Math.min(cells.length, 20);
+          if (!cells.length) return;
+          const keyword = keywordScore(row);
+          const nextRows = scan.slice(i + 1).filter(r => nonEmpty(r).length).length;
+          const uniqueCells = new Set(cells.map(v => this.normalize(v)).filter(Boolean)).size;
+          // Prefer semantic headers, but never reject a perfectly valid custom
+          // header simply because its name is unknown to us.
+          const score = keyword * 100 + Math.min(cells.length, 50) + Math.min(nextRows, 20) + uniqueCells;
           if (score > bestScore) {
             bestScore = score;
             headerIndex = i;
@@ -340,7 +345,7 @@
         });
 
         if (headerIndex < 0) {
-          throw new Error("The selected worksheet contains data, but no usable header row was found.");
+          throw new Error("The selected worksheet contains no readable cells.");
         }
 
         const rawHeaders = matrix[headerIndex] || [];
@@ -356,7 +361,10 @@
           headers.push(header);
         });
 
-        const dataMatrix = matrix.slice(headerIndex + 1).filter(row => nonEmpty(row).length > 0);
+        let dataMatrix = matrix.slice(headerIndex + 1).filter(row => nonEmpty(row).length > 0);
+        // If the workbook has no explicit header row, a single populated row
+        // is still useful as a one-record dataset. Keep it rather than failing.
+        if (!dataMatrix.length && matrix[headerIndex]?.length) dataMatrix = [];
         const rows = dataMatrix.map(row => {
           const obj = {};
           headers.forEach((header, i) => {
@@ -444,18 +452,14 @@
           el.setAttribute(attr.name, replaced);
         }
 
-        // Support the supplied KSHS Examination Card's fixed IDs.
-        const fixedIds = {
-          "out-photo":"photo","in-photo":"photo","out-name":"name","in-name":"name",
-          "out-regno":"regno","in-regno":"regno","out-sex":"sex","in-sex":"sex",
-          "out-sitting":"sitting","in-sitting":"sitting","out-course":"course","in-course":"course",
-          "out-issuedby":"issuedby","in-issuedby":"issuedby"
-        };
-        const fixedField = fixedIds[el.id];
-        if (fixedField) {
-          const value = this.resolveValue(row, fixedField);
+        // Bind arbitrary semantic IDs such as out-name, out-program,
+        // in-index, field-photo, data-address, etc.
+        const idMatch = String(el.id || "").match(/^(?:out|in|field|data)[-_](.+)$/i);
+        if (idMatch) {
+          const field = idMatch[1].replace(/[-_]+/g, " ");
+          const value = this.resolveValue(row, field);
           if (el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(value));
-          else if (!/^in-/.test(el.id)) el.textContent = value ?? "";
+          else if (!/^in[-_]/i.test(el.id)) el.textContent = value ?? "";
         }
 
         const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
@@ -586,12 +590,9 @@
       const host = document.getElementById("studentBatchPreview");
       if (!host || this.state.templateMode !== "html") return;
       host.innerHTML = "";
-      const { doc } = (() => {
-        const parser = new DOMParser();
-        const d = parser.parseFromString(this.state.htmlText, "text/html");
-        d.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
-        return { doc: d };
-      })();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(this.state.htmlText, "text/html");
+      doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
@@ -599,7 +600,7 @@
       const style = document.createElement("style");
       style.textContent = this.state.htmlStyles;
       wrapper.appendChild(style);
-      const body = d.body.cloneNode(true);
+      const body = doc.body.cloneNode(true);
       while (body.firstChild) wrapper.appendChild(body.firstChild);
       host.appendChild(wrapper);
     },
