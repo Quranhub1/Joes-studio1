@@ -168,7 +168,7 @@
       };
 
       // Primary syntax: {{Student Name}}
-      const mustache = /{{\\s*([^{}]+?)\\s*}}/g;
+      const mustache = /{{\s*([^{}]+?)\s*}}/g;
       let m;
       while ((m = mustache.exec(text))) add(m[1]);
 
@@ -184,21 +184,48 @@
         });
       } catch (_) {}
 
-      // Recognize arbitrary template fields expressed through semantic IDs.
-      // Examples: out-name/in-name, out-program/in-program, out-index/in-index.
-      // The field name is derived from the ID, never hard-coded.
+      // Recognize arbitrary semantic field IDs. The final template may use any
+      // field name, so do not maintain a fixed KSHS-only list. Output fields
+      // (out-*) are authoritative; editable text inputs (in-*) are accepted
+      // when they represent data rather than UI controls.
       try {
         const doc = new DOMParser().parseFromString(text, "text/html");
+
         doc.querySelectorAll("[id]").forEach(el => {
           const id = String(el.id || "").trim();
-          const match = id.match(/^(?:out|in|field|data)[-_](.+)$/i);
-          if (match) add(match[1].replace(/[-_]+/g, " "));
+          const outMatch = id.match(/^out[-_](.+)$/i);
+          if (outMatch) {
+            add(outMatch[1].replace(/[-_]+/g, " "));
+            return;
+          }
+
+          const fieldMatch = id.match(/^(?:field|data)[-_](.+)$/i);
+          if (fieldMatch) {
+            add(fieldMatch[1].replace(/[-_]+/g, " "));
+            return;
+          }
+
+          const inMatch = id.match(/^in[-_](.+)$/i);
+          if (inMatch) {
+            const name = inMatch[1].replace(/[-_]+/g, " ");
+            const tag = el.tagName.toLowerCase();
+            const type = String(el.getAttribute("type") || "").toLowerCase();
+            const isDataInput = ["text", "number", "date", "email", "tel", "search", ""].includes(type);
+            const isOutputPaired = !!doc.querySelector("#out-" + inMatch[1] + ", #out_" + inMatch[1]);
+            const isControl = /^(?:badge[-_]?(?:file|url)|file|url|button|submit|reset|search)$/i.test(inMatch[1]);
+            if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) {
+              add(name);
+            }
+          }
         });
-        // Also recognize explicit data-field attributes with arbitrary names.
+
+        // Explicit data bindings always define fields, including completely
+        // custom names such as programme, index number, department, campus,
+        // intake, phone, nationality, or any future spreadsheet column.
         doc.querySelectorAll("[data-field],[data-bind],[data-bind-src],[data-bind-qr],[data-bind-barcode]").forEach(el => {
           ["data-field","data-bind","data-bind-src","data-bind-qr","data-bind-barcode"].forEach(attr => {
             const value = el.getAttribute(attr);
-            if (value) add(value.replace(/^{{\\s*|\\s*}}$/g, ""));
+            if (value) add(value.replace(/^{{\s*|\s*}}$/g, ""));
           });
         });
       } catch (_) {}
