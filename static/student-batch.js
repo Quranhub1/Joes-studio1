@@ -627,7 +627,18 @@
       const styles = document.createElement("style");
       styles.textContent = this.state.htmlStyles;
       wrapper.appendChild(styles);
-      while (body.firstChild) wrapper.appendChild(body.firstChild);
+      // Keep the actual card root. The template stylesheet targets
+      // .exam-card (and similar root selectors), so moving only its children
+      // strips the selector that controls the badge, fields, borders and
+      // internal positioning. That is why only the badge was surviving.
+      const cardClone = body.cloneNode(true);
+      cardClone.removeAttribute("id");
+      cardClone.style.width = this.state.cardWidthMm + "mm";
+      cardClone.style.height = this.state.cardHeightMm + "mm";
+      cardClone.style.maxWidth = "none";
+      cardClone.style.maxHeight = "none";
+      cardClone.style.margin = "0";
+      wrapper.appendChild(cardClone);
       document.body.appendChild(wrapper);
 
       const canvas = await this.domToCanvas(wrapper, this.state.cardWidthMm, this.state.cardHeightMm);
