@@ -130,7 +130,8 @@
         const header = findHeader(clean);
         if (header) {
           map[clean] = header;
-          obj.dataBinding.field = header;\n          obj.dataBinding.sheet = "Batch";
+          obj.dataBinding.field = header;
+          obj.dataBinding.sheet = "Batch";
         }
       });
 
