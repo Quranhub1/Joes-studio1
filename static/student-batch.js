@@ -26,6 +26,9 @@
       rowsPerPage: 0,
       cardWidthMm: 85.6,
       cardHeightMm: 54,
+      orientation: "portrait",
+      cardsPerPage: 6,
+      resolution: 300,
     },
 
     normalize(value) {
@@ -130,8 +133,12 @@
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
       const styles = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
-      const root = doc.body;
-      if (!root || !root.innerHTML.trim()) throw new Error("The HTML template is empty.");
+      // Prefer the actual card container when the template contains a full
+      // HTML document. This prevents headers, school branding, instructions,
+      // and other page-level content from becoming the generated "card".
+      const root = doc.querySelector("[data-card], .student-card, #student-card, .id-card, #id-card, .card");
+      const cardRoot = root || doc.body;
+      if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
 
       const fields = this.detectPlaceholders(text);
       if (!fields.length) {
@@ -140,11 +147,11 @@
 
       this.state.templateMode = "html";
       this.state.htmlText = text;
-      this.state.htmlRoot = root;
+      this.state.htmlRoot = cardRoot;
       this.state.htmlStyles = styles;
       this.state.templateFields = fields;
 
-      const size = this.detectHtmlCardSize(doc, root);
+      const size = this.detectHtmlCardSize(doc, cardRoot);
       this.state.cardWidthMm = size.w;
       this.state.cardHeightMm = size.h;
 
@@ -657,8 +664,9 @@
       });
 
       const canvas = document.createElement("canvas");
-      canvas.width = width * 2;
-      canvas.height = height * 2;
+      const scale = Math.max(1, Number(this.state.resolution) || 300) / 96;
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -681,21 +689,39 @@
         A4: [210, 297], A3: [297, 420], A5: [148, 210],
         B4: [250, 353], B5: [176, 250], Letter: [215.9, 279.4], Legal: [215.9, 355.6],
       };
-      const [w, h] = sizes[this.state.sheetSize] || sizes.A4;
+      let [w, h] = sizes[this.state.sheetSize] || sizes.A4;
+      if (this.state.orientation === "landscape") [w, h] = [h, w];
       return { w, h };
     },
 
     layout() {
-      const card = { w: Number(this.state.cardWidthMm) || 85.6, h: Number(this.state.cardHeightMm) || 54 };
+      const baseCard = { w: Number(this.state.cardWidthMm) || 85.6, h: Number(this.state.cardHeightMm) || 54 };
       const sheet = this.getSheetSize();
       const margin = Number(this.state.margin) || 0;
       const gx = Number(this.state.gapX) || 0;
       const gy = Number(this.state.gapY) || 0;
-      const cols = Math.max(1, Math.floor((sheet.w - margin * 2 + gx) / (card.w + gx)));
-      const rows = Math.max(1, Math.floor((sheet.h - margin * 2 + gy) / (card.h + gy)));
-      this.state.columns = cols;
-      this.state.rowsPerPage = rows;
-      return { card, sheet, cols, rows, perPage: cols * rows };
+      const requested = Math.max(1, Number(this.state.cardsPerPage) || 1);
+
+      // Fit the requested number by trying every reasonable grid. If the
+      // native card size cannot fit, scale the cards down uniformly rather
+      // than silently changing the requested number.
+      let best = null;
+      for (let cols = 1; cols <= requested; cols++) {
+        const rows = Math.ceil(requested / cols);
+        const availableW = sheet.w - margin * 2 - Math.max(0, cols - 1) * gx;
+        const availableH = sheet.h - margin * 2 - Math.max(0, rows - 1) * gy;
+        if (availableW <= 0 || availableH <= 0) continue;
+        const scale = Math.min(1, availableW / (cols * baseCard.w), availableH / (rows * baseCard.h));
+        if (!best || scale > best.scale || (scale === best.scale && Math.abs(cols - rows) < Math.abs(best.cols - best.rows))) {
+          best = { cols, rows, scale };
+        }
+      }
+      if (!best) best = { cols: 1, rows: 1, scale: 1 };
+
+      const card = { w: baseCard.w * best.scale, h: baseCard.h * best.scale };
+      this.state.columns = best.cols;
+      this.state.rowsPerPage = best.rows;
+      return { card, sheet, cols: best.cols, rows: best.rows, perPage: requested, scale: best.scale };
     },
 
     renderTemplatePreview() {
@@ -705,6 +731,7 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
+      const source = doc.querySelector("[data-card], .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
@@ -712,7 +739,7 @@
       const style = document.createElement("style");
       style.textContent = this.state.htmlStyles;
       wrapper.appendChild(style);
-      const body = doc.body.cloneNode(true);
+      const body = source.cloneNode(true);
       while (body.firstChild) wrapper.appendChild(body.firstChild);
       host.appendChild(wrapper);
     },
@@ -733,7 +760,7 @@
       if (sizeEl) sizeEl.textContent = (Number(this.state.cardWidthMm).toFixed(1) + " × " + Number(this.state.cardHeightMm).toFixed(1) + " mm");
 
       const l = this.layout();
-      if (layoutEl) layoutEl.textContent = l.cols + " × " + l.rows + " = " + l.perPage + " cards per " + this.state.sheetSize;
+      if (layoutEl) layoutEl.textContent = l.cols + " × " + l.rows + " = " + l.perPage + " cards/page • " + this.state.orientation + " • " + this.state.resolution + " DPI";
 
       if (fieldsEl) {
         if (!this.state.templateFields.length) {
@@ -892,6 +919,9 @@
     document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
     document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
+    document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
+    document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
+    document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
     ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", () => {
         const keyMap = {
