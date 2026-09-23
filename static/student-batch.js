@@ -702,26 +702,56 @@
       const gy = Number(this.state.gapY) || 0;
       const requested = Math.max(1, Number(this.state.cardsPerPage) || 1);
 
-      // Fit the requested number by trying every reasonable grid. If the
-      // native card size cannot fit, scale the cards down uniformly rather
-      // than silently changing the requested number.
+      // Treat the selected cards-per-page as a real print grid. The old
+      // implementation kept the card's native size, which left a huge amount
+      // of empty paper and made the six cards look stranded in one corner.
+      // Each grid cell now occupies the available page area, so the preview
+      // and PDF use the same full-page placement.
       let best = null;
       for (let cols = 1; cols <= requested; cols++) {
         const rows = Math.ceil(requested / cols);
         const availableW = sheet.w - margin * 2 - Math.max(0, cols - 1) * gx;
         const availableH = sheet.h - margin * 2 - Math.max(0, rows - 1) * gy;
         if (availableW <= 0 || availableH <= 0) continue;
-        const scale = Math.min(1, availableW / (cols * baseCard.w), availableH / (rows * baseCard.h));
-        if (!best || scale > best.scale || (scale === best.scale && Math.abs(cols - rows) < Math.abs(best.cols - best.rows))) {
-          best = { cols, rows, scale };
+
+        const cellW = availableW / cols;
+        const cellH = availableH / rows;
+        const cellAspect = cellW / cellH;
+        const cardAspect = baseCard.w / baseCard.h;
+        const aspectPenalty = Math.abs(Math.log(cellAspect / cardAspect));
+
+        // Prefer a grid whose cells are closest to the real card proportions.
+        // If several grids are close, prefer the one with the larger cards.
+        const area = cellW * cellH;
+        if (!best ||
+            aspectPenalty < best.aspectPenalty ||
+            (Math.abs(aspectPenalty - best.aspectPenalty) < 0.08 && area > best.area)) {
+          best = { cols, rows, cellW, cellH, aspectPenalty, area };
         }
       }
-      if (!best) best = { cols: 1, rows: 1, scale: 1 };
+      if (!best) {
+        best = {
+          cols: 1,
+          rows: 1,
+          cellW: Math.max(1, sheet.w - margin * 2),
+          cellH: Math.max(1, sheet.h - margin * 2),
+          aspectPenalty: 0,
+          area: 1
+        };
+      }
 
-      const card = { w: baseCard.w * best.scale, h: baseCard.h * best.scale };
+      const card = { w: best.cellW, h: best.cellH };
       this.state.columns = best.cols;
       this.state.rowsPerPage = best.rows;
-      return { card, sheet, cols: best.cols, rows: best.rows, perPage: requested, scale: best.scale };
+      return {
+        card,
+        sheet,
+        cols: best.cols,
+        rows: best.rows,
+        perPage: requested,
+        scaleX: best.cellW / baseCard.w,
+        scaleY: best.cellH / baseCard.h
+      };
     },
 
     async previewBatch() {
@@ -806,7 +836,7 @@
               "width:" + nativeCardWidth + "px",
               "height:" + nativeCardHeight + "px",
               "transform-origin:top left",
-              "transform:scale(" + (cardWidthPx / nativeCardWidth) + ")",
+              "transform:scaleX(" + (cardWidthPx / nativeCardWidth) + ") scaleY(" + (cardHeightPx / nativeCardHeight) + ")",
               "overflow:hidden"
             ].join(";");
 
@@ -885,7 +915,7 @@
     },
 
     renderTemplatePreview() {
-      const host = document.getElementById("studentBatchPreview");
+      const host = document.getElementById("studentBatchPrintPreview");
       if (!host || this.state.templateMode !== "html") return;
       host.innerHTML = "";
       const parser = new DOMParser();
