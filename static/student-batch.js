@@ -154,16 +154,33 @@
     detectPlaceholders(text) {
       const found = [];
       const seen = new Set();
-      const re = /{{\s*([^{}]+?)\s*}}/g;
-      let m;
-      while ((m = re.exec(text))) {
-        const field = m[1].trim();
+      const add = value => {
+        const field = String(value || "").trim();
+        if (!field) return;
         const key = this.normalize(field);
         if (key && !seen.has(key)) {
           seen.add(key);
           found.push(field);
         }
-      }
+      };
+
+      // Primary syntax: {{Student Name}}
+      const mustache = /{{\\s*([^{}]+?)\\s*}}/g;
+      let m;
+      while ((m = mustache.exec(text))) add(m[1]);
+
+      // Also accept HTML data bindings, so templates do not have to put
+      // placeholders visibly inside the card text.
+      try {
+        const doc = new DOMParser().parseFromString(text, "text/html");
+        doc.querySelectorAll("[data-bind],[data-field],[data-bind-src],[data-bind-qr],[data-bind-barcode]").forEach(el => {
+          ["data-bind", "data-field", "data-bind-src", "data-bind-qr", "data-bind-barcode"].forEach(attr => {
+            const value = el.getAttribute(attr);
+            if (value) add(value.replace(/^{{\\s*|\\s*}}$/g, ""));
+          });
+        });
+      } catch (_) {}
+
       return found;
     },
 
@@ -270,15 +287,67 @@
         const sheetName = workbook.SheetNames[0];
         if (!sheetName) throw new Error("The workbook has no worksheets.");
         const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet, {
+        const matrix = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
           raw: false,
           dateNF: "yyyy-mm-dd",
           defval: "",
+          blankrows: false
         });
-        if (!rows.length) throw new Error("The selected worksheet contains no student records.");
+
+        // Real-world school workbooks often have a title/logo/instructions
+        // above the header row. Find the most plausible header row instead of
+        // assuming row 1 is the header.
+        const nonEmpty = row => row.filter(v => String(v ?? "").trim() !== "");
+        const keywordScore = row => {
+          const text = row.map(v => this.normalize(v)).join(" ");
+          const keys = ["name","student","registration","regno","admission","id","course","class","stream","gender","dob","dateofbirth","photo","year"];
+          return keys.reduce((n, k) => n + (text.includes(k) ? 1 : 0), 0);
+        };
+        let headerIndex = -1;
+        let bestScore = -1;
+        matrix.slice(0, Math.min(matrix.length, 50)).forEach((row, i) => {
+          const cells = nonEmpty(row);
+          if (cells.length < 2) return;
+          const score = keywordScore(row) * 10 + Math.min(cells.length, 20);
+          if (score > bestScore) {
+            bestScore = score;
+            headerIndex = i;
+          }
+        });
+
+        if (headerIndex < 0) {
+          throw new Error("The selected worksheet contains data, but no usable header row was found.");
+        }
+
+        const rawHeaders = matrix[headerIndex] || [];
+        const headers = [];
+        const used = new Set();
+        rawHeaders.forEach((value, i) => {
+          let header = String(value ?? "").trim();
+          if (!header) header = "Column " + String.fromCharCode(65 + (i % 26));
+          let base = header;
+          let n = 2;
+          while (used.has(header)) header = base + " " + n++;
+          used.add(header);
+          headers.push(header);
+        });
+
+        const dataMatrix = matrix.slice(headerIndex + 1).filter(row => nonEmpty(row).length > 0);
+        const rows = dataMatrix.map(row => {
+          const obj = {};
+          headers.forEach((header, i) => {
+            obj[header] = row[i] ?? "";
+          });
+          return obj;
+        }).filter(row => Object.values(row).some(v => String(v ?? "").trim() !== ""));
+
+        if (!rows.length) {
+          throw new Error("The selected worksheet has a header row but no student records beneath it.");
+        }
 
         this.state.rows = rows;
-        this.state.headers = Object.keys(rows[0]);
+        this.state.headers = headers;
         if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
         else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
         this.refresh();
