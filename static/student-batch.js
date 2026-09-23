@@ -547,7 +547,7 @@
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
-      const body = doc.body;
+      const body = doc.querySelector("[data-card], .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
