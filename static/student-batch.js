@@ -663,6 +663,12 @@
         if (/^https?:/i.test(src)) img.setAttribute("crossorigin", "anonymous");
       });
 
+      // Inline template images before the card is used by the live preview.
+      // The preview must show the same badge asset that the PDF renderer sees,
+      // rather than relying on a cross-origin URL that may disappear inside
+      // cloned/serialized DOM. This also applies independently to every card.
+      await this.inlineExportImages(body);
+
       for (const el of all) {
         for (const attr of Array.from(el.attributes)) {
           if (!attr.value.includes("{{")) continue;
