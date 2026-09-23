@@ -677,7 +677,7 @@
           const field = idMatch[1].replace(/[-_]+/g, " ");
           const value = this.resolveValue(row, field);
           if (el.tagName === "IMG") {
-            const photo = await this.resolvePhoto(value);
+            const photo = await this.resolvePhoto(value, row);
             if (photo) el.setAttribute("src", photo);
             else el.setAttribute("alt", ".....");
           } else if (!/^in[-_]/i.test(el.id)) {
@@ -689,7 +689,7 @@
         if (bind) {
           const value = this.resolveValue(row, bind);
           if (el.tagName === "IMG") {
-            const photo = await this.resolvePhoto(value);
+            const photo = await this.resolvePhoto(value, row);
             if (photo) el.setAttribute("src", photo);
             else el.setAttribute("alt", ".....");
           } else el.textContent = this.displayValue(row, bind);
@@ -697,7 +697,7 @@
 
         const srcBind = el.getAttribute("data-bind-src");
         if (srcBind && el.tagName === "IMG") {
-          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind));
+          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind), row);
           if (photo) el.setAttribute("src", photo);
           else el.setAttribute("alt", ".....");
         }
