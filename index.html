@@ -610,29 +610,6 @@
         </div>
       </div>
     </div>
-    <div id="sponsorModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center modal-backdrop transition-opacity duration-200">
-      <div class="bg-white rounded-xl shadow-2xl p-6 w-[320px] text-center relative transform transition-all scale-100">
-        <button
-          onclick="App.ui.hideModal('sponsorModal')"
-          class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-          <i class="ph ph-x text-lg"></i>
-        </button>
-
-        <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-          <i class="ph ph-heart text-2xl text-red-500"></i>
-        </div>
-
-        <h3 class="text-lg font-bold text-slate-800 mb-1">Thank You for Support</h3>
-        <div class="p-2 rounded-xl border border-orange-100 shadow-inner inline-block mb-4">
-          <img src="./static/support.jpg" alt="WeChat Payment QR" class="w-48 h-48 object-contain rounded-lg mix-blend-multiply" />
-        </div>
-
-        <div class="space-y-1">
-          <p class="text-sm font-medium text-slate-700">If you find this tool useful</p>
-          <p class="text-sm text-slate-400">Consider buying the author a coffee to encourage continued updates</p>
-        </div>
-      </div>
-    </div>
     <div id="tableModal" class="hidden fixed inset-0 z-50 items-center justify-center modal-backdrop">
       <div class="bg-white w-[98vw] h-[95vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 z-20 bg-white shadow-sm shrink-0">
@@ -997,12 +974,6 @@
       </div>
 
       <div class="w-80 flex justify-end gap-2">
-        <button
-          onclick="App.ui.showModal('sponsorModal')"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition text-xs font-bold mr-1">
-          <i class="ph ph-heart-straight text-lg"></i>
-          <span>Support Author</span>
-        </button>
         <button onclick="App.ui.showModal('contactModal')" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="Contact Author">
           <i class="ph ph-wechat-logo text-lg"></i>
         </button>
@@ -5610,7 +5581,6 @@
             };
             bindModalClose("welcomeModal");
             bindModalClose("contactModal");
-            bindModalClose("sponsorModal");
             document.addEventListener("fullscreenchange", () => {
               const icon = document.getElementById("fsIcon");
               if (icon) {
