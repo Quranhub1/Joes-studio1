@@ -1,14 +1,22 @@
-/* Joes Studio Student Batch workflow
- * Uses the existing Fabric/XLSX/jsPDF pipeline and keeps all source files local.
+/* Joes Studio Student Batch Generator
+ * HTML-first template workflow with automatic Excel placeholder matching.
+ * Local-first: template, spreadsheet and optional photos are selected by the user.
  */
 (function () {
   const Batch = {
     state: {
       templateFile: null,
       templateName: "",
+      templateMode: "",
+      htmlText: "",
+      htmlRoot: null,
+      htmlStyles: "",
+      templateFields: [],
+      matchedFields: [],
       rows: [],
       headers: [],
       mapping: {},
+      photoFiles: new Map(),
       sheetSize: "A4",
       margin: 5,
       gapX: 3,
@@ -16,13 +24,34 @@
       copies: 1,
       columns: 0,
       rowsPerPage: 0,
+      cardWidthMm: 85.6,
+      cardHeightMm: 54,
     },
 
     normalize(value) {
       return String(value ?? "")
         .toLowerCase()
+        .replace(/&amp;/g, "and")
         .replace(/[\s_\-.()/\\]+/g, "")
         .replace(/[^a-z0-9]/g, "");
+    },
+
+    aliases: {
+      name: ["name", "studentname", "fullname", "studentfullname", "student"],
+      studentname: ["studentname", "name", "fullname", "studentfullname", "student"],
+      firstname: ["firstname", "givenname", "forename"],
+      lastname: ["lastname", "surname", "familyname"],
+      othernames: ["othernames", "middlename", "middle"],
+      regno: ["regno", "registrationno", "registrationnumber", "registrationid", "admissionno", "studentno", "studentnumber", "id"],
+      registrationnumber: ["registrationnumber", "registrationno", "regno", "registrationid", "admissionno"],
+      registrationno: ["registrationno", "registrationnumber", "regno", "admissionno"],
+      class: ["class", "classroom", "form", "grade", "level"],
+      stream: ["stream", "classstream"],
+      gender: ["gender", "sex"],
+      dob: ["dob", "dateofbirth", "birthdate", "birthday"],
+      photo: ["photo", "photofile", "photofilename", "photoimage", "image", "imagefile", "picture", "studentphoto", "studentimage"],
+      barcode: ["barcode", "barcodeno", "barcodevalue"],
+      qr: ["qr", "qrcode", "qrvalue", "qrcodevalue"],
     },
 
     open() {
@@ -32,39 +61,205 @@
 
     close() {
       document.getElementById("studentBatchModal")?.classList.add("hidden");
+      this.cleanupPreview();
     },
 
-    async chooseTemplate() {
+    chooseTemplate() {
       const input = document.getElementById("studentBatchTemplateInput");
-      if (!input) return;
-      input.value = "";
-      input.click();
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    },
+
+    chooseExcel() {
+      const input = document.getElementById("studentBatchExcelInput");
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    },
+
+    choosePhotos() {
+      const input = document.getElementById("studentBatchPhotoInput");
+      if (input) {
+        input.value = "";
+        input.click();
+      }
     },
 
     async loadTemplate(file) {
       if (!file) return;
       try {
         const text = await file.text();
-        const data = JSON.parse(text);
-        if (!data || (!data.canvasData && !data.objects && !data.settings)) {
-          throw new Error("This is not a valid Joes Studio paper template.");
-        }
+        const ext = file.name.split(".").pop().toLowerCase();
         this.state.templateFile = file;
         this.state.templateName = file.name;
-        await App.io.loadProjectData(data);
-        this.refresh();
-        Utils.toast("Template loaded: " + file.name);
+
+        if (ext === "html" || ext === "htm") {
+          await this.loadHtmlTemplate(text);
+        } else {
+          const data = JSON.parse(text);
+          if (!data || (!data.canvasData && !data.objects && !data.settings)) {
+            throw new Error("This is not a valid Joes Studio .paper template.");
+          }
+          this.state.templateMode = "paper";
+          this.state.htmlText = "";
+          this.state.htmlRoot = null;
+          this.state.templateFields = [];
+          await App.io.loadProjectData(data);
+          this.state.cardWidthMm = this.getPaperWidthMm();
+          this.state.cardHeightMm = this.getPaperHeightMm();
+          this.state.mapping = this.autoMapPaper();
+          this.refresh();
+          Utils.toast("Paper template loaded: " + file.name);
+        }
       } catch (e) {
         console.error(e);
+        this.state.templateFile = null;
         Utils.toast("Template could not be loaded: " + e.message, "error");
       }
     },
 
-    chooseExcel() {
-      const input = document.getElementById("studentBatchExcelInput");
-      if (!input) return;
-      input.value = "";
-      input.click();
+    async loadHtmlTemplate(text) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "text/html");
+      doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
+
+      const styles = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
+      const root = doc.body;
+      if (!root || !root.innerHTML.trim()) throw new Error("The HTML template is empty.");
+
+      const fields = this.detectPlaceholders(text);
+      if (!fields.length) {
+        throw new Error("No {{placeholders}} were found in the HTML template.");
+      }
+
+      this.state.templateMode = "html";
+      this.state.htmlText = text;
+      this.state.htmlRoot = root;
+      this.state.htmlStyles = styles;
+      this.state.templateFields = fields;
+
+      const size = this.detectHtmlCardSize(doc, root);
+      this.state.cardWidthMm = size.w;
+      this.state.cardHeightMm = size.h;
+
+      this.state.mapping = this.autoMapHtml();
+      this.renderTemplatePreview();
+      this.refresh();
+      Utils.toast("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " placeholders detected");
+    },
+
+    detectPlaceholders(text) {
+      const found = [];
+      const seen = new Set();
+      const re = /{{\s*([^{}]+?)\s*}}/g;
+      let m;
+      while ((m = re.exec(text))) {
+        const field = m[1].trim();
+        const key = this.normalize(field);
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          found.push(field);
+        }
+      }
+      return found;
+    },
+
+    detectHtmlCardSize(doc, root) {
+      const attrW = root.getAttribute("data-card-width-mm") || root.querySelector("[data-card-width-mm]")?.getAttribute("data-card-width-mm");
+      const attrH = root.getAttribute("data-card-height-mm") || root.querySelector("[data-card-height-mm]")?.getAttribute("data-card-height-mm");
+      if (Number(attrW) > 0 && Number(attrH) > 0) return { w: Number(attrW), h: Number(attrH) };
+
+      const css = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
+      const classMatch = css.match(/(?:\.student-card|\.card|\#student-card|\#card)[^{]*\{([^}]*)\}/i);
+      const block = classMatch ? classMatch[1] : css;
+      const w = this.parseCssLength((block.match(/\bwidth\s*:\s*([^;]+)/i) || [])[1]);
+      const h = this.parseCssLength((block.match(/\bheight\s*:\s*([^;]+)/i) || [])[1]);
+      if (w > 0 && h > 0) return { w, h };
+
+      const page = css.match(/@page[^\{]*\{[^}]*size\s*:\s*([^;]+);?/i);
+      if (page) {
+        const nums = page[1].match(/([\d.]+)\s*(mm|cm|in|px|pt)?\s+([\d.]+)\s*(mm|cm|in|px|pt)?/i);
+        if (nums) return { w: this.toMm(nums[1], nums[2]), h: this.toMm(nums[3], nums[4]) };
+      }
+
+      return { w: 85.6, h: 54 };
+    },
+
+    parseCssLength(value) {
+      if (!value) return 0;
+      const m = String(value).trim().match(/^([\d.]+)\s*(mm|cm|in|px|pt)?$/i);
+      return m ? this.toMm(m[1], m[2]) : 0;
+    },
+
+    toMm(value, unit) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 0;
+      switch (String(unit || "px").toLowerCase()) {
+        case "cm": return n * 10;
+        case "in": return n * 25.4;
+        case "pt": return n * 25.4 / 72;
+        case "mm": return n;
+        default: return n * 25.4 / 96;
+      }
+    },
+
+    findHeader(field) {
+      const headers = this.state.headers;
+      const n = this.normalize(field);
+      if (!n) return null;
+
+      let found = headers.find(h => this.normalize(h) === n);
+      if (found) return found;
+
+      const aliases = this.aliases[n] || [n];
+      found = headers.find(h => aliases.includes(this.normalize(h)));
+      if (found) return found;
+
+      const scored = headers.map(h => {
+        const hn = this.normalize(h);
+        let score = 0;
+        aliases.forEach(a => {
+          if (hn === a) score = Math.max(score, 100);
+          else if (hn.includes(a) || a.includes(hn)) score = Math.max(score, 65);
+        });
+        if (n && (hn.includes(n) || n.includes(hn))) score = Math.max(score, 80);
+        return { h, score };
+      }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+      return scored[0]?.h || null;
+    },
+
+    autoMapHtml() {
+      const map = {};
+      this.state.templateFields.forEach(field => {
+        const header = this.findHeader(field);
+        if (header) map[field] = header;
+      });
+      this.state.matchedFields = this.state.templateFields.map(field => ({
+        field,
+        header: map[field] || null
+      }));
+      return map;
+    },
+
+    autoMapPaper() {
+      const map = {};
+      const objects = App.canvas?.getObjects?.() || [];
+      objects.forEach(obj => {
+        if (!obj.dataBinding || obj.dataBinding.type !== "variable") return;
+        const field = String(obj.dataBinding.field || obj.rawContent || obj.text || "").replace(/^\{\{|\}\}$/g, "").trim();
+        const header = this.findHeader(field);
+        if (header) {
+          map[field] = header;
+          obj.dataBinding.field = header;
+          obj.dataBinding.sheet = "Batch";
+        }
+      });
+      this.state.templateFields = Object.keys(map);
+      this.state.matchedFields = this.state.templateFields.map(field => ({ field, header: map[field] || null }));
+      return map;
     },
 
     async loadExcel(file) {
@@ -84,84 +279,192 @@
 
         this.state.rows = rows;
         this.state.headers = Object.keys(rows[0]);
-        this.state.mapping = this.autoMap();
+        if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
+        else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
         this.refresh();
-        Utils.toast(rows.length + " student records loaded");
+        Utils.toast(rows.length + " student records loaded • " + Object.keys(this.state.mapping).length + " fields matched");
       } catch (e) {
         console.error(e);
         Utils.toast("Excel import failed: " + e.message, "error");
       }
     },
 
-    autoMap() {
-      const headers = this.state.headers;
-      const map = {};
-      const aliases = {
-        name: ["name", "studentname", "fullname", "studentfullname", "student"],
-        studentname: ["studentname", "name", "fullname", "studentfullname"],
-        regno: ["regno", "registrationno", "registrationnumber", "admissionno", "studentno", "studentnumber", "id"],
-        registrationnumber: ["registrationnumber", "registrationno", "regno", "admissionno"],
-        class: ["class", "classroom", "form", "grade", "level"],
-        gender: ["gender", "sex"],
-        dob: ["dob", "dateofbirth", "birthdate", "birthday"],
-        photo: ["photo", "photofile", "photo_filename", "image", "imagefile", "picture"],
-        barcode: ["barcode", "barcodeno", "barcodevalue"],
-        qr: ["qr", "qrcode", "qrvalue"],
-      };
-
-      const findHeader = (field) => {
-        const n = this.normalize(field);
-        let found = headers.find(h => this.normalize(h) === n);
-        if (found) return found;
-        const candidates = aliases[n] || [n];
-        found = headers.find(h => candidates.includes(this.normalize(h)));
-        if (found) return found;
-        return headers.find(h => {
-          const hn = this.normalize(h);
-          return candidates.some(c => hn.includes(c) || c.includes(hn));
-        });
-      };
-
-      const objects = App.canvas?.getObjects?.() || [];
-      objects.forEach(obj => {
-        if (!obj.dataBinding || obj.dataBinding.type !== "variable") return;
-        const field = obj.dataBinding.field || obj.rawContent || obj.text || "";
-        const clean = String(field).replace(/^\{\{|\}\}$/g, "").trim();
-        const header = findHeader(clean);
-        if (header) {
-          map[clean] = header;
-          obj.dataBinding.field = header;
-          obj.dataBinding.sheet = "Batch";
-        }
-      });
-
-      return map;
+    async loadPhotos(files) {
+      this.state.photoFiles.clear();
+      for (const file of Array.from(files || [])) {
+        this.state.photoFiles.set(file.name.toLowerCase(), file);
+        this.state.photoFiles.set(file.name.replace(/\.[^.]+$/, "").toLowerCase(), file);
+      }
+      this.refresh();
+      Utils.toast(this.state.photoFiles.size / 2 + " photo files indexed");
     },
 
-    getCardSize() {
+    resolveValue(row, field) {
+      const header = this.state.mapping[field];
+      if (header && row[header] !== undefined) return row[header];
+      if (row[field] !== undefined) return row[field];
+      const h = this.findHeader(field);
+      return h && row[h] !== undefined ? row[h] : "";
+    },
+
+    async fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    },
+
+    async resolvePhoto(value) {
+      if (!value) return "";
+      const raw = String(value).trim();
+      if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
+      const clean = raw.split(/[\\/]/).pop().toLowerCase();
+      const file = this.state.photoFiles.get(clean) || this.state.photoFiles.get(clean.replace(/\.[^.]+$/, ""));
+      return file ? await this.fileToDataUrl(file) : raw;
+    },
+
+    replacePlaceholders(html, row) {
+      const values = {};
+      for (const field of this.state.templateFields) values[field] = this.resolveValue(row, field);
+
+      return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
+        const field = String(name).trim();
+        return escapeHtml(values[field] ?? this.resolveValue(row, field));
+      });
+    },
+
+    async buildHtmlCard(row) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(this.state.htmlText, "text/html");
+      doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
+
+      const body = doc.body;
+      const html = this.replacePlaceholders(body.innerHTML, row);
+      body.innerHTML = html;
+
+      const all = body.querySelectorAll("*");
+      for (const el of all) {
+        for (const attr of Array.from(el.attributes)) {
+          if (!attr.value.includes("{{")) continue;
+          const replaced = this.replacePlaceholders(attr.value, row);
+          el.setAttribute(attr.name, replaced);
+        }
+
+        const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
+        if (bind) {
+          const value = this.resolveValue(row, bind);
+          if (el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(value));
+          else el.textContent = value ?? "";
+        }
+
+        const srcBind = el.getAttribute("data-bind-src");
+        if (srcBind && el.tagName === "IMG") el.setAttribute("src", await this.resolvePhoto(this.resolveValue(row, srcBind)));
+
+        const qrBind = el.getAttribute("data-bind-qr");
+        const barcodeBind = el.getAttribute("data-bind-barcode");
+        if ((qrBind || barcodeBind) && window.bwipjs) {
+          const value = String(this.resolveValue(row, qrBind || barcodeBind) ?? "");
+          try {
+            const canvas = document.createElement("canvas");
+            bwipjs.toCanvas(canvas, {
+              bcid: qrBind ? "qrcode" : "code128",
+              text: value || " ",
+              scale: 3,
+              includetext: false,
+              padding: 0,
+            });
+            const img = document.createElement("img");
+            img.src = canvas.toDataURL("image/png");
+            el.replaceWith(img);
+          } catch (e) {
+            console.warn("Code generation failed", e);
+          }
+        }
+      }
+      return { doc, body };
+    },
+
+    async renderHtmlCard(row) {
+      const { doc, body } = await this.buildHtmlCard(row);
+      const wrapper = document.createElement("div");
+      wrapper.style.cssText = [
+        "position:fixed", "left:-100000px", "top:0", "visibility:hidden",
+        "width:" + this.state.cardWidthMm + "mm",
+        "height:" + this.state.cardHeightMm + "mm",
+        "overflow:hidden", "background:#fff"
+      ].join(";");
+      const styles = document.createElement("style");
+      styles.textContent = this.state.htmlStyles;
+      wrapper.appendChild(styles);
+      while (body.firstChild) wrapper.appendChild(body.firstChild);
+      document.body.appendChild(wrapper);
+
+      const canvas = await this.domToCanvas(wrapper, this.state.cardWidthMm, this.state.cardHeightMm);
+      wrapper.remove();
+      return canvas;
+    },
+
+    async domToCanvas(element, wMm, hMm) {
+      const width = Math.max(1, Math.round(wMm * 96 / 25.4));
+      const height = Math.max(1, Math.round(hMm * 96 / 25.4));
+      const clone = element.cloneNode(true);
+      clone.style.visibility = "visible";
+      clone.style.position = "static";
+      clone.style.left = "0";
+      clone.style.top = "0";
+      clone.style.width = width + "px";
+      clone.style.height = height + "px";
+
+      const css = this.state.htmlStyles.replace(/url\((?!['"]?(?:data:|https?:|blob:))/gi, "url(");
+      const svg = [
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">',
+        "<style><![CDATA[" + css.replace(/]]>/g, "]]&gt;") + "]]></style>",
+        '<foreignObject x="0" y="0" width="100%" height="100%">',
+        new XMLSerializer().serializeToString(clone),
+        "</foreignObject></svg>"
+      ].join("");
+
+      const img = new Image();
+      img.decoding = "async";
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error("The HTML card could not be rendered by the browser."));
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width * 2;
+      canvas.height = height * 2;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    },
+
+    getPaperWidthMm() {
       const paper = App.state.currentPaper || {};
-      return {
-        w: Number(paper.w) / 3.7795275591,
-        h: Number(paper.h) / 3.7795275591,
-      };
+      return Number(paper.w) / 3.7795275591;
+    },
+
+    getPaperHeightMm() {
+      const paper = App.state.currentPaper || {};
+      return Number(paper.h) / 3.7795275591;
     },
 
     getSheetSize() {
       const sizes = {
-        A4: [210, 297],
-        A3: [297, 420],
-        A5: [148, 210],
-        B4: [250, 353],
-        B5: [176, 250],
-        Letter: [215.9, 279.4],
-        Legal: [215.9, 355.6],
+        A4: [210, 297], A3: [297, 420], A5: [148, 210],
+        B4: [250, 353], B5: [176, 250], Letter: [215.9, 279.4], Legal: [215.9, 355.6],
       };
       const [w, h] = sizes[this.state.sheetSize] || sizes.A4;
       return { w, h };
     },
 
     layout() {
-      const card = this.getCardSize();
+      const card = { w: Number(this.state.cardWidthMm) || 85.6, h: Number(this.state.cardHeightMm) || 54 };
       const sheet = this.getSheetSize();
       const margin = Number(this.state.margin) || 0;
       const gx = Number(this.state.gapX) || 0;
@@ -173,36 +476,82 @@
       return { card, sheet, cols, rows, perPage: cols * rows };
     },
 
+    renderTemplatePreview() {
+      const host = document.getElementById("studentBatchPreview");
+      if (!host || this.state.templateMode !== "html") return;
+      host.innerHTML = "";
+      const { doc } = (() => {
+        const parser = new DOMParser();
+        const d = parser.parseFromString(this.state.htmlText, "text/html");
+        d.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
+        return { doc: d };
+      })();
+      const wrapper = document.createElement("div");
+      wrapper.className = "student-batch-preview-card";
+      wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
+      wrapper.style.height = (Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) * this.state.cardHeightMm / this.state.cardWidthMm) + "px";
+      const style = document.createElement("style");
+      style.textContent = this.state.htmlStyles;
+      wrapper.appendChild(style);
+      const body = d.body.cloneNode(true);
+      while (body.firstChild) wrapper.appendChild(body.firstChild);
+      host.appendChild(wrapper);
+    },
+
     refresh() {
       const fileEl = document.getElementById("studentBatchTemplateName");
       const excelEl = document.getElementById("studentBatchExcelName");
       const countEl = document.getElementById("studentBatchCount");
       const layoutEl = document.getElementById("studentBatchLayout");
+      const fieldsEl = document.getElementById("studentBatchFields");
+      const sizeEl = document.getElementById("studentBatchCardSize");
+      const photoEl = document.getElementById("studentBatchPhotoName");
+
       if (fileEl) fileEl.textContent = this.state.templateName || "No template selected";
       if (excelEl) excelEl.textContent = this.state.rows.length ? "Excel data loaded" : "No Excel file selected";
       if (countEl) countEl.textContent = String(this.state.rows.length);
+      if (photoEl) photoEl.textContent = this.state.photoFiles.size ? "Photo folder indexed" : "No photo folder (optional)";
+      if (sizeEl) sizeEl.textContent = (Number(this.state.cardWidthMm).toFixed(1) + " × " + Number(this.state.cardHeightMm).toFixed(1) + " mm");
+
       const l = this.layout();
       if (layoutEl) layoutEl.textContent = l.cols + " × " + l.rows + " = " + l.perPage + " cards per " + this.state.sheetSize;
+
+      if (fieldsEl) {
+        if (!this.state.templateFields.length) {
+          fieldsEl.innerHTML = '<span class="text-slate-400">Load an HTML template to detect {{placeholders}}.</span>';
+        } else {
+          fieldsEl.innerHTML = this.state.templateFields.map(field => {
+            const header = this.state.mapping[field];
+            return '<div class="flex items-center justify-between gap-2 py-1 border-b border-slate-100 last:border-0">' +
+              '<span class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</span>' +
+              (header
+                ? '<span class="text-[11px] text-green-700 font-semibold truncate">✓ ' + escapeHtml(header) + '</span>'
+                : '<span class="text-[11px] text-orange-600 font-semibold">⚠ not found</span>') +
+              '</div>';
+          }).join("");
+        }
+      }
+
       const generate = document.getElementById("studentBatchGenerate");
-      if (generate) generate.disabled = !this.state.rows.length || !this.state.templateFile;
+      if (generate) generate.disabled = !this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length;
     },
 
     async generate() {
       if (!this.state.rows.length || !this.state.templateFile) {
-        Utils.toast("Select a template and Excel data first.", "error");
+        Utils.toast("Select an HTML template and Excel data first.", "error");
+        return;
+      }
+
+      const missing = this.state.templateFields.filter(f => !this.state.mapping[f]);
+      if (missing.length) {
+        Utils.toast("Unmatched template fields: " + missing.join(", "), "error");
         return;
       }
 
       const layout = this.layout();
-      const totalCards = this.state.rows.length * Math.max(1, Number(this.state.copies) || 1);
+      const copies = Math.max(1, Number(this.state.copies) || 1);
+      const totalCards = this.state.rows.length * copies;
       const totalPages = Math.ceil(totalCards / layout.perPage);
-      const originalIndex = App.state.currentDataIndex || 0;
-      const originalSheet = App.state.dataSource.currentSheet;
-      const originalOnly = App.state.printCurrentOnly;
-      const oldData = App.state.dataSource.data;
-      const oldHeaders = App.state.dataSource.headers;
-      const oldActive = App.state.dataSource.isActive;
-
       const pdf = new window.jspdf.jsPDF({
         orientation: layout.sheet.w > layout.sheet.h ? "l" : "p",
         unit: "mm",
@@ -210,51 +559,44 @@
         compress: true,
       });
 
+      const originalIndex = App.state.currentDataIndex || 0;
+      const originalSheet = App.state.dataSource.currentSheet;
+      const originalOnly = App.state.printCurrentOnly;
+      const oldData = App.state.dataSource.data;
+      const oldHeaders = App.state.dataSource.headers;
+      const oldActive = App.state.dataSource.isActive;
+
       try {
-        App.state.printCurrentOnly = false;
-        App.state.dataSource.data = this.state.rows;
-        App.state.dataSource.headers = this.state.headers;
-        App.state.dataSource.isActive = true;
-        App.state.dataSource.currentSheet = originalSheet || "Batch";
-        App.state.dataSource.workbook = null;
+        App.ui.showLoading("Preparing HTML batch...");
+        let cardNumber = 0;
 
-        const first = App.canvas.getObjects().find(o => o.dataBinding?.type === "variable");
-        if (!first && !App.canvas.getObjects().some(o => o.isSerialNumber || o.isDynamicPageNum)) {
-          Utils.toast("No variable fields are bound in this template. Bind the card fields first.", "error");
-          return;
-        }
+        for (let rowIndex = 0; rowIndex < this.state.rows.length; rowIndex++) {
+          for (let copy = 0; copy < copies; copy++) {
+            const canvas = this.state.templateMode === "html"
+              ? await this.renderHtmlCard(this.state.rows[rowIndex])
+              : await this.renderPaperCard(rowIndex);
 
-        App.ui.showLoading("Preparing batch...");
-        for (let i = 0; i < totalCards; i++) {
-          const studentIndex = i % this.state.rows.length;
-          await App.dataSource.renderPage(studentIndex);
+            if (cardNumber > 0 && cardNumber % layout.perPage === 0) {
+              pdf.addPage([layout.sheet.w, layout.sheet.h], layout.sheet.w > layout.sheet.h ? "l" : "p");
+            }
 
-          const exportCanvas = await App.io._getExportCanvas();
-          exportCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-          const svg = exportCanvas.toSVG({
-            suppressPreamble: true,
-            viewBox: { x: 0, y: 0, width: App.state.baseWidth, height: App.state.baseHeight }
-          });
-          exportCanvas.dispose();
-
-          if (i > 0 && i % layout.perPage === 0) pdf.addPage([layout.sheet.w, layout.sheet.h], layout.sheet.w > layout.sheet.h ? "l" : "p");
-
-          const slot = i % layout.perPage;
-          const col = slot % layout.cols;
-          const row = Math.floor(slot / layout.cols);
-          const x = layout.sheet.w === layout.card.w ? 0 : Number(this.state.margin) + col * (layout.card.w + Number(this.state.gapX));
-          const y = layout.sheet.h === layout.card.h ? 0 : Number(this.state.margin) + row * (layout.card.h + Number(this.state.gapY));
-
-          await pdf.svg(new DOMParser().parseFromString(svg, "image/svg+xml").documentElement, {
-            x, y, width: layout.card.w, height: layout.card.h
-          });
-
-          if ((i + 1) % Math.max(1, Math.floor(totalCards / 20)) === 0 || i === totalCards - 1) {
-            App.ui.showLoading("Generating card " + (i + 1) + " of " + totalCards + "...");
+            const slot = cardNumber % layout.perPage;
+            const col = slot % layout.cols;
+            const row = Math.floor(slot / layout.cols);
+            const x = Number(this.state.margin) + col * (layout.card.w + Number(this.state.gapX));
+            const y = Number(this.state.margin) + row * (layout.card.h + Number(this.state.gapY));
+            const image = canvas.toDataURL("image/png", 1);
+            pdf.addImage(image, "PNG", x, y, layout.card.w, layout.card.h, undefined, "FAST");
+            cardNumber++;
+            if (cardNumber === 1 || cardNumber % Math.max(1, Math.floor(totalCards / 20)) === 0 || cardNumber === totalCards) {
+              App.ui.showLoading("Generating card " + cardNumber + " of " + totalCards + "...");
+            }
           }
         }
 
-        const safeName = (this.state.templateName || "student_cards").replace(/\.paper$/i, "").replace(/[^a-z0-9_-]+/gi, "_");
+        const safeName = (this.state.templateName || "student_cards")
+          .replace(/\.(html?|paper)$/i, "")
+          .replace(/[^a-z0-9_-]+/gi, "_");
         pdf.save(safeName + "_batch_" + new Date().toISOString().slice(0, 10) + ".pdf");
         Utils.toast("Batch complete: " + totalCards + " cards on " + totalPages + " pages.");
       } catch (e) {
@@ -265,16 +607,57 @@
         App.state.dataSource.headers = oldHeaders;
         App.state.dataSource.isActive = oldActive;
         App.state.printCurrentOnly = originalOnly;
-        await App.dataSource.renderPage(originalIndex);
+        if (this.state.templateMode === "paper") await App.dataSource.renderPage(originalIndex);
         App.ui.hideLoading();
       }
-    }
+    },
+
+    async renderPaperCard(studentIndex) {
+      const oldData = App.state.dataSource.data;
+      const oldHeaders = App.state.dataSource.headers;
+      const oldActive = App.state.dataSource.isActive;
+      App.state.dataSource.data = this.state.rows;
+      App.state.dataSource.headers = this.state.headers;
+      App.state.dataSource.isActive = true;
+      App.state.dataSource.currentSheet = "Batch";
+      await App.dataSource.renderPage(studentIndex);
+      const exportCanvas = await App.io._getExportCanvas();
+      exportCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      const image = document.createElement("canvas");
+      image.width = exportCanvas.getWidth() * 2;
+      image.height = exportCanvas.getHeight() * 2;
+      image.getContext("2d").drawImage(exportCanvas.lowerCanvasEl, 0, 0, image.width, image.height);
+      exportCanvas.dispose();
+      App.state.dataSource.data = oldData;
+      App.state.dataSource.headers = oldHeaders;
+      App.state.dataSource.isActive = oldActive;
+      return image;
+    },
+
+    cleanupPreview() {
+      const host = document.getElementById("studentBatchPreview");
+      if (host) host.innerHTML = "";
+    },
   };
+
+  function fileNameSafe(name) {
+    return String(name || "").replace(/[^a-z0-9_.-]+/gi, "_");
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
   window.JoesStudentBatch = Batch;
   window.addEventListener("load", () => {
     document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
+    document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
     ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", () => {
         const keyMap = {
