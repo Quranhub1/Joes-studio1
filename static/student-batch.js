@@ -277,8 +277,14 @@
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
     ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", () => {
+        const keyMap = {
+          studentBatchMargin: "margin",
+          studentBatchGapX: "gapX",
+          studentBatchGapY: "gapY",
+          studentBatchCopies: "copies"
+        };
         if (id === "studentBatchSheetSize") Batch.state.sheetSize = document.getElementById(id).value;
-        else Batch.state[id.replace("studentBatch", "").toLowerCase()] = Number(document.getElementById(id).value);
+        else if (keyMap[id]) Batch.state[keyMap[id]] = Number(document.getElementById(id).value);
         Batch.refresh();
       });
     });
