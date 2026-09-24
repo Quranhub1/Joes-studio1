@@ -939,19 +939,46 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // Preserve the master template's actual KSHS badge image in the card.
-      // The embedded SVG remains available as the template's own fallback,
-      // but must not replace the real badge during batch rendering. Preview
-      // uses the normal browser image path; PDF rendering inlines cross-origin
-      // images separately through inlineExportImages().
+      // Keep the master template's real KSHS badge image, with its embedded
+      // SVG as a true fallback. The old renderer hid both when the remote
+      // image failed because the template's onerror handler and our own badge
+      // cleanup were fighting each other.
       const badgeImage = body.querySelector("#badge-custom-img");
       const badgeSvg = body.querySelector("#badge-svg");
+      const badgeContainer = body.querySelector("#badge-container");
+
+      if (badgeContainer) {
+        badgeContainer.style.position = "relative";
+      }
+
+      if (badgeSvg) {
+        badgeSvg.classList.remove("hidden");
+        badgeSvg.style.position = "absolute";
+        badgeSvg.style.inset = "0";
+        badgeSvg.style.width = "100%";
+        badgeSvg.style.height = "100%";
+        badgeSvg.style.zIndex = "0";
+      }
+
       if (badgeImage) {
         badgeImage.classList.remove("hidden");
         badgeImage.removeAttribute("crossorigin");
-      }
-      if (badgeSvg && badgeImage?.getAttribute("src")) {
-        badgeSvg.classList.add("hidden");
+        badgeImage.removeAttribute("onerror");
+        badgeImage.setAttribute(
+          "onload",
+          "this.style.display='block';this.classList.remove('hidden');" +
+          "if(document.getElementById('badge-svg'))document.getElementById('badge-svg').classList.add('hidden');"
+        );
+        badgeImage.setAttribute(
+          "onerror",
+          "this.style.display='none';this.classList.add('hidden');" +
+          "if(document.getElementById('badge-svg'))document.getElementById('badge-svg').classList.remove('hidden');"
+        );
+        badgeImage.style.position = "absolute";
+        badgeImage.style.inset = "0";
+        badgeImage.style.width = "100%";
+        badgeImage.style.height = "100%";
+        badgeImage.style.zIndex = "1";
       }
 
       // The master card supplied for this workflow uses the legacy
