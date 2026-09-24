@@ -1202,13 +1202,13 @@
       // the label and surrounding layout.
       const markIssuedBySignatureLine = () => {
         root.querySelectorAll("*").forEach(el => {
-          if (!/issued\\s*by|issuedby/i.test(String(el.textContent || ""))) return;
-
+        root.querySelectorAll("*").forEach(el => {
+          if (!/issued\s*by|issuedby/i.test(String(el.textContent || ""))) return;
           const candidates = [
-            ...el.querySelectorAll("hr, [class*='line' i], [class*='underline' i], [class*='signature' i], [id*='line' i], [id*='signature' i]')
+            ...el.querySelectorAll("hr, [class*=\"line\"], [class*=\"underline\"], [class*=\"signature\"], [id*=\"line\"], [id*=\"signature\"]")
           ];
 
-          let line = candidates.find(node => !/issued\\s*by|issuedby/i.test(String(node.textContent || "")));
+          let line = candidates.find(node => !/issued\s*by|issuedby/i.test(String(node.textContent || "")));
 
           if (!line && el.nextElementSibling) {
             line = el.nextElementSibling;
