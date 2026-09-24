@@ -663,18 +663,24 @@
       body.innerHTML = html;
 
       const all = body.querySelectorAll("*");
-      // Mark external images for CORS-aware preview/export. In particular,
-      // the KSHS badge is an external image and must not be treated as a
-      // decorative browser-only asset.
-      body.querySelectorAll("img[src]").forEach(img => {
-        const src = String(img.getAttribute("src") || "");
-        if (/^https?:/i.test(src)) img.setAttribute("crossorigin", "anonymous");
-      });
 
-      // Do not replace external template images with a failed fetch in the
-      // live preview. Browsers can display the badge directly even when the
-      // source does not grant CORS. Keep the real src for preview; the PDF
-      // renderer separately inlines images when it rasterizes the card.
+      // The supplied master template uses the real KSHS badge image at
+      // https://www.kshs.ac.ug/images/kampala%20logo.png. That server does not
+      // expose Access-Control-Allow-Origin to GitHub Pages, so a crossorigin
+      // image request is rejected by the browser. Keep the template artwork,
+      // but route that one external badge through the same read-only image
+      // proxy used by the renderer so the live preview never requests KSHS
+      // directly from the GitHub Pages origin.
+      body.querySelectorAll("img[src]").forEach(img => {
+        const src = String(img.getAttribute("src") || "").trim();
+        if (/kshs\.ac\.ug\/images\/kampala(?:%20|\s)+logo\.png/i.test(src)) {
+          const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
+          img.setAttribute("src", proxy);
+          img.removeAttribute("crossorigin");
+          img.loading = "eager";
+          img.decoding = "sync";
+        }
+      });
 
       for (const el of all) {
         for (const attr of Array.from(el.attributes)) {
