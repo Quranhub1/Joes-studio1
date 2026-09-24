@@ -647,10 +647,17 @@
       const values = {};
       for (const field of this.state.templateFields) values[field] = this.resolveValue(row, field);
 
-      return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
+      const rendered = html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
         const field = String(name).trim();
         return escapeHtml(this.displayValue(row, field));
       });
+
+      // The supplied master card has no fill-in underline characters.
+      // Remove decorative runs left beside placeholders without touching
+      // ordinary student data.
+      return rendered
+        .replace(/[ \t]*_{4,}[ \t]*/g, " ")
+        .replace(/[ \t]*[─━]{4,}[ \t]*/g, " ");
     },
 
     async buildHtmlCard(row) {
@@ -662,25 +669,35 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // The master examination-card template is authoritative for its visual
-      // design. Some browser/app styles can add text underlines or bottom
-      // borders to generated data fields even when those lines are not part
-      // of the supplied card. Remove those artifacts from text fields only,
-      // while preserving the card border and the passport-photo border.
-      body.querySelectorAll('[id^="out-"], [id^="out_"], [id^="field-"], [id^="field_"], [id^="data-"], [id^="data_"]').forEach(el => {
+      // The supplied master card does not use fill-in lines beneath
+      // student values. Remove line styling from bound fields and their
+      // immediate row containers, while preserving the card/photo borders.
+      const fieldLineNodes = new Set();
+      const fieldSelector = '[id^="out-"], [id^="out_"], [id^="field-"], [id^="field_"], [id^="data-"], [id^="data_"], [data-bind], [data-field], [data-bind-src]';
+      body.querySelectorAll(fieldSelector).forEach(el => {
         if (el.tagName === "IMG") return;
-        el.style.borderBottom = "none";
-        el.style.textDecoration = "none";
-        el.style.boxShadow = "none";
+        fieldLineNodes.add(el);
+
+        let parent = el.parentElement;
+        let depth = 0;
+        while (parent && parent !== body && depth < 2) {
+          if (!parent.querySelector("img")) fieldLineNodes.add(parent);
+          parent = parent.parentElement;
+          depth++;
+        }
       });
 
-      const cleanupSelectors = [
-        '[id^="out-"]::after', '[id^="out_"]::after',
-        '[id^="field-"]::after', '[id^="field_"]::after',
-        '[id^="data-"]::after', '[id^="data_"]::after'
-      ].join(",");
+      fieldLineNodes.forEach(el => {
+        el.style.setProperty("border-bottom", "none", "important");
+        el.style.setProperty("text-decoration", "none", "important");
+        el.style.setProperty("box-shadow", "none", "important");
+      });
+
       const cleanupStyle = document.createElement("style");
-      cleanupStyle.textContent = cleanupSelectors + "{content:none !important;border:0 !important;box-shadow:none !important;text-decoration:none !important;}";
+      cleanupStyle.textContent = [
+        fieldSelector + "::before",
+        fieldSelector + "::after"
+      ].join(",") + "{content:none !important;border:0 !important;box-shadow:none !important;text-decoration:none !important;}";
       body.prepend(cleanupStyle);
 
       const all = body.querySelectorAll("*");
