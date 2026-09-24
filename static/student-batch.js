@@ -606,15 +606,23 @@
           headers.push(header);
         });
 
-        const dataMatrix = matrix.slice(headerIndex + 1).filter(row => {
-          const cells = nonEmpty(row);
-          return cells.length > 0;
-        });
+        const dataMatrix = matrix
+          .slice(headerIndex + 1)
+          .map((row, offset) => ({
+            values: row,
+            worksheetRowIndex: headerIndex + 1 + offset
+          }))
+          .filter(item => nonEmpty(item.values).length > 0);
 
-        const rows = dataMatrix.map(row => {
+        const rows = dataMatrix.map(item => {
           const obj = {};
           headers.forEach((header, i) => {
-            obj[header] = row[i] ?? "";
+            obj[header] = item.values[i] ?? "";
+          });
+          Object.defineProperty(obj, "__worksheetRowIndex", {
+            value: item.worksheetRowIndex,
+            enumerable: false,
+            configurable: true
           });
           return obj;
         }).filter(row => Object.values(row).some(v => String(v ?? "").trim() !== ""));
@@ -626,11 +634,16 @@
           throw new Error("The selected worksheet has headers but no student records. Choose the sheet containing the student table.");
         }
 
-        this.state.rows = rows.map((row, dataIndex) => {
+        // Embedded images are keyed by the source worksheet XML plus the
+        // absolute zero-based worksheet row. This keeps images attached to
+        // the correct student even when blank rows exist.
+        const selectedSheetIndex = workbook.SheetNames.indexOf(sheetName);
+        const selectedSheetPath = "xl/worksheets/sheet" + (selectedSheetIndex + 1) + ".xml";
+
+        this.state.rows = rows.map(row => {
           const copy = { ...row };
-          // Drawing anchors in the XLSX XML use zero-based row indexes.
-          const excelRowIndex = headerIndex + 1 + dataIndex;
-          const embedded = this.state.embeddedPhotos.get(excelRowIndex);
+          const excelRowIndex = Number(row.__worksheetRowIndex);
+          const embedded = this.state.embeddedPhotos.get(selectedSheetPath + "::" + excelRowIndex);
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
         });
@@ -725,6 +738,11 @@
       });
     },
 
+    isImageField(field = "") {
+      const key = this.normalize(field);
+      return /(photo|image|picture|avatar|badge|logo|crest|emblem|seal|url)/i.test(key);
+    },
+
     isImageUrl(value, field = "") {
       const raw = String(value ?? "").trim();
       if (!raw) return false;
@@ -753,9 +771,14 @@
       return raw;
     },
 
-    putImageIntoBoundElement(el, value, field) {
-      if (!this.isImageUrl(value, field)) return false;
-      const src = this.imageSourceForTemplate(value);
+    async putImageIntoBoundElement(el, value, field, row) {
+      const imageField = this.isImageField(field);
+      if (!imageField) return false;
+
+      const resolved = await this.resolvePhoto(value, row);
+      if (!resolved) return false;
+
+      const src = this.imageSourceForTemplate(resolved);
       if (!src) return false;
 
       if (el.tagName === "IMG") {
@@ -773,14 +796,12 @@
         return true;
       }
 
+      // Keep the existing template container and its CSS. Only replace its
+      // bound placeholder content with the actual image.
       if (el.children.length === 0) {
         const img = document.createElement("img");
-        img.src = src;
-        img.alt = "";
-        img.setAttribute("data-batch-bound-image", "true");
-        img.style.maxWidth = "100%";
-        img.style.maxHeight = "100%";
-        img.style.display = "block";
+        img.setAttribute("src", src);
+        img.setAttribute("alt", "");
         el.textContent = "";
         el.appendChild(img);
         return true;
@@ -815,6 +836,29 @@
         }
       }
 
+      // Some templates use a plain text placeholder inside a photo/badge
+      // container instead of data-bind or an <img>. Resolve those placeholders
+      // before the generic text replacement so they become real images.
+      const textWalker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+      const imageTextNodes = [];
+      let textNode;
+      while ((textNode = textWalker.nextNode())) {
+        const rawText = String(textNode.nodeValue || "");
+        const match = rawText.match(/^\\s*{{\\s*([^{}]+?)\\s*}}\\s*$/);
+        if (!match) continue;
+
+        const field = String(match[1] || "").trim();
+        if (!this.isImageField(field)) continue;
+
+        const photo = await this.resolvePhoto(this.resolveValue(row, field), row);
+        if (!photo) continue;
+
+        const img = document.createElement("img");
+        img.setAttribute("src", this.imageSourceForTemplate(photo));
+        img.setAttribute("alt", "");
+        textNode.parentNode.replaceChild(img, textNode);
+      }
+
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
@@ -837,7 +881,7 @@
         if (idMatch) {
           const field = idMatch[1].replace(/[-_]+/g, " ");
           const value = this.resolveValue(row, field);
-          if (this.putImageIntoBoundElement(el, value, field)) {
+          if (await this.putImageIntoBoundElement(el, value, field, row)) {
             // Render mapped image/badge URLs as images.
           } else if (!/^in[-_]/i.test(el.id)) {
             el.textContent = this.displayValue(row, field);
@@ -847,7 +891,7 @@
         const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
         if (bind) {
           const value = this.resolveValue(row, bind);
-          if (!this.putImageIntoBoundElement(el, value, bind)) {
+          if (!(await this.putImageIntoBoundElement(el, value, bind, row))) {
             el.textContent = this.displayValue(row, bind);
           }
         }
