@@ -721,33 +721,66 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // The master examination card uses dotted leader lines on its
-      // editable fields. In batch output those lines should not appear after
-      // NAME, REG NO, SEX, SITTING, or COURSE because the Excel value itself
-      // occupies the field. ISSUED BY remains a field line and is given the
-      // full remaining row width.
-      [
+      // Batch cards are filled from Excel, so NAME, REG NO, SEX, SITTING and
+      // COURSE must have no horizontal field line at all. Remove both the
+      // template class and any equivalent inline border styling. ISSUED BY is
+      // the only field that keeps the dotted line, and its line is forced to
+      // occupy every remaining pixel in the row.
+      const noLineFields = [
         "#out-name",
         "#out-regno",
         "#out-sex",
         "#out-sitting",
         "#out-course"
-      ].forEach(selector => {
-        body.querySelector(selector)?.classList.remove("dots-underline");
+      ];
+
+      noLineFields.forEach(selector => {
+        const field = body.querySelector(selector);
+        if (!field) return;
+        field.classList.remove("dots-underline", "border-b", "border-b-dotted");
+        field.style.setProperty("border-bottom", "none", "important");
+        field.style.setProperty("border-bottom-width", "0", "important");
+        field.style.setProperty("border-bottom-style", "none", "important");
+        field.style.setProperty("box-shadow", "none", "important");
+        field.style.setProperty("background-image", "none", "important");
+
+        // Guard against a template placing the underline on the immediate
+        // wrapper rather than on the value element.
+        const wrapper = field.parentElement;
+        if (wrapper) {
+          wrapper.style.setProperty("border-bottom", "none", "important");
+          wrapper.style.setProperty("border-bottom-width", "0", "important");
+          wrapper.style.setProperty("border-bottom-style", "none", "important");
+          wrapper.style.setProperty("box-shadow", "none", "important");
+        }
+      });
+
+      // There should be exactly one field underline in the generated card.
+      body.querySelectorAll(".dots-underline").forEach(el => {
+        if (el.id !== "out-issuedby") {
+          el.classList.remove("dots-underline");
+          el.style.setProperty("border-bottom", "none", "important");
+        }
       });
 
       const issuedBy = body.querySelector("#out-issuedby");
       if (issuedBy) {
         issuedBy.classList.add("dots-underline");
-        issuedBy.style.flex = "1 1 auto";
-        issuedBy.style.width = "100%";
-        issuedBy.style.minWidth = "0";
-        issuedBy.style.paddingRight = "0";
+        issuedBy.style.setProperty("border-bottom", "1.5px dotted #000000", "important");
+        issuedBy.style.setProperty("width", "auto", "important");
+        issuedBy.style.setProperty("max-width", "none", "important");
+        issuedBy.style.setProperty("min-width", "0", "important");
+        issuedBy.style.setProperty("flex", "none", "important");
+        issuedBy.style.setProperty("display", "block", "important");
+        issuedBy.style.setProperty("padding-right", "0", "important");
+
         const issuedRow = issuedBy.parentElement;
         if (issuedRow) {
-          issuedRow.style.display = "flex";
-          issuedRow.style.alignItems = "flex-end";
-          issuedRow.style.width = "100%";
+          issuedRow.style.setProperty("display", "grid", "important");
+          issuedRow.style.setProperty("grid-template-columns", "max-content minmax(0, 1fr)", "important");
+          issuedRow.style.setProperty("align-items", "end", "important");
+          issuedRow.style.setProperty("width", "100%", "important");
+          issuedRow.style.setProperty("min-width", "0", "important");
         }
       }
 
