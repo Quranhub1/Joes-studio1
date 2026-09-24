@@ -442,8 +442,6 @@
         const header = this.findHeader(field);
         if (header) {
           map[field] = header;
-          obj.dataBinding.field = header;
-          obj.dataBinding.sheet = "Batch";
         }
       });
       this.state.templateFields = Object.keys(map);
@@ -1726,6 +1724,7 @@
         App.state.dataSource.data = oldData;
         App.state.dataSource.headers = oldHeaders;
         App.state.dataSource.isActive = oldActive;
+        App.state.dataSource.currentSheet = originalSheet;
         App.state.printCurrentOnly = originalOnly;
         if (this.state.templateMode === "paper") await App.dataSource.renderPage(originalIndex);
         App.ui.hideLoading();
@@ -1736,22 +1735,27 @@
       const oldData = App.state.dataSource.data;
       const oldHeaders = App.state.dataSource.headers;
       const oldActive = App.state.dataSource.isActive;
+      const oldSheet = App.state.dataSource.currentSheet;
       App.state.dataSource.data = this.state.rows;
       App.state.dataSource.headers = this.state.headers;
       App.state.dataSource.isActive = true;
       App.state.dataSource.currentSheet = "Batch";
-      await App.dataSource.renderPage(studentIndex);
-      const exportCanvas = await App.io._getExportCanvas();
-      exportCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-      const image = document.createElement("canvas");
-      image.width = exportCanvas.getWidth() * 2;
-      image.height = exportCanvas.getHeight() * 2;
-      image.getContext("2d").drawImage(exportCanvas.lowerCanvasEl, 0, 0, image.width, image.height);
-      exportCanvas.dispose();
-      App.state.dataSource.data = oldData;
-      App.state.dataSource.headers = oldHeaders;
-      App.state.dataSource.isActive = oldActive;
-      return image;
+      try {
+        await App.dataSource.renderPage(studentIndex);
+        const exportCanvas = await App.io._getExportCanvas();
+        exportCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        const image = document.createElement("canvas");
+        image.width = exportCanvas.getWidth() * 2;
+        image.height = exportCanvas.getHeight() * 2;
+        image.getContext("2d").drawImage(exportCanvas.lowerCanvasEl, 0, 0, image.width, image.height);
+        exportCanvas.dispose();
+        return image;
+      } finally {
+        App.state.dataSource.data = oldData;
+        App.state.dataSource.headers = oldHeaders;
+        App.state.dataSource.isActive = oldActive;
+        App.state.dataSource.currentSheet = oldSheet;
+      }
     },
 
     cleanupPreview() {

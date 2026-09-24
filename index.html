@@ -3640,7 +3640,10 @@
             if (!binding || binding.type !== "variable" || !binding.field) return null;
             const s = App.state.dataSource;
             const targetSheet = binding.sheet || s.currentSheet;
-            if (!this._sheetCache[targetSheet]) {
+            let rowData = null;
+            if (this._sheetCache[targetSheet]) {
+              rowData = this._sheetCache[targetSheet][pageIndex];
+            } else {
               const ws = s.workbook?.Sheets[targetSheet];
               if (ws) {
                 this._sheetCache[targetSheet] = XLSX.utils.sheet_to_json(ws, {
@@ -3648,12 +3651,11 @@
                   dateNF: "yyyy-mm-dd",
                   defval: "",
                 });
-              } else {
-                return null;
+                rowData = this._sheetCache[targetSheet][pageIndex];
+              } else if (s.isActive && s.data && s.data.length > 0) {
+                rowData = s.data[pageIndex];
               }
             }
-
-            const rowData = this._sheetCache[targetSheet][pageIndex];
             if (!rowData) return "";
             const val = rowData[binding.field];
             return val !== undefined && val !== null ? String(val) : "";
