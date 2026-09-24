@@ -939,31 +939,43 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // The master card already contains the KSHS badge artwork as an inline SVG.
-      // Use that local artwork as the batch badge so the generator never
-      // depends on a remote image that may be blocked by CORS or unavailable
-      // during preview/PDF rendering. Keep the real image element in the
-      // source template untouched outside batch generation.
+      // The KSHS badge is part of the supplied master HTML. Render that
+      // embedded SVG as a self-contained data image so it cannot disappear
+      // because of Tailwind's hidden class, template JavaScript, or remote-image
+      // CORS/network behavior.
       const badgeImage = body.querySelector("#badge-custom-img");
       const badgeSvg = body.querySelector("#badge-svg");
       const badgeContainer = body.querySelector("#badge-container");
 
-      if (badgeContainer) {
-        badgeContainer.style.position = "relative";
-      }
-      if (badgeSvg) {
-        badgeSvg.classList.remove("hidden");
-        badgeSvg.style.display = "block";
-        badgeSvg.style.position = "relative";
-        badgeSvg.style.width = "100%";
-        badgeSvg.style.height = "100%";
-        badgeSvg.style.zIndex = "1";
-      }
-      if (badgeImage) {
-        badgeImage.classList.add("hidden");
-        badgeImage.style.display = "none";
-        badgeImage.removeAttribute("onload");
-        badgeImage.removeAttribute("onerror");
+      if (badgeContainer && badgeSvg) {
+        try {
+          const badgeClone = badgeSvg.cloneNode(true);
+          badgeClone.removeAttribute("id");
+          badgeClone.classList.remove("hidden");
+          badgeClone.removeAttribute("style");
+          badgeClone.setAttribute("width", "100%");
+          badgeClone.setAttribute("height", "100%");
+          const serializedBadge = new XMLSerializer().serializeToString(badgeClone);
+          const badgeDataUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(serializedBadge);
+
+          const renderedBadge = document.createElement("img");
+          renderedBadge.id = "batch-template-badge";
+          renderedBadge.src = badgeDataUrl;
+          renderedBadge.alt = "KSHS Badge";
+          renderedBadge.style.cssText =
+            "position:absolute;inset:0;width:100%;height:100%;" +
+            "object-fit:contain;display:block;z-index:2;";
+
+          badgeSvg.replaceWith(renderedBadge);
+          if (badgeImage) {
+            badgeImage.remove();
+          }
+        } catch (error) {
+          console.warn("Could not serialize embedded KSHS badge:", error);
+          badgeSvg.classList.remove("hidden");
+          badgeSvg.style.display = "block";
+          if (badgeImage) badgeImage.remove();
+        }
       }
 
       // The master card supplied for this workflow uses the legacy
