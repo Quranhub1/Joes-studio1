@@ -24,14 +24,32 @@
       copies: 1,
       columns: 0,
       rowsPerPage: 0,
-      cardWidthMm: 85.6,
-      cardHeightMm: 54,
+      cardWidthMm: 130,
+      cardHeightMm: 60,
       orientation: "portrait",
       cardsPerPage: 6,
       resolution: 300,
       embeddedPhotos: new Map(),
       badgeFile: null,
       badgeDataUrl: "",
+    },
+
+    notify(msg, type = "info") {
+      if (window.Utils?.toast) {
+        window.Utils.toast(msg, type);
+      } else {
+        console.log("[" + String(type).toUpperCase() + "] " + msg);
+      }
+    },
+
+    showLoading(msg) {
+      if (window.App?.ui?.showLoading) window.App.ui.showLoading(msg);
+      else if (window.Utils?.showLoading) window.Utils.showLoading(msg);
+    },
+
+    hideLoading() {
+      if (window.App?.ui?.hideLoading) window.App.ui.hideLoading();
+      else if (window.Utils?.hideLoading) window.Utils.hideLoading();
     },
 
     normalize(value) {
@@ -113,17 +131,17 @@
           this.state.htmlText = "";
           this.state.htmlRoot = null;
           this.state.templateFields = [];
-          await App.io.loadProjectData(data);
+          if (window.App?.io?.loadProjectData) await window.App.io.loadProjectData(data);
           this.state.cardWidthMm = this.getPaperWidthMm();
           this.state.cardHeightMm = this.getPaperHeightMm();
           this.state.mapping = this.autoMapPaper();
           this.refresh();
-          Utils.toast("Paper template loaded: " + file.name);
+          this.notify("Paper template loaded: " + file.name);
         }
       } catch (e) {
         console.error(e);
         this.state.templateFile = null;
-        Utils.toast("Template could not be loaded: " + e.message, "error");
+        this.notify("Template could not be loaded: " + e.message, "error");
       }
     },
 
@@ -132,7 +150,15 @@
       const doc = parser.parseFromString(text, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
-      const styles = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
+      let styles = Array.from(doc.querySelectorAll("style"))
+        .map(s => s.textContent || "")
+        .join("\n");
+
+      // Preserve the supplied template as the source of truth while removing
+      // only the generic detail-value underline that was causing unwanted
+      // horizontal rules in generated cards.
+      styles += "\n.detail-value { border-bottom: none !important; }\n";
+
       const cardRoot = this.findHtmlCardRoot(doc);
       if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
 
@@ -151,18 +177,24 @@
       this.state.mapping = this.autoMapHtml();
       this.refresh();
       this.previewBatch();
-      Utils.toast("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " fields detected");
+      this.notify("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " fields detected");
     },
-
     detectPlaceholders(text) {
       const found = [];
       const seen = new Set();
+
       const add = value => {
         const field = String(value || "").trim();
         if (!field) return;
         const key = this.normalize(field);
-        // Exclude placeholder labels or static placeholders
-        if (key === "photoplaceholder" || key === "passportphotoplaceholder") return;
+
+        // These are visual placeholder labels, not data fields.
+        if (
+          key === "photoplaceholder" ||
+          key === "passportphotoplaceholder" ||
+          key === "badgeplaceholder"
+        ) return;
+
         if (key && !seen.has(key)) {
           seen.add(key);
           found.push(field);
@@ -175,45 +207,60 @@
 
       try {
         const doc = new DOMParser().parseFromString(text, "text/html");
-        doc.querySelectorAll("[data-bind],[data-field],[data-bind-src],[data-bind-qr],[data-bind-barcode]").forEach(el => {
-          ["data-bind", "data-field", "data-bind-src", "data-bind-qr", "data-bind-barcode"].forEach(attr => {
+
+        doc.querySelectorAll(
+          "[data-bind],[data-field],[data-bind-src],[data-bind-qr],[data-bind-barcode]"
+        ).forEach(el => {
+          [
+            "data-bind",
+            "data-field",
+            "data-bind-src",
+            "data-bind-qr",
+            "data-bind-barcode"
+          ].forEach(attr => {
             const value = el.getAttribute(attr);
             if (value) add(value.replace(/^{{\s*|\s*}}$/g, ""));
           });
         });
-      } catch (_) {}
 
-      try {
-        const doc = new DOMParser().parseFromString(text, "text/html");
         doc.querySelectorAll("[id]").forEach(el => {
           const id = String(el.id || "").trim();
+
           const outMatch = id.match(/^out[-_](.+)$/i);
           if (outMatch) {
             const name = outMatch[1].replace(/[-_]+/g, " ");
-            if (!/^(photo[-_]?placeholder|badge[-_]?placeholder)$/i.test(name)) add(name);
+            if (!/^(photo[-_]?placeholder|badge[-_]?placeholder)$/i.test(name)) {
+              add(name);
+            }
             return;
           }
+
           const fieldMatch = id.match(/^(?:field|data)[-_](.+)$/i);
           if (fieldMatch) {
             add(fieldMatch[1].replace(/[-_]+/g, " "));
             return;
           }
+
           const inMatch = id.match(/^in[-_](.+)$/i);
           if (inMatch) {
             const name = inMatch[1].replace(/[-_]+/g, " ");
             const tag = el.tagName.toLowerCase();
             const type = String(el.getAttribute("type") || "").toLowerCase();
             const isDataInput = ["text","number","date","email","tel","search",""].includes(type);
-            const isOutputPaired = !!doc.querySelector("#out-" + inMatch[1] + ", #out_" + inMatch[1]);
-            const isControl = /^(?:badge[-_]?(?:file|url)|file|url|button|submit|reset|search)$/i.test(inMatch[1]);
-            if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) add(name);
+            const isOutputPaired =
+              !!doc.querySelector("#out-" + inMatch[1] + ", #out_" + inMatch[1]);
+            const isControl =
+              /^(?:badge[-_]?(?:file|url)|file|url|button|submit|reset|search)$/i.test(inMatch[1]);
+
+            if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) {
+              add(name);
+            }
           }
         });
       } catch (_) {}
 
       return found;
     },
-
     detectHtmlCardSize(doc, root) {
       const attrW = root.getAttribute("data-card-width-mm") || root.querySelector("[data-card-width-mm]")?.getAttribute("data-card-width-mm");
       const attrH = root.getAttribute("data-card-height-mm") || root.querySelector("[data-card-height-mm]")?.getAttribute("data-card-height-mm");
@@ -705,7 +752,7 @@
         if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
         else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
         this.refresh();
-        Utils.toast(rows.length + " student records loaded • " + Object.keys(this.state.mapping).length + " fields matched");
+        this.notify(rows.length + " student records loaded • " + Object.keys(this.state.mapping).length + " fields matched");
       } catch (e) {
         console.error(e);
         Utils.toast("Excel import failed: " + e.message, "error");
@@ -719,7 +766,7 @@
         this.state.photoFiles.set(file.name.replace(/\.[^.]+$/, "").toLowerCase(), file);
       }
       this.refresh();
-      Utils.toast(Math.floor(this.state.photoFiles.size / 2) + " photo files indexed • Excel photo fields will be matched automatically");
+      this.notify(Math.floor(this.state.photoFiles.size / 2) + " photo files indexed • Excel photo fields will be matched automatically");
     },
 
     async loadBadge(file) {
@@ -774,7 +821,6 @@
       return /(photo|studentphoto|studentimage|picture|avatar|passport)/i.test(key) &&
         !/(badge|logo|crest|emblem|seal)/i.test(key);
     },
-
     isBadgeField(field = "") {
       const key = this.normalize(field);
       return /(badge|logo|crest|emblem|seal)/i.test(key);
@@ -786,15 +832,17 @@
       }
 
       if (!value) return row?.__embeddedPhoto || "";
+
       const raw = String(value).trim();
       if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
 
       const clean = raw.split(/[\\/]/).pop().trim().toLowerCase();
       const stem = clean.replace(/\.[^.]+$/, "");
       const candidates = [
-        clean, stem,
+        clean,
+        stem,
         stem.replace(/\s+/g, ""),
-        stem.replace(/[^a-z0-9]/gi, ""),
+        stem.replace(/[^a-z0-9]/gi, "")
       ];
 
       let file = null;
@@ -815,7 +863,6 @@
 
       return file ? await this.fileToDataUrl(file) : (row?.__embeddedPhoto || "");
     },
-
     replacePlaceholders(html, row) {
       return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
         const field = String(name).trim();
@@ -1145,13 +1192,13 @@
     },
 
     getPaperWidthMm() {
-      const paper = App.state.currentPaper || {};
-      return Number(paper.w) / 3.7795275591;
+      const paper = window.App?.state?.currentPaper || {};
+      return Number(paper.w || 320) / 3.7795275591;
     },
 
     getPaperHeightMm() {
-      const paper = App.state.currentPaper || {};
-      return Number(paper.h) / 3.7795275591;
+      const paper = window.App?.state?.currentPaper || {};
+      return Number(paper.h || 226) / 3.7795275591;
     },
 
     getSheetSize() {
@@ -1165,7 +1212,7 @@
     },
 
     layout() {
-      const baseCard = { w: Number(this.state.cardWidthMm) || 85.6, h: Number(this.state.cardHeightMm) || 54 };
+      const baseCard = { w: Number(this.state.cardWidthMm) || 130, h: Number(this.state.cardHeightMm) || 60 };
       const sheet = this.getSheetSize();
       const margin = Number(this.state.margin) || 0;
       const gx = Number(this.state.gapX) || 0;
