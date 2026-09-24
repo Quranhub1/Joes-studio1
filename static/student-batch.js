@@ -137,7 +137,7 @@
       // Prefer the actual card container when the template contains a full
       // HTML document. This prevents headers, school branding, instructions,
       // and other page-level content from becoming the generated "card".
-      const root = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card");
+      const root = doc.querySelector("[data-card], #exam-card, .card-container, .exam-card, .student-card, #student-card, .id-card, #id-card, .card");
       const cardRoot = root || doc.body;
       if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
 
@@ -935,14 +935,15 @@
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
-      const body = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+      const body = doc.querySelector("[data-card], #exam-card, .card-container, .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // Keep the master template's real KSHS badge image, with its embedded
-      // SVG as a true fallback. The old renderer hid both when the remote
-      // image failed because the template's onerror handler and our own badge
-      // cleanup were fighting each other.
+      // The master card already contains the KSHS badge artwork as an inline SVG.
+      // Use that local artwork as the batch badge so the generator never
+      // depends on a remote image that may be blocked by CORS or unavailable
+      // during preview/PDF rendering. Keep the real image element in the
+      // source template untouched outside batch generation.
       const badgeImage = body.querySelector("#badge-custom-img");
       const badgeSvg = body.querySelector("#badge-svg");
       const badgeContainer = body.querySelector("#badge-container");
@@ -950,35 +951,19 @@
       if (badgeContainer) {
         badgeContainer.style.position = "relative";
       }
-
       if (badgeSvg) {
         badgeSvg.classList.remove("hidden");
-        badgeSvg.style.position = "absolute";
-        badgeSvg.style.inset = "0";
+        badgeSvg.style.display = "block";
+        badgeSvg.style.position = "relative";
         badgeSvg.style.width = "100%";
         badgeSvg.style.height = "100%";
-        badgeSvg.style.zIndex = "0";
+        badgeSvg.style.zIndex = "1";
       }
-
       if (badgeImage) {
-        badgeImage.classList.remove("hidden");
-        badgeImage.removeAttribute("crossorigin");
+        badgeImage.classList.add("hidden");
+        badgeImage.style.display = "none";
+        badgeImage.removeAttribute("onload");
         badgeImage.removeAttribute("onerror");
-        badgeImage.setAttribute(
-          "onload",
-          "this.style.display='block';this.classList.remove('hidden');" +
-          "if(document.getElementById('badge-svg'))document.getElementById('badge-svg').classList.add('hidden');"
-        );
-        badgeImage.setAttribute(
-          "onerror",
-          "this.style.display='none';this.classList.add('hidden');" +
-          "if(document.getElementById('badge-svg'))document.getElementById('badge-svg').classList.remove('hidden');"
-        );
-        badgeImage.style.position = "absolute";
-        badgeImage.style.inset = "0";
-        badgeImage.style.width = "100%";
-        badgeImage.style.height = "100%";
-        badgeImage.style.zIndex = "1";
       }
 
       // The master card supplied for this workflow uses the legacy
@@ -1592,7 +1577,7 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
-      const source = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+      const source = doc.querySelector("[data-card], #exam-card, .card-container, .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
