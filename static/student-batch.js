@@ -634,7 +634,15 @@
       const value = this.resolveValue(row, field);
       // A template field may intentionally have no Excel column. Keep the
       // field visible in the printed card and leave a manual-fill marker.
-      return String(value ?? "").trim() === "" ? "....." : value;
+      if (String(value ?? "").trim() !== "") return value;
+
+      // Issued-by has a wider writing area on the master card. Use a longer
+      // manual-fill marker there so the blank field visually spans the space.
+      if (this.normalize(field) === "issuedby") {
+        return "................................";
+      }
+
+      return ".....";
     },
 
     async fileToDataUrl(file) {
