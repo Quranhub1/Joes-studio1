@@ -1202,7 +1202,6 @@
       // the label and surrounding layout.
       const markIssuedBySignatureLine = () => {
         root.querySelectorAll("*").forEach(el => {
-        root.querySelectorAll("*").forEach(el => {
           if (!/issued\s*by|issuedby/i.test(String(el.textContent || ""))) return;
           const candidates = [
             ...el.querySelectorAll("hr, [class*=\"line\"], [class*=\"underline\"], [class*=\"signature\"], [id*=\"line\"], [id*=\"signature\"]")
