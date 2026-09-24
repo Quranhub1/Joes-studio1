@@ -343,19 +343,14 @@
       try {
         const zip = await window.JSZip.loadAsync(buffer);
 
-        // Resolve the workbook's first worksheet through the OOXML
-        // relationships instead of assuming it is always sheet1.xml.
-        const workbookPath = "xl/workbook.xml";
-        const workbookRelPath = "xl/_rels/workbook.xml.rels";
-        const workbookFile = zip.file(workbookPath);
-        const workbookRelFile = zip.file(workbookRelPath);
-        if (!workbookFile || !workbookRelFile) return result;
+        const byLocalName = (doc, name) =>
+          Array.from(doc.getElementsByTagNameNS("*", name));
 
         const relationshipMap = async (file, relPath) => {
           const xml = await file.async("text");
           const doc = new DOMParser().parseFromString(xml, "application/xml");
           const map = {};
-          Array.from(doc.getElementsByTagNameNS("*", "Relationship")).forEach(rel => {
+          byLocalName(doc, "Relationship").forEach(rel => {
             const id = rel.getAttribute("Id");
             const target = rel.getAttribute("Target");
             if (id && target) map[id] = this.resolveZipPath(relPath, target);
@@ -363,70 +358,267 @@
           return map;
         };
 
-        const workbookRelMap = await relationshipMap(workbookRelFile, workbookRelPath);
-        const workbookXml = await workbookFile.async("text");
-        const workbookDoc = new DOMParser().parseFromString(workbookXml, "application/xml");
-        const sheets = Array.from(workbookDoc.getElementsByTagNameNS("*", "sheet"));
-        const firstSheet = sheets[0];
-        if (!firstSheet) return result;
+        const imageToDataUrl = async imagePath => {
+          const clean = String(imagePath || "").replace(/^\//, "");
+          const file = zip.file(clean);
+          if (!file) return "";
+          return this.fileToDataUrl(await file.async("blob"));
+        };
 
-        const sheetRelId =
-          firstSheet.getAttribute("r:id") ||
-          firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
-        const sheetPath = workbookRelMap[sheetRelId];
-        if (!sheetPath) return result;
+        const storeImage = (key, dataUrl) => {
+          if (!key || !dataUrl) return;
+          // Keep the first image associated with a cell/row. This avoids a
+          // decorative image overwriting the student's passport photo.
+          if (!result.has(key)) result.set(key, dataUrl);
+        };
+
+        // Resolve the actual first worksheet path from workbook relationships.
+        const workbookFile = zip.file("xl/workbook.xml");
+        const workbookRelFile = zip.file("xl/_rels/workbook.xml.rels");
+        let sheetPath = "";
+        if (workbookFile && workbookRelFile) {
+          const workbookRelMap = await relationshipMap(workbookRelFile, "xl/_rels/workbook.xml.rels");
+          const workbookXml = await workbookFile.async("text");
+          const workbookDoc = new DOMParser().parseFromString(workbookXml, "application/xml");
+          const firstSheet = byLocalName(workbookDoc, "sheet")[0];
+          const sheetRelId =
+            firstSheet?.getAttribute("r:id") ||
+            firstSheet?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+          sheetPath = workbookRelMap[sheetRelId] || "";
+        }
+
+        if (!sheetPath) sheetPath = "xl/worksheets/sheet1.xml";
 
         const sheetFile = zip.file(sheetPath);
-        const relPath = this.zipSiblingRelsPath(sheetPath);
-        const relFile = zip.file(relPath);
-        if (!sheetFile || !relFile) return result;
+        const sheetRelPath = this.zipSiblingRelsPath(sheetPath);
+        const sheetRelFile = zip.file(sheetRelPath);
 
-        const relMap = await relationshipMap(relFile, relPath);
+        // Read the sheet once. We use exact cell coordinates whenever Excel
+        // stores an image as a cell value, and row/column anchors for legacy
+        // floating images.
+        let sheetDoc = null;
+        if (sheetFile) {
+          const sheetXml = await sheetFile.async("text");
+          sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
+        }
 
-        const sheetXml = await sheetFile.async("text");
-        const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
-        const drawing = Array.from(sheetDoc.getElementsByTagNameNS("*", "drawing"))[0];
-        if (!drawing) return result;
+        // 1) Legacy/floating drawings.
+        if (sheetFile && sheetRelFile && sheetDoc) {
+          const relMap = await relationshipMap(sheetRelFile, sheetRelPath);
+          const drawing = byLocalName(sheetDoc, "drawing")[0];
+          const drawingRelId =
+            drawing?.getAttribute("r:id") ||
+            drawing?.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+          const drawingPath = relMap[drawingRelId] || "";
 
-        const drawingRelId =
-          drawing.getAttribute("r:id") ||
-          drawing.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
-        const drawingPath = relMap[drawingRelId];
-        if (!drawingPath) return result;
+          if (drawingPath) {
+            const drawingFile = zip.file(drawingPath);
+            const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
+            const drawingRelFile = zip.file(drawingRelPath);
 
-        const drawingFile = zip.file(drawingPath);
-        const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
-        const drawingRelFile = zip.file(drawingRelPath);
-        if (!drawingFile || !drawingRelFile) return result;
+            if (drawingFile && drawingRelFile) {
+              const imageMap = await relationshipMap(drawingRelFile, drawingRelPath);
+              const drawingXml = await drawingFile.async("text");
+              const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
+              const anchors = Array.from(drawingDoc.getElementsByTagNameNS("*", "*"))
+                .filter(node => new Set(["twoCellAnchor", "oneCellAnchor", "absoluteAnchor"]).has(node.localName));
 
-        const imageMap = await relationshipMap(drawingRelFile, drawingRelPath);
+              for (const anchor of anchors) {
+                const from = byLocalName(anchor, "from")[0];
+                const blip = byLocalName(anchor, "blip")[0];
+                if (!from || !blip) continue;
 
-        const drawingXml = await drawingFile.async("text");
-        const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
-        const anchorNames = new Set(["twoCellAnchor", "oneCellAnchor", "absoluteAnchor"]);
-        const anchors = Array.from(drawingDoc.getElementsByTagNameNS("*", "*"))
-          .filter(node => anchorNames.has(node.localName));
+                const rowNode = byLocalName(from, "row")[0];
+                const colNode = byLocalName(from, "col")[0];
+                const relId =
+                  blip.getAttribute("r:embed") ||
+                  blip.getAttribute("embed") ||
+                  blip.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+                const row = Number(rowNode?.textContent);
+                const col = Number(colNode?.textContent);
+                const imagePath = imageMap[relId];
+                if (!Number.isFinite(row) || !imagePath) continue;
 
-        for (const anchor of anchors) {
-          const from = Array.from(anchor.getElementsByTagNameNS("*", "from"))[0];
-          const blip = Array.from(anchor.getElementsByTagNameNS("*", "blip"))[0];
-          if (!from || !blip) continue;
+                const dataUrl = await imageToDataUrl(imagePath);
+                if (!dataUrl) continue;
 
-          const rowNode = Array.from(from.getElementsByTagNameNS("*", "row"))[0];
-          const relId =
-            blip.getAttribute("r:embed") ||
-            blip.getAttribute("embed") ||
-            blip.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
-          const row = Number(rowNode?.textContent);
-          const imagePath = imageMap[relId];
-          if (!Number.isFinite(row) || !imagePath) continue;
+                if (Number.isFinite(col)) {
+                  storeImage(columnName(col) + String(row + 1), dataUrl);
+                }
+                storeImage(row, dataUrl);
+              }
+            }
+          }
+        }
 
-          const imageFile = zip.file(imagePath.replace(/^\//, ""));
-          if (!imageFile) continue;
+        // 2) Modern Excel "Place in Cell" / image-value Rich Data.
+        // These cells use c/@vm metadata pointers. The cached <v> value is
+        // not the image itself. Resolve:
+        // worksheet cell -> metadata -> rich-value index -> relationship slot
+        // -> xl/media/image*.png. This matches the observed Excel packaging.
+        if (sheetDoc) {
+          const metadataFile = zip.file("xl/metadata.xml");
+          const metadataRelFile = zip.file("xl/_rels/metadata.xml.rels");
+          const cellImagesCandidates = ["xl/cellimages.xml", "xl/cellImages.xml"];
 
-          const blob = await imageFile.async("blob");
-          const dataUrl = await this.fileToDataUrl(blob);
-          if (dataUrl && !result.has(row)) result.set(row, dataUrl);
+          const cellRefsByVm = new Map();
+          byLocalName(sheetDoc, "c").forEach(cell => {
+            const vm = Number(cell.getAttribute("vm"));
+            const ref = cell.getAttribute("r");
+            if (Number.isFinite(vm) && vm > 0 && ref) cellRefsByVm.set(vm, ref);
+          });
+
+          if (metadataFile && cellRefsByVm.size) {
+            const metadataXml = await metadataFile.async("text");
+            const metadataDoc = new DOMParser().parseFromString(metadataXml, "application/xml");
+
+            const valueMetadata = byLocalName(metadataDoc, "valueMetadata")[0];
+            const futureMetadata = byLocalName(metadataDoc, "futureMetadata")
+              .find(node => String(node.getAttribute("name") || "").toUpperCase() === "XLRICHVALUE")
+              || byLocalName(metadataDoc, "futureMetadata")[0];
+
+            const valueBks = valueMetadata ? byLocalName(valueMetadata, "bk") : [];
+            const futureBks = futureMetadata ? byLocalName(futureMetadata, "bk") : [];
+
+            const richIndexByVm = new Map();
+            for (const [vm, cellRef] of cellRefsByVm.entries()) {
+              const vmIndexes = [vm - 1, vm];
+              let rvIndex = -1;
+
+              for (const idx of vmIndexes) {
+                const valueBk = valueBks[idx];
+                if (!valueBk) continue;
+                const rc = byLocalName(valueBk, "rc")[0];
+                const futureIndex = Number(rc?.getAttribute("v"));
+                if (!Number.isFinite(futureIndex)) continue;
+
+                const futureBk = futureBks[futureIndex] || futureBks[futureIndex - 1];
+                const rvb = futureBk ? byLocalName(futureBk, "rvb")[0] : null;
+                const parsed = Number(rvb?.getAttribute("i"));
+                if (Number.isFinite(parsed)) {
+                  rvIndex = parsed;
+                  break;
+                }
+              }
+
+              if (rvIndex >= 0) richIndexByVm.set(vm, { cellRef, rvIndex });
+            }
+
+            // Relationship slots are ordered. Find the slot table regardless
+            // of whether Excel used the singular/plural or numbered variant.
+            const richDataFiles = [];
+            Object.keys(zip.files)
+              .filter(path => /^xl\/richData\/richValueRel\d*\.xml$/i.test(path))
+              .sort((a,b) => {
+                const na = Number((a.match(/richValueRel(\d*)\.xml$/i) || [,""])[1] || 0);
+                const nb = Number((b.match(/richValueRel(\d*)\.xml$/i) || [,""])[1] || 0);
+                return na - nb;
+              })
+              .forEach(path => richDataFiles.push(path));
+
+            const richRelPath = richDataFiles[0] || "xl/richData/richValueRel.xml";
+            const richRelFile = zip.file(richRelPath);
+            const richRelRelsPath = this.zipSiblingRelsPath(richRelPath);
+            const richRelRelsFile = zip.file(richRelRelsPath);
+
+            const slotTargets = [];
+            if (richRelFile && richRelRelsFile) {
+              const slotRels = await relationshipMap(richRelRelsFile, richRelRelsPath);
+              const relXml = await richRelFile.async("text");
+              const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
+              byLocalName(relDoc, "rel").forEach(rel => {
+                const rid =
+                  rel.getAttribute("r:id") ||
+                  rel.getAttribute("id") ||
+                  rel.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+                slotTargets.push(slotRels[rid] || "");
+              });
+            }
+
+            // Concatenate rich-value parts in numeric suffix order.
+            const rvPaths = Object.keys(zip.files)
+              .filter(path => /^xl\/richData\/(?:rd)?richValue\d*\.xml$/i.test(path))
+              .sort((a,b) => {
+                const famA = /\/rdrichvalue/i.test(a) ? 1 : 0;
+                const famB = /\/rdrichvalue/i.test(b) ? 1 : 0;
+                if (famA !== famB) return famA - famB;
+                const na = Number((a.match(/richValue(\d*)\.xml$/i) || [,""])[1] || 0);
+                const nb = Number((b.match(/richValue(\d*)\.xml$/i) || [,""])[1] || 0);
+                return na - nb;
+              });
+
+            const richValues = [];
+            for (const path of rvPaths) {
+              const file = zip.file(path);
+              if (!file) continue;
+              const xml = await file.async("text");
+              const doc = new DOMParser().parseFromString(xml, "application/xml");
+              byLocalName(doc, "rv").forEach(rv => richValues.push(rv));
+            }
+
+            for (const { cellRef, rvIndex } of richIndexByVm.values()) {
+              const rv = richValues[rvIndex];
+              if (!rv || !slotTargets.length) continue;
+
+              // The image rich value carries an integer relationship-slot
+              // value. Rather than depending on one Excel namespace/version,
+              // inspect all integer relational values and keep the one whose
+              // relationship target is actually an image.
+              const relValues = byLocalName(rv, "v")
+                .filter(v => String(v.getAttribute("kind") || "").toLowerCase() === "rel" || v.hasAttribute("kind"))
+                .map(v => Number(v.textContent))
+                .filter(Number.isFinite);
+
+              for (const slot of relValues) {
+                const target = slotTargets[slot];
+                if (!target || !/\/media\/|^media\//i.test(target)) continue;
+                const dataUrl = await imageToDataUrl(target);
+                if (!dataUrl) continue;
+
+                storeImage(cellRef, dataUrl);
+
+                const cellMatch = String(cellRef).match(/^([A-Z]+)(\d+)$/i);
+                if (cellMatch) {
+                  const row = Number(cellMatch[2]) - 1;
+                  storeImage(row, dataUrl);
+                }
+                break;
+              }
+            }
+          }
+
+          // 3) Optional dedicated cellimages.xml store. Some Excel files keep
+          // the image store separately and use the Rich Data metadata chain
+          // above for the actual cell association.
+          for (const path of cellImagesCandidates) {
+            const file = zip.file(path);
+            if (!file) continue;
+            const relPath = this.zipSiblingRelsPath(path);
+            const relFile = zip.file(relPath);
+            if (!relFile) continue;
+
+            const relMap = await relationshipMap(relFile, relPath);
+            const xml = await file.async("text");
+            const doc = new DOMParser().parseFromString(xml, "application/xml");
+            const blips = byLocalName(doc, "blip");
+
+            for (const blip of blips) {
+              const rid =
+                blip.getAttribute("r:embed") ||
+                blip.getAttribute("embed") ||
+                blip.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+              const target = relMap[rid];
+              if (!target) continue;
+              const dataUrl = await imageToDataUrl(target);
+              if (!dataUrl) continue;
+
+              // When the cellimages store exists without enough metadata to
+              // identify the exact cell, retain it as an ordered image pool.
+              // The Rich Data path above remains the authoritative association.
+              if (!result.has("__cellimage_pool_0")) result.set("__cellimage_pool_0", dataUrl);
+              break;
+            }
+          }
         }
       } catch (error) {
         console.warn("Embedded Excel image extraction failed:", error);
