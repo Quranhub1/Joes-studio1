@@ -477,7 +477,9 @@
           raw: false,
           dateNF: "yyyy-mm-dd",
           defval: "",
-          blankrows: false
+          // Keep blank worksheet rows so embedded-image anchor row numbers
+          // continue to correspond to the actual Excel row positions.
+          blankrows: true
         });
 
         // Real-world school workbooks may contain titles, merged headings,
@@ -561,15 +563,26 @@
           headers.push(header);
         });
 
-        const dataMatrix = matrix.slice(headerIndex + 1).filter(row => {
-          const cells = nonEmpty(row);
-          return cells.length > 0;
-        });
+        // Preserve each record's original zero-based worksheet row while
+        // dropping blank spacer rows from the final student list. This keeps
+        // Excel drawing anchors aligned with the correct student.
+        const dataRecords = matrix
+          .slice(headerIndex + 1)
+          .map((row, offset) => ({
+            row,
+            worksheetRowIndex: headerIndex + 1 + offset
+          }))
+          .filter(item => nonEmpty(item.row).length > 0);
 
-        const rows = dataMatrix.map(row => {
+        const rows = dataRecords.map(item => {
           const obj = {};
           headers.forEach((header, i) => {
-            obj[header] = row[i] ?? "";
+            obj[header] = item.row[i] ?? "";
+          });
+          Object.defineProperty(obj, "__worksheetRowIndex", {
+            value: item.worksheetRowIndex,
+            enumerable: false,
+            configurable: true
           });
           return obj;
         }).filter(row => Object.values(row).some(v => String(v ?? "").trim() !== ""));
@@ -581,10 +594,9 @@
           throw new Error("The selected worksheet has headers but no student records. Choose the sheet containing the student table.");
         }
 
-        this.state.rows = rows.map((row, dataIndex) => {
+        this.state.rows = rows.map(row => {
           const copy = { ...row };
-          const excelRowIndex = headerIndex + 1 + dataIndex;
-          const embedded = this.state.embeddedPhotos.get(excelRowIndex);
+          const embedded = this.state.embeddedPhotos.get(row.__worksheetRowIndex);
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
         });
@@ -695,6 +707,12 @@
       const body = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
+
+      // The master card supplied for this workflow uses the legacy
+      // "dots-underline" class on its data fields. The requested batch card
+      // must not show those horizontal fill-in lines, so remove the class
+      // itself rather than trying to out-prioritize its CSS with more CSS.
+      body.querySelectorAll(".dots-underline").forEach(el => el.classList.remove("dots-underline"));
 
       // The supplied master card does not use fill-in lines beneath
       // student values. Remove line styling from bound fields and their
@@ -842,15 +860,25 @@
         const src = String(img.getAttribute("src") || "").trim();
         if (!src || /^(?:data:|blob:)/i.test(src)) return;
 
-        // External images such as the KSHS badge must be inlined before the
-        // card is serialized into a data-SVG. Browsers may show the image in
-        // the live preview but silently drop it when that SVG is rasterized
-        // for the PDF. Fetching it into a data URL makes the preview/export
-        // renderer deterministic.
-        img.removeAttribute("crossorigin");
+        // Do not fetch cross-origin images directly from the GitHub Pages
+        // origin. KSHS does not expose the required CORS header, so direct
+        // fetches fail before the exporter can rasterize the image.
+        let fetchSrc = src;
         try {
-          const response = await fetch(src, { mode: "cors", credentials: "omit", cache: "force-cache" });
+          const parsed = new URL(src, window.location.href);
+          if (parsed.origin !== window.location.origin) {
+            fetchSrc = "https://images.weserv.nl/?url=" + encodeURIComponent(parsed.href);
+          }
+        } catch (_) {}
+
+        try {
+          const response = await fetch(fetchSrc, {
+            mode: "cors",
+            credentials: "omit",
+            cache: "force-cache"
+          });
           if (!response.ok) throw new Error("HTTP " + response.status);
+
           const blob = await response.blob();
           const dataUrl = await this.fileToDataUrl(blob);
           if (dataUrl) {
@@ -858,27 +886,10 @@
             return;
           }
           throw new Error("Empty image response");
-        } catch (directError) {
-          // KSHS currently does not send an Access-Control-Allow-Origin header
-          // for the badge, so a direct browser fetch cannot be used for PDF
-          // rasterization. Fall back to a public image proxy that fetches the
-          // same original image server-side and returns an ordinary image.
-          try {
-            const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
-            const response = await fetch(proxy, { mode: "cors", credentials: "omit", cache: "force-cache" });
-            if (!response.ok) throw new Error("Proxy HTTP " + response.status);
-            const blob = await response.blob();
-            const dataUrl = await this.fileToDataUrl(blob);
-            if (dataUrl) {
-              img.setAttribute("src", dataUrl);
-              return;
-            }
-            throw new Error("Empty proxy image response");
-          } catch (proxyError) {
-            // Keep the original source as a last-resort browser rendering path.
-            // Do not replace the actual badge with a fake placeholder.
-            console.warn("Could not inline card image for PDF export:", src, directError, proxyError);
-          }
+        } catch (error) {
+          // Keep the original source as a last-resort browser rendering path.
+          // Never replace the actual image with a fake placeholder.
+          console.warn("Could not inline card image for PDF export:", src, error);
         }
       }));
     },
