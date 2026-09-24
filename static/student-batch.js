@@ -646,6 +646,26 @@
       });
     },
 
+    async inlineExternalImages(root) {
+      const imgs = root.querySelectorAll("img[src]");
+      await Promise.allSettled(
+        Array.from(imgs).map(async img => {
+          const src = String(img.getAttribute("src") || "");
+          if (/^(data:|blob:|https?:)/i.test(src)) {
+            try {
+              const res = await fetch(src, { mode: "cors" });
+              if (!res.ok) return;
+              const blob = await res.blob();
+              const dataUrl = await this.fileToDataUrl(blob);
+              if (dataUrl) img.setAttribute("src", dataUrl);
+            } catch {
+              // Leave external src intact if fetch fails due to CORS/network.
+            }
+          }
+        })
+      );
+    },
+
     async resolvePhoto(value, row) {
       // Embedded Excel photos are attached to the worksheet row, not stored
       // as a normal cell value. Prefer the extracted row image when present.
@@ -714,6 +734,8 @@
       // must not show those horizontal fill-in lines, so remove the class
       // itself rather than trying to out-prioritize its CSS with more CSS.
       body.querySelectorAll(".dots-underline").forEach(el => el.classList.remove("dots-underline"));
+
+      await this.inlineExternalImages(body);
 
       // The supplied master card does not use fill-in lines beneath
       // student values. Remove line styling from bound fields and their
