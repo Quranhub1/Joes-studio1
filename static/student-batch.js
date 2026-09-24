@@ -998,6 +998,13 @@
       };
 
       const all = body.querySelectorAll("*");
+
+      // This was the original working badge path in commit 17a1a94:
+      // inline the template's own external badge before the preview is cloned.
+      // The current inlineExportImages() also has the later CORS/proxy
+      // hardening, so this restores the behavior without inventing a new asset.
+      await this.inlineExportImages(body);
+
       // Leave external template images as ordinary browser images in the live
       // preview. Setting crossorigin="anonymous" on the KSHS badge causes the
       // browser to enforce CORS and hide an otherwise displayable image.
