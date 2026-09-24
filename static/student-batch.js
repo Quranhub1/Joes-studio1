@@ -709,20 +709,6 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // The supplied KSHS master contains a local SVG badge fallback beside
-      // its remote badge image. Prefer that embedded SVG so the generated
-      // batch card never needs the CORS-blocked kshs.ac.ug image.
-      body.querySelectorAll("img[src]").forEach(img => {
-        const src = String(img.getAttribute("src") || "");
-        if (/kshs\.ac\.ug\/images\/kampala(?:%20| )logo\.png/i.test(src)) {
-          const localBadge = body.querySelector("#badge-svg");
-          if (localBadge) {
-            img.remove();
-            localBadge.classList.remove("hidden");
-          }
-        }
-      });
-
       // The master card supplied for this workflow uses the legacy
       // "dots-underline" class on its data fields. The requested batch card
       // must not show those horizontal fill-in lines, so remove the class
