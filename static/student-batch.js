@@ -1453,31 +1453,42 @@
       const totalCards = this.state.rows.length * copies;
       const totalPages = Math.max(1, Math.ceil(totalCards / layout.perPage));
 
-      // Open the print surface synchronously from the button click so the
-      // browser does not treat it as a popup after async rendering work.
-      const printWindow = window.open("", "_blank", "noopener,noreferrer");
+      // Open the print surface synchronously from the button click.
+      // Do not use noopener here because this code must populate the newly
+      // opened document before invoking its native print dialog.
+      const printWindow = window.open("", "_blank");
       if (!printWindow) {
         Utils.toast("The print window was blocked by the browser. Allow pop-ups for this site.", "error");
         return;
       }
 
-      printWindow.document.open();
-      printWindow.document.write(
-        "<!doctype html><html><head><meta charset=\"utf-8\"><title>KSHS Student Examination Cards</title>" +
-        "<style>" +
-        "@page{size:" + layout.sheet.w + "mm " + layout.sheet.h + "mm;margin:0;}" +
-        "*{box-sizing:border-box;}" +
-        "html,body{margin:0;padding:0;background:#fff;}" +
-        "body{font-family:serif;}" +
-        ".print-page{position:relative;width:" + layout.sheet.w + "mm;height:" + layout.sheet.h + "mm;overflow:hidden;page-break-after:always;break-after:page;background:#fff;}" +
-        ".print-page:last-child{page-break-after:auto;break-after:auto;}" +
-        ".print-card{position:absolute;overflow:hidden;}" +
-        "</style></head><body><div id=\"print-root\"></div></body></html>"
-      );
-      printWindow.document.close();
-
       try {
+        printWindow.document.open();
+        printWindow.document.write(
+          "<!doctype html><html><head><meta charset=\"utf-8\"><title>KSHS Student Examination Cards</title>" +
+          "<style>" +
+          "@page{size:" + layout.sheet.w + "mm " + layout.sheet.h + "mm;margin:0;}" +
+          "*{box-sizing:border-box;}" +
+          "html,body{margin:0;padding:0;background:#fff;}" +
+          "body{font-family:serif;}" +
+          ".print-page{position:relative;width:" + layout.sheet.w + "mm;height:" + layout.sheet.h + "mm;overflow:hidden;page-break-after:always;break-after:page;background:#fff;}" +
+          ".print-page:last-child{page-break-after:auto;break-after:auto;}" +
+          ".print-card{position:absolute;overflow:hidden;}" +
+          "</style></head><body><div id=\"print-root\"></div></body></html>"
+        );
+        printWindow.document.close();
+
+        // Bring the same stylesheet rules used by Joes Studio into the print
+        // document. The HTML card template relies on Tailwind utility classes,
+        // so copying only the template's <style> block produces an unstyled
+        // or effectively empty print surface.
+        const head = printWindow.document.head;
+        document.head.querySelectorAll("style, link[rel=\"stylesheet\"]").forEach(node => {
+          head.appendChild(printWindow.document.importNode(node, true));
+        });
+
         const root = printWindow.document.getElementById("print-root");
+        if (!root) throw new Error("The print surface could not be created.");
 
         App.ui.showLoading("Preparing print cards...");
         for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -1550,7 +1561,14 @@
         Utils.toast("Print preview ready: " + totalCards + " card" + (totalCards === 1 ? "" : "s") + " across " + totalPages + " page" + (totalPages === 1 ? "" : "s") + ".");
       } catch (e) {
         console.error("Student batch print failed", e);
-        try { printWindow.close(); } catch (_) {}
+        try {
+          printWindow.document.body.innerHTML =
+            '<div style="font-family:Arial,sans-serif;padding:32px;color:#b91c1c">' +
+            '<h2 style="margin:0 0 8px">Print preparation failed</h2>' +
+            '<p style="margin:0;color:#475569">' + escapeHtml(e.message || "Unable to prepare the cards.") + '</p>' +
+            '</div>';
+          printWindow.focus();
+        } catch (_) {}
         Utils.toast("Printing failed: " + e.message, "error");
       } finally {
         App.ui.hideLoading();
