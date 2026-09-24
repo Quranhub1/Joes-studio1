@@ -648,7 +648,7 @@
 
     displayValue(row, field) {
       const value = this.resolveValue(row, field);
-      // The uploaded Excel sheet is the only source for populated values.
+      // Excel is the only source for populated values. Empty stays empty.
       return String(value ?? "").trim() === "" ? "" : value;
     },
 
@@ -797,7 +797,7 @@
         if (srcBind && el.tagName === "IMG") {
           const photo = await this.resolvePhoto(this.resolveValue(row, srcBind), row);
           if (photo) el.setAttribute("src", photo);
-          else el.setAttribute("alt", ".....");
+          else el.setAttribute("alt", "");
         }
 
         const qrBind = el.getAttribute("data-bind-qr");
@@ -848,13 +848,7 @@
       // strips the selector that controls the badge, fields, borders and
       // internal positioning. That is why only the badge was surviving.
       const cardClone = body.cloneNode(true);
-      // Preserve the template root id because the template may style it with
-      // an ID selector such as #exam-card.
-      cardClone.style.width = this.state.cardWidthMm + "mm";
-      cardClone.style.height = this.state.cardHeightMm + "mm";
-      cardClone.style.maxWidth = "none";
-      cardClone.style.maxHeight = "none";
-      cardClone.style.margin = "0";
+      // Preserve the selected template's own geometry and styles.
       wrapper.appendChild(cardClone);
       document.body.appendChild(wrapper);
 
@@ -1030,25 +1024,27 @@
 
           const layout = this.layout();
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
-          const copies = Math.max(1, Number(this.state.copies) || 1);
-
-          // The preview mirrors the real PDF batch. Every Excel row is the
-          // source record, and Copies/student creates that many actual
-          // instances of the selected HTML template.
-          const previewRows = [];
-          if (this.state.rows.length) {
-            for (const rowData of this.state.rows) {
-              for (let copy = 0; copy < copies && previewRows.length < previewCount; copy++) {
-                previewRows.push(rowData);
-              }
-              if (previewRows.length >= previewCount) break;
+          if (!this.state.rows.length) {
+            this.renderTemplatePreview();
+            const status = document.getElementById("studentBatchPreviewStatus");
+            if (status) {
+              status.textContent = "Template preview • import Excel data to populate the selected template";
             }
-          } else {
-            previewRows.push(...Array.from({ length: previewCount }, () => ({})));
+            return;
           }
 
-          // Build every preview card from the actual uploaded HTML template
-          // and its corresponding Excel record.
+          const copies = Math.max(1, Number(this.state.copies) || 1);
+
+          // Every preview card is an actual copy of the uploaded template,
+          // populated only from its corresponding Excel row.
+          const previewRows = [];
+          for (const rowData of this.state.rows) {
+            for (let copy = 0; copy < copies && previewRows.length < previewCount; copy++) {
+              previewRows.push(rowData);
+            }
+            if (previewRows.length >= previewCount) break;
+          }
+
           const builtCards = [];
           for (const rowData of previewRows) {
             const result = await this.buildHtmlCard(rowData);
@@ -1121,18 +1117,7 @@
 
             const clone = builtCards[i].cloneNode(true);
             this.proxyExternalPreviewImages(clone);
-            // Preserve the selected template root id so its own CSS remains
-            // active in the preview renderer.
-            clone.style.width = nativeCardWidth + "px";
-            clone.style.height = nativeCardHeight + "px";
-            clone.style.minWidth = nativeCardWidth + "px";
-            clone.style.minHeight = nativeCardHeight + "px";
-            clone.style.maxWidth = nativeCardWidth + "px";
-            clone.style.maxHeight = nativeCardHeight + "px";
-            clone.style.maxWidth = "none";
-            clone.style.maxHeight = "none";
-            clone.style.margin = "0";
-            clone.style.position = "relative";
+            // Preserve the selected template's own geometry and styles.
             cardStage.appendChild(clone);
 
             frame.appendChild(cardStage);
