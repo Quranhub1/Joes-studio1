@@ -426,7 +426,7 @@
 
           const blob = await imageFile.async("blob");
           const dataUrl = await this.fileToDataUrl(blob);
-          if (dataUrl && !result.has(row)) result.set(row, dataUrl);
+          if (dataUrl && !result.has(row - 1)) result.set(row - 1, dataUrl);
         }
       } catch (error) {
         console.warn("Embedded Excel image extraction failed:", error);
@@ -789,7 +789,7 @@
           const field = idMatch[1].replace(/[-_]+/g, " ");
           const value = this.resolveValue(row, field);
           if (el.tagName === "IMG") {
-            const photo = await this.resolvePhoto(value);
+            const photo = await this.resolvePhoto(value, row);
             if (photo) {
               el.setAttribute("src", photo);
               el.style.removeProperty("display");
@@ -808,14 +808,20 @@
           const value = this.resolveValue(row, bind);
           if (el.tagName === "IMG") {
             const photo = await this.resolvePhoto(value, row);
-            if (photo) el.setAttribute("src", photo);
-            else el.setAttribute("alt", ".....");
+            if (photo) {
+              el.setAttribute("src", photo);
+              el.style.removeProperty("display");
+              const placeholder = el.parentElement?.querySelector(".photo-placeholder, [id$='-placeholder']");
+              if (placeholder) placeholder.style.display = "none";
+            } else {
+              el.setAttribute("alt", ".....");
+            }
           } else el.textContent = this.displayValue(row, bind);
         }
 
         const srcBind = el.getAttribute("data-bind-src");
         if (srcBind && el.tagName === "IMG") {
-          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind));
+          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind), row);
           if (photo) {
             el.setAttribute("src", photo);
             el.style.removeProperty("display");
