@@ -736,7 +736,7 @@
       // missing-field marker and the browser shows a white broken-image box.
       for (const img of Array.from(body.querySelectorAll("img"))) {
         const src = String(img.getAttribute("src") || "");
-        const match = src.match(/{{\\s*([^{}]+?)\\s*}}/);
+        const match = src.match(/{{\s*([^{}]+?)\s*}}/);
         if (!match) continue;
 
         const field = String(match[1] || "").trim();
