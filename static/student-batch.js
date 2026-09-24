@@ -1250,7 +1250,18 @@
       if (fieldsEl) this.renderFieldMapping(fieldsEl);
 
       const generate = document.getElementById("studentBatchGenerate");
-      if (generate) generate.disabled = !this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length;
+      const missingMappings = this.state.templateFields.filter(field => !this.state.mapping[field]);
+      if (generate) {
+        generate.disabled =
+          !this.state.rows.length ||
+          !this.state.templateFile ||
+          !this.state.templateFields.length ||
+          !!missingMappings.length;
+        generate.title = missingMappings.length
+          ? "Map every template field to an Excel column before generating."
+          : "";
+      }
+
       if (this.state.templateMode === "html") this.previewBatch();
     },
 
@@ -1261,13 +1272,10 @@
       }
 
       const missing = this.state.templateFields.filter(f => !this.state.mapping[f]);
-
-      // Excel may contain many more columns than the card uses. Conversely,
-      // the template may contain fields that are not represented in Excel.
-      // Neither situation blocks generation. Unmatched template fields are
-      // printed with "....." so the card can be completed manually.
       if (missing.length) {
-        Utils.toast("Generated with " + missing.length + " manual-fill field(s): " + missing.join(", "));
+        Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
+        this.renderFieldMapping(document.getElementById("studentBatchFields"));
+        return;
       }
 
       const layout = this.layout();
