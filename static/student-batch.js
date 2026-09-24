@@ -397,64 +397,84 @@
 
       try {
         const zip = await window.JSZip.loadAsync(buffer);
-        const sheetPath = "xl/worksheets/sheet1.xml";
-        const relPath = "xl/worksheets/_rels/sheet1.xml.rels";
-        const sheetFile = zip.file(sheetPath);
-        const relFile = zip.file(relPath);
-        if (!sheetFile || !relFile) return result;
+        
+        // Find all worksheet XML files in the zip
+        const sheetFiles = Object.keys(zip.files).filter(path => /^xl\\/worksheets\\/sheet\\d+\\.xml$/i.test(path));
+        
+        for (const sheetPath of sheetFiles) {
+          const sheetRelPath = sheetPath.replace("xl/worksheets/", "xl/worksheets/_rels/") + ".rels";
+          const sheetFile = zip.file(sheetPath);
+          const relFile = zip.file(sheetRelPath);
+          if (!sheetFile || !relFile) continue;
 
-        const relXml = await relFile.async("text");
-        const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
-        const relMap = {};
-        relDoc.querySelectorAll("Relationship").forEach(rel => {
-          const id = rel.getAttribute("Id");
-          const target = rel.getAttribute("Target");
-          if (id && target) relMap[id] = this.resolveZipPath(relPath, target);
-        });
+          const relXml = await relFile.async("text");
+          const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
+          const relMap = {};
+          
+          Array.from(relDoc.getElementsByTagName("*")).forEach(rel => {
+            if (rel.localName.toLowerCase() === "relationship") {
+              const id = rel.getAttribute("Id");
+              const target = rel.getAttribute("Target");
+              if (id && target) relMap[id] = this.resolveZipPath(sheetRelPath, target);
+            }
+          });
 
-        const sheetXml = await sheetFile.async("text");
-        const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
-        const drawing = sheetDoc.querySelector("drawing");
-        if (!drawing) return result;
+          const sheetXml = await sheetFile.async("text");
+          const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
+          const drawingNodes = Array.from(sheetDoc.getElementsByTagName("*")).filter(el => el.localName.toLowerCase() === "drawing");
+          if (!drawingNodes.length) continue;
 
-        const drawingPath = relMap[drawing.getAttribute("r:id")];
-        if (!drawingPath) return result;
+          const drawingNodesWithId = drawingNodes[0];
+          const drawingRelId =
+            drawingNodesWithId.getAttribute("r:id") ||
+            drawingNodesWithId.getAttribute("id") ||
+            Array.from(drawingNodesWithId.attributes || []).find(a => a.localName === "id")?.value;
+          const drawingPath = relMap[drawingRelId];
+          if (!drawingPath) continue;
 
-        const drawingFile = zip.file(drawingPath);
-        const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
-        const drawingRelFile = zip.file(drawingRelPath);
-        if (!drawingFile || !drawingRelFile) return result;
+          const drawingFile = zip.file(drawingPath);
+          const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
+          const drawingRelFile = zip.file(drawingRelPath);
+          if (!drawingFile || !drawingRelFile) continue;
 
-        const drawingRelXml = await drawingRelFile.async("text");
-        const drawingRelDoc = new DOMParser().parseFromString(drawingRelXml, "application/xml");
-        const imageMap = {};
-        drawingRelDoc.querySelectorAll("Relationship").forEach(rel => {
-          const id = rel.getAttribute("Id");
-          const target = rel.getAttribute("Target");
-          if (id && target) imageMap[id] = this.resolveZipPath(drawingRelPath, target);
-        });
+          const drawingRelXml = await drawingRelFile.async("text");
+          const drawingRelDoc = new DOMParser().parseFromString(drawingRelXml, "application/xml");
+          const imageMap = {};
+          Array.from(drawingRelDoc.getElementsByTagName("*")).forEach(rel => {
+            if (rel.localName.toLowerCase() === "relationship") {
+              const id = rel.getAttribute("Id");
+              const target = rel.getAttribute("Target");
+              if (id && target) imageMap[id] = this.resolveZipPath(drawingRelPath, target);
+            }
+          });
 
-        const drawingXml = await drawingFile.async("text");
-        const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
-        const anchors = Array.from(drawingDoc.querySelectorAll("twoCellAnchor, oneCellAnchor"));
+          const drawingXml = await drawingFile.async("text");
+          const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
+          const anchors = Array.from(drawingDoc.getElementsByTagName("*")).filter(el =>
+            ["twocellanchor", "onecellanchor"].includes(el.localName.toLowerCase())
+          );
 
-        for (const anchor of anchors) {
-          const from = anchor.querySelector("from");
-          const blip = anchor.querySelector("blip");
-          if (!from || !blip) continue;
+          for (const anchor of anchors) {
+            const fromNode = Array.from(anchor.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "from");
+            const blipNode = Array.from(anchor.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "blip");
+            if (!fromNode || !blipNode) continue;
 
-          const rowNode = from.querySelector("row");
-          const relId = blip.getAttribute("r:embed") || blip.getAttribute("embed");
-          const row = Number(rowNode?.textContent);
-          const imagePath = imageMap[relId];
-          if (!Number.isFinite(row) || !imagePath) continue;
+            const rowNode = Array.from(fromNode.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "row");
+            const relId =
+              blipNode.getAttribute("r:embed") ||
+              blipNode.getAttribute("embed") ||
+              Array.from(blipNode.attributes || []).find(a => a.localName === "embed")?.value;
+            const row = Number(rowNode?.textContent);
+            const imagePath = imageMap[relId];
+            if (!Number.isFinite(row) || !imagePath) continue;
 
-          const imageFile = zip.file(imagePath.replace(/^\//, ""));
+            const imageFile = zip.file(imagePath.replace(/^\\//, ""));
+            if (!imageFile) continue;
 
-          if (!imageFile) continue;
-          const blob = await imageFile.async("blob");
-          const dataUrl = await this.fileToDataUrl(blob);
-          if (dataUrl) result.set(row, dataUrl);
+            const blob = await imageFile.async("blob");
+            const dataUrl = await this.fileToDataUrl(blob);
+            if (dataUrl) result.set(row, dataUrl);
+          }
         }
       } catch (error) {
         console.warn("Embedded Excel image extraction failed:", error);
