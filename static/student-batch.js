@@ -1593,8 +1593,11 @@
         }
       }
 
+      const canRun = !!(this.state.rows.length && this.state.templateFile && this.state.templateFields.length);
       const generate = document.getElementById("studentBatchGenerate");
-      if (generate) generate.disabled = !this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length;
+      const print = document.getElementById("studentBatchPrint");
+      if (generate) generate.disabled = !canRun;
+      if (print) print.disabled = !canRun;
       if (this.state.templateMode === "html") this.previewBatch();
     },
 
