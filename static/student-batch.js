@@ -1203,9 +1203,16 @@
       const markIssuedBySignatureLine = () => {
         root.querySelectorAll("*").forEach(el => {
           if (!/issued\s*by|issuedby/i.test(String(el.textContent || ""))) return;
-          const candidates = [
-            ...el.querySelectorAll("hr, [class*=\"line\"], [class*=\"underline\"], [class*=\"signature\"], [id*=\"line\"], [id*=\"signature\"]")
-          ];
+          const candidates = Array.from(el.querySelectorAll("*")).filter(node => {
+            const haystack = [
+              String(node.className || ""),
+              String(node.id || ""),
+              String(node.getAttribute("data-field") || ""),
+              String(node.getAttribute("data-bind") || "")
+            ].join(" ").toLowerCase();
+            return node.tagName === "HR" ||
+              /line|underline|signature/.test(haystack);
+          });
 
           let line = candidates.find(node => !/issued\s*by|issuedby/i.test(String(node.textContent || "")));
 
