@@ -1464,30 +1464,30 @@
 
       if (fieldsEl) this.renderFieldMapping(fieldsEl);
 
-      const missingMappings = this.state.templateFields.filter(field =>
+      const optionalUnmappedFields = this.state.templateFields.filter(field =>
         !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
       );
       const batchReady =
         !!this.state.rows.length &&
-        !!this.state.templateFile &&
-        !!this.state.templateFields.length &&
-        !missingMappings.length;
+        !!this.state.templateFile;
+
+
 
       const generate = document.getElementById("studentBatchGenerate");
       if (generate) {
         // Badge/logo upload is optional. A selected template may already contain
         // its own logo, or the badge field may intentionally remain empty.
         generate.disabled = !batchReady;
-        generate.title = missingMappings.length
-          ? "Map every non-image template data field to an Excel column before generating."
+        generate.title = optionalUnmappedFields.length
+          ? "Unmapped template fields will be left blank."
           : "";
       }
 
       const print = document.getElementById("studentBatchPrint");
       if (print) {
         print.disabled = !batchReady;
-        print.title = missingMappings.length
-          ? "Map every non-image template data field to an Excel column before printing."
+        print.title = optionalUnmappedFields.length
+          ? "Unmapped template fields will be left blank."
           : "";
       }
 
@@ -1497,15 +1497,6 @@
     async print() {
       if (!this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length) {
         Utils.toast("Select an HTML template and Excel data first.", "error");
-        return;
-      }
-
-      const missing = this.state.templateFields.filter(field =>
-        !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
-      );
-      if (missing.length) {
-        Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
-        this.renderFieldMapping(document.getElementById("studentBatchFields"));
         return;
       }
 
@@ -1654,15 +1645,6 @@
         return;
       }
 
-      const missing = this.state.templateFields.filter(f =>
-        !this.isBadgeField(f) && !this.isStudentPhotoField(f) && !this.state.mapping[f]
-      );
-      if (missing.length) {
-        Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
-        this.renderFieldMapping(document.getElementById("studentBatchFields"));
-        return;
-      }
-
       // Badge upload is optional. Keep the template's existing badge/logo when
       // no custom PNG has been selected, or leave the badge slot empty when the
       // template uses an empty placeholder.
@@ -1786,6 +1768,14 @@
 
   window.JoesStudentBatch = Batch;
   window.addEventListener("load", () => {
+    document.getElementById("studentBatchGenerate")?.addEventListener("click", event => {
+      event.preventDefault();
+      Batch.generate();
+    });
+    document.getElementById("studentBatchPrint")?.addEventListener("click", event => {
+      event.preventDefault();
+      Batch.print();
+    });
     document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
     document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
