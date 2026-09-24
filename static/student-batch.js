@@ -50,27 +50,6 @@
       ) || doc.body;
     },
 
-    aliases: {
-      name: ["name", "studentname", "fullname", "studentfullname", "student"],
-      studentname: ["studentname", "name", "fullname", "studentfullname", "student"],
-      firstname: ["firstname", "givenname", "forename"],
-      lastname: ["lastname", "surname", "familyname"],
-      othernames: ["othernames", "middlename", "middle"],
-      regno: ["regno", "registrationno", "registrationnumber", "registrationid", "admissionno", "studentno", "studentnumber", "id"],
-      registrationnumber: ["registrationnumber", "registrationno", "regno", "registrationid", "admissionno"],
-      registrationno: ["registrationno", "registrationnumber", "regno", "admissionno"],
-      class: ["class", "classroom", "form", "grade", "level"],
-      stream: ["stream", "classstream"],
-      gender: ["gender", "sex", "biologicalsex"],
-      sex: ["sex", "gender", "biologicalsex"],
-      sitting: ["sitting", "exam", "examination", "examname", "examinationname", "session", "examinationsession"],
-      issuedby: ["issuedby", "issued", "issuedbyoffice", "issuingoffice", "issuer", "issuedbykshs"],
-      dob: ["dob", "dateofbirth", "birthdate", "birthday"],
-      photo: ["photo", "photofile", "photofilename", "photoimage", "image", "imagefile", "picture", "studentphoto", "studentimage"],
-      barcode: ["barcode", "barcodeno", "barcodevalue"],
-      qr: ["qr", "qrcode", "qrvalue", "qrcodevalue"],
-    },
-
     open() {
       document.getElementById("studentBatchModal")?.classList.remove("hidden");
       this.refresh();
@@ -290,28 +269,39 @@
     },
 
     findHeader(field) {
-      const headers = this.state.headers;
-      const n = this.normalize(field);
-      if (!n) return null;
+      const headers = this.state.headers || [];
+      const key = this.normalize(field);
+      if (!key) return null;
 
-      let found = headers.find(h => this.normalize(h) === n);
-      if (found) return found;
+      // Automatic mapping is intentionally conservative. Only an exact
+      // normalized match is accepted. Anything uncertain is left for the
+      // user to map explicitly in the mapping panel.
+      const exact = headers.filter(header => this.normalize(header) === key);
+      return exact.length === 1 ? exact[0] : null;
+    },
 
-      const aliases = this.aliases[n] || [n];
-      found = headers.find(h => aliases.includes(this.normalize(h)));
-      if (found) return found;
+    getHeaderSuggestion(field) {
+      const headers = this.state.headers || [];
+      const key = this.normalize(field);
+      if (!key || !headers.length) return null;
 
-      const scored = headers.map(h => {
-        const hn = this.normalize(h);
+      // Provide a suggestion for the UI, but never silently apply it.
+      const scored = headers.map(header => {
+        const value = this.normalize(header);
+        if (!value) return { header, score: 0 };
         let score = 0;
-        aliases.forEach(a => {
-          if (hn === a) score = Math.max(score, 100);
-          else if (hn.includes(a) || a.includes(hn)) score = Math.max(score, 65);
-        });
-        if (n && (hn.includes(n) || n.includes(hn))) score = Math.max(score, 80);
-        return { h, score };
-      }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
-      return scored[0]?.h || null;
+        if (value.includes(key) || key.includes(value)) score = 50;
+        let common = 0;
+        const limit = Math.min(key.length, value.length);
+        for (let i = 0; i < limit; i++) {
+          if (key[i] === value[i]) common++;
+          else break;
+        }
+        score = Math.max(score, common / Math.max(key.length, value.length) * 100);
+        return { header, score };
+      }).sort((x, y) => y.score - x.score);
+
+      return scored[0]?.score >= 60 ? scored[0].header : null;
     },
 
     autoMapHtml() {
@@ -325,6 +315,62 @@
         header: map[field] || null
       }));
       return map;
+    },
+
+    renderFieldMapping(host) {
+      if (!host) return;
+
+      if (!this.state.templateFields.length) {
+        host.innerHTML = '<span class="text-slate-400">Load an HTML template to detect its fields.</span>';
+        return;
+      }
+
+      if (!this.state.headers.length) {
+        host.innerHTML =
+          '<div class="text-slate-400">Template fields detected. Import the Excel sheet to map them to its real column headers.</div>' +
+          '<div class="mt-2 text-[10px] text-slate-400">' +
+          escapeHtml(this.state.templateFields.join(", ")) + '</div>';
+        return;
+      }
+
+      const options = this.state.headers.map(header =>
+        '<option value="' + escapeHtml(header) + '">' + escapeHtml(header) + '</option>'
+      ).join("");
+
+      host.innerHTML = this.state.templateFields.map(field => {
+        const selected = this.state.mapping[field] || "";
+        const suggestion = !selected ? this.getHeaderSuggestion(field) : null;
+        const suggestionText = suggestion
+          ? ' <span class="text-[9px] text-slate-400">suggestion: ' + escapeHtml(suggestion) + '</span>'
+          : "";
+
+        return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
+          '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
+          '<div class="text-[9px] text-slate-400">Template field' + suggestionText + '</div></div>' +
+          '<select class="student-batch-map-select w-full border rounded-lg p-2 bg-white text-xs" data-template-field="' + escapeHtml(field) + '">' +
+          '<option value="">Do not map / leave blank</option>' +
+          options.replace(
+            '<option value="' + escapeHtml(selected) + '">',
+            '<option value="' + escapeHtml(selected) + '" selected>'
+          ) +
+          '</select>' +
+          '</div>';
+      }).join("");
+
+      host.querySelectorAll(".student-batch-map-select").forEach(select => {
+        select.addEventListener("change", e => {
+          const field = e.currentTarget.getAttribute("data-template-field") || "";
+          const value = e.currentTarget.value || "";
+          if (value) this.state.mapping[field] = value;
+          else delete this.state.mapping[field];
+
+          this.state.matchedFields = this.state.templateFields.map(name => ({
+            field: name,
+            header: this.state.mapping[name] || null
+          }));
+          this.refresh();
+        });
+      });
     },
 
     autoMapPaper() {
@@ -1201,21 +1247,7 @@
       const l = this.layout();
       if (layoutEl) layoutEl.textContent = l.cols + " × " + l.rows + " = " + l.perPage + " cards/page • " + this.state.orientation + " • " + this.state.resolution + " DPI";
 
-      if (fieldsEl) {
-        if (!this.state.templateFields.length) {
-          fieldsEl.innerHTML = '<span class="text-slate-400">Load an HTML template to detect {{placeholders}}.</span>';
-        } else {
-          fieldsEl.innerHTML = this.state.templateFields.map(field => {
-            const header = this.state.mapping[field];
-            return '<div class="flex items-center justify-between gap-2 py-1 border-b border-slate-100 last:border-0">' +
-              '<span class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</span>' +
-              (header
-                ? '<span class="text-[11px] text-green-700 font-semibold truncate">✓ ' + escapeHtml(header) + '</span>'
-                : '<span class="text-[11px] text-orange-600 font-semibold">⚠ not found</span>') +
-              '</div>';
-          }).join("");
-        }
-      }
+      if (fieldsEl) this.renderFieldMapping(fieldsEl);
 
       const generate = document.getElementById("studentBatchGenerate");
       if (generate) generate.disabled = !this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length;
