@@ -1437,6 +1437,160 @@
       if (this.state.templateMode === "html") this.previewBatch();
     },
 
+    async print() {
+      if (!this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length) {
+        Utils.toast("Select an HTML template and Excel data first.", "error");
+        return;
+      }
+
+      const missing = this.state.templateFields.filter(field =>
+        !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
+      );
+      if (missing.length) {
+        Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
+        this.renderFieldMapping(document.getElementById("studentBatchFields"));
+        return;
+      }
+
+      const button = document.getElementById("studentBatchPrint");
+      const oldHtml = button ? button.innerHTML : "";
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="ph ph-spinner animate-spin mr-1"></i> Preparing...';
+      }
+
+      const layout = this.layout();
+      const copies = Math.max(1, Number(this.state.copies) || 1);
+      const totalCards = this.state.rows.length * copies;
+      const totalPages = Math.max(1, Math.ceil(totalCards / layout.perPage));
+      const sheet = layout.sheet;
+      const nativeW = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
+      const nativeH = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
+
+      let iframe = null;
+
+      try {
+        App.ui.showLoading("Preparing batch print...");
+
+        // Create the print frame while still inside the user click event. This
+        // avoids popup/print-dialog blocking after the asynchronous card build.
+        iframe = document.createElement("iframe");
+        iframe.id = "student-batch-print-iframe";
+        iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;";
+        document.body.appendChild(iframe);
+
+        const printDoc = iframe.contentWindow.document;
+        printDoc.open();
+        printDoc.write(
+          "<!doctype html><html><head><meta charset=\"utf-8\"><title>Student Batch Print</title></head><body></body></html>"
+        );
+        printDoc.close();
+
+        const style = printDoc.createElement("style");
+        style.textContent = [
+          "@page{size:" + sheet.w + "mm " + sheet.h + "mm;margin:0;}",
+          "html,body{margin:0!important;padding:0!important;width:" + sheet.w + "mm;background:#fff;}",
+          "body{display:block!important;}",
+          ".student-batch-print-page{position:relative;box-sizing:border-box;width:" + sheet.w + "mm;height:" + sheet.h + "mm;overflow:hidden;background:#fff;break-after:page;page-break-after:always;}",
+          ".student-batch-print-page:last-child{break-after:auto;page-break-after:auto;}",
+          ".student-batch-print-frame{position:absolute;overflow:hidden;box-sizing:border-box;background:#fff;}",
+          ".student-batch-print-stage{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;}",
+          "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}",
+          this.state.htmlStyles || ""
+        ].join("\n");
+        printDoc.head.appendChild(style);
+
+        const waitForImages = async root => {
+          const images = Array.from(root.querySelectorAll("img"));
+          await Promise.all(images.map(img => new Promise(resolve => {
+            if (img.complete) {
+              resolve();
+              return;
+            }
+            const done = () => {
+              img.removeEventListener("load", done);
+              img.removeEventListener("error", done);
+              resolve();
+            };
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+            setTimeout(done, 5000);
+          })));
+        };
+
+        for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+          const page = printDoc.createElement("div");
+          page.className = "student-batch-print-page";
+
+          const startCard = pageIndex * layout.perPage;
+          const endCard = Math.min(totalCards, startCard + layout.perPage);
+
+          for (let cardNumber = startCard; cardNumber < endCard; cardNumber++) {
+            const sourceRowIndex = Math.floor(cardNumber / copies);
+            const built = await this.buildHtmlCard(this.state.rows[sourceRowIndex]);
+
+            const slot = cardNumber % layout.perPage;
+            const col = slot % layout.cols;
+            const row = Math.floor(slot / layout.cols);
+            const cellX = Number(this.state.margin) + col * (layout.cellW + Number(this.state.gapX));
+            const cellY = Number(this.state.margin) + row * (layout.cellH + Number(this.state.gapY));
+            const xMm = cellX + (layout.cellW - layout.card.w) / 2;
+            const yMm = cellY + (layout.cellH - layout.card.h) / 2;
+
+            const frame = printDoc.createElement("div");
+            frame.className = "student-batch-print-frame";
+            frame.style.left = xMm + "mm";
+            frame.style.top = yMm + "mm";
+            frame.style.width = layout.card.w + "mm";
+            frame.style.height = layout.card.h + "mm";
+
+            const stage = printDoc.createElement("div");
+            stage.className = "student-batch-print-stage";
+            stage.style.width = nativeW + "px";
+            stage.style.height = nativeH + "px";
+            stage.style.transform =
+              "scaleX(" + ((layout.card.w * 96 / 25.4) / nativeW) + ") " +
+              "scaleY(" + ((layout.card.h * 96 / 25.4) / nativeH) + ")";
+
+            const cardClone = built.body.cloneNode(true);
+            this.sanitizePlaceholderImages(cardClone);
+            stage.appendChild(printDoc.importNode(cardClone, true));
+            frame.appendChild(stage);
+            page.appendChild(frame);
+
+            if ((cardNumber + 1) % Math.max(1, Math.floor(totalCards / 10)) === 0 || cardNumber + 1 === totalCards) {
+              App.ui.showLoading("Preparing print card " + (cardNumber + 1) + " of " + totalCards + "...");
+            }
+          }
+
+          printDoc.body.appendChild(page);
+        }
+
+        await waitForImages(printDoc.body);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        // Print the fully rendered batch, not the editor canvas.
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+
+        Utils.toast("Print prepared: " + totalCards + " cards on " + totalPages + " pages.");
+      } catch (e) {
+        console.error("Student batch print failed", e);
+        Utils.toast("Batch print failed: " + (e.message || "Unable to prepare print."), "error");
+      } finally {
+        App.ui.hideLoading();
+        if (iframe) {
+          setTimeout(() => {
+            try { iframe.remove(); } catch (_) {}
+          }, 1500);
+        }
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = oldHtml;
+        }
+      }
+    },
+
     async generate() {
       if (!this.state.rows.length || !this.state.templateFile) {
         Utils.toast("Select an HTML template and Excel data first.", "error");
