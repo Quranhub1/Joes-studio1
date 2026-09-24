@@ -1078,6 +1078,8 @@
             cardStage.appendChild(style);
 
             const clone = builtCards[i].cloneNode(true);
+            this.proxyExternalPreviewImages(clone);
+            this.removeUnwantedHorizontalLines(clone);
             // Preserve the selected template root id so its own CSS remains
             // active in the preview renderer.
             clone.style.width = nativeCardWidth + "px";
@@ -1152,6 +1154,26 @@
       return Math.max(1, Number(this.state.cardsPerPage) || 1);
     },
 
+    proxyExternalPreviewImages(root) {
+      if (!root) return;
+
+      root.querySelectorAll("img[src]").forEach(img => {
+        const src = String(img.getAttribute("src") || "").trim();
+        if (!/^https?:\\/\\//i.test(src)) return;
+        if (/^https?:\\/\\/(?:quranhub1\\.github\\.io|localhost|127\\.0\\.1)(?::\\d+)?\\//i.test(src)) return;
+
+        // The KSHS image server does not send CORS headers. The browser can
+        // display the image in some contexts, but the preview/export pipeline
+        // cannot reliably use it from GitHub Pages. Route external template
+        // images through the same public image proxy used by PDF export.
+        img.setAttribute(
+          "src",
+          "https://images.weserv.nl/?url=" + encodeURIComponent(src)
+        );
+        img.removeAttribute("crossorigin");
+      });
+    },
+
     removeUnwantedHorizontalLines(root) {
       if (!root) return;
 
@@ -1210,6 +1232,7 @@
       // Preserve the selected template's actual root element. Moving only its
       // children loses root-level classes, inline sizing, borders and layout.
       const body = source.cloneNode(true);
+      this.proxyExternalPreviewImages(body);
       this.removeUnwantedHorizontalLines(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
