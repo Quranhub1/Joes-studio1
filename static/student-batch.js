@@ -767,10 +767,13 @@
       if (issuedBy) {
         issuedBy.classList.add("dots-underline");
         issuedBy.style.setProperty("border-bottom", "1.5px dotted #000000", "important");
-        issuedBy.style.setProperty("width", "100%", "important");
+        // Deliberately oversize the line. The card root clips overflow, so this
+        // guarantees the dotted line reaches the card's right edge even when
+        // a template wrapper has a narrower computed width.
+        issuedBy.style.setProperty("width", "calc(100% + 30mm)", "important");
         issuedBy.style.setProperty("max-width", "none", "important");
         issuedBy.style.setProperty("min-width", "0", "important");
-        issuedBy.style.setProperty("flex", "1 1 auto", "important");
+        issuedBy.style.setProperty("flex", "0 0 auto", "important");
         issuedBy.style.setProperty("display", "block", "important");
         issuedBy.style.setProperty("box-sizing", "border-box", "important");
         issuedBy.style.setProperty("margin-left", "0", "important");
