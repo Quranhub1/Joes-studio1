@@ -857,6 +857,19 @@
       return raw;
     },
 
+    sanitizePlaceholderImages(root) {
+      if (!root) return;
+      root.querySelectorAll("img").forEach(img => {
+        const src = String(img.getAttribute("src") || "").trim();
+        if (/{{\s*[^{}]+?\s*}}/.test(src)) {
+          img.removeAttribute("src");
+          img.setAttribute("data-template-image-placeholder", "true");
+          img.style.visibility = "hidden";
+        }
+      });
+    },
+
+
     async putImageIntoBoundElement(el, value, field, row) {
       const isBadge = this.isBadgeField(field);
       const isPhoto = this.isStudentPhotoField(field);
@@ -1016,6 +1029,8 @@
         }
       }
 
+      // Final guard: no unresolved image placeholder may reach the DOM.
+      this.sanitizePlaceholderImages(body);
       this.proxyExternalPreviewImages(body);
       return { doc, body };
     },
@@ -1286,6 +1301,7 @@
             cardStage.appendChild(style);
 
             const clone = builtCards[i].cloneNode(true);
+            this.sanitizePlaceholderImages(clone);
             this.proxyExternalPreviewImages(clone);
             cardStage.appendChild(clone);
 
@@ -1370,6 +1386,10 @@
       // Preserve the selected template's actual root element. Moving only its
       // children loses root-level classes, inline sizing, borders and layout.
       const body = source.cloneNode(true);
+      // Never allow literal template placeholders such as {{photo}} to become
+      // browser requests like /{{photo}}. They are intentionally blank until
+      // Excel/photo data is available.
+      this.sanitizePlaceholderImages(body);
       this.proxyExternalPreviewImages(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
