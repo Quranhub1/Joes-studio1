@@ -139,10 +139,6 @@
     },
 
     async loadHtmlTemplate(text) {
-      // Keep the selected template's design intact. Only extend the existing
-      // Issued By dotted signature line in the source text.
-      text = text.replace(/(Issued\s*By\s*:\s*)\.{3,}/gi, "$1" + ".".repeat(72));
-
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
@@ -606,9 +602,8 @@
 
     displayValue(row, field) {
       const value = this.resolveValue(row, field);
-      // A template field may intentionally have no Excel column. Keep the
-      // field visible in the printed card and leave a manual-fill marker.
-      return String(value ?? "").trim() === "" ? "....." : value;
+      // The uploaded Excel sheet is the only source for populated values.
+      return String(value ?? "").trim() === "" ? "" : value;
     },
 
     async fileToDataUrl(file) {
@@ -674,64 +669,6 @@
 
       const body = this.findHtmlCardRoot(doc);
 
-      // Prepare the KSHS badge before body.innerHTML is assigned. Assigning
-      // HTML containing the original remote image would trigger a direct
-      // https://www.kshs.ac.ug request immediately, which is blocked by CORS
-      // before our renderer gets a chance to replace it.
-      const badgeImg = body.querySelector("#badge-custom-img");
-      const badgeSvg = body.querySelector("#badge-svg");
-      if (badgeImg && badgeSvg) {
-        const badgeSrc = String(badgeImg.getAttribute("src") || "").trim();
-        if (/kshs\.ac\.ug\/images\/kampala(?:%20|\s)+logo\.png/i.test(badgeSrc)) {
-          let prepared = false;
-          try {
-            const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(badgeSrc);
-            const response = await fetch(proxy, {
-              mode: "cors",
-              credentials: "omit",
-              cache: "force-cache"
-            });
-            if (!response.ok) throw new Error("HTTP " + response.status);
-            const blob = await response.blob();
-            const dataUrl = await this.fileToDataUrl(blob);
-            if (dataUrl) {
-              badgeImg.setAttribute("src", dataUrl);
-              badgeImg.removeAttribute("crossorigin");
-              badgeImg.removeAttribute("onerror");
-              badgeImg.classList.remove("hidden");
-              badgeImg.loading = "eager";
-              badgeImg.decoding = "sync";
-              prepared = true;
-            }
-          } catch (error) {
-            console.warn("KSHS badge proxy load failed; using the template's embedded badge.", error);
-          }
-
-          // The supplied template already contains its own badge SVG. Use it
-          // only when the real KSHS PNG cannot be fetched through the proxy.
-          if (!prepared) {
-            const fallbackSvg = badgeSvg.cloneNode(true);
-            fallbackSvg.classList.remove("hidden");
-            fallbackSvg.style.width = "100%";
-            fallbackSvg.style.height = "100%";
-            fallbackSvg.style.display = "block";
-            fallbackSvg.removeAttribute("id");
-            const fallbackMarkup = new XMLSerializer().serializeToString(fallbackSvg);
-            badgeImg.setAttribute(
-              "src",
-              "data:image/svg+xml;charset=utf-8," + encodeURIComponent(fallbackMarkup)
-            );
-            badgeImg.removeAttribute("crossorigin");
-            badgeImg.removeAttribute("onerror");
-            badgeImg.classList.remove("hidden");
-            badgeImg.loading = "eager";
-            badgeImg.decoding = "sync";
-          }
-
-          badgeSvg.classList.add("hidden");
-        }
-      }
-
       // Resolve image source placeholders before the generic text
       // placeholder replacement. Otherwise {{photo}} becomes the "....."
       // missing-field marker and the browser shows a white broken-image box.
@@ -776,7 +713,15 @@
           if (el.tagName === "IMG") {
             const photo = await this.resolvePhoto(value, row);
             if (photo) el.setAttribute("src", photo);
-            else el.setAttribute("alt", ".....");
+            else {
+              el.removeAttribute("src");
+              el.setAttribute("alt", "");
+            }
+          } else if (el.querySelector("img")) {
+            const photo = await this.resolvePhoto(value, row);
+            if (photo) {
+              el.querySelectorAll("img").forEach(img => img.setAttribute("src", photo));
+            }
           } else if (!/^in[-_]/i.test(el.id)) {
             el.textContent = this.displayValue(row, field);
           }
@@ -788,8 +733,18 @@
           if (el.tagName === "IMG") {
             const photo = await this.resolvePhoto(value, row);
             if (photo) el.setAttribute("src", photo);
-            else el.setAttribute("alt", ".....");
-          } else el.textContent = this.displayValue(row, bind);
+            else {
+              el.removeAttribute("src");
+              el.setAttribute("alt", "");
+            }
+          } else if (el.querySelector("img")) {
+            const photo = await this.resolvePhoto(value, row);
+            if (photo) {
+              el.querySelectorAll("img").forEach(img => img.setAttribute("src", photo));
+            }
+          } else {
+            el.textContent = this.displayValue(row, bind);
+          }
         }
 
         const srcBind = el.getAttribute("data-bind-src");
@@ -904,7 +859,6 @@
       const width = Math.max(1, Math.round(wMm * 96 / 25.4));
       const height = Math.max(1, Math.round(hMm * 96 / 25.4));
       const clone = element.cloneNode(true);
-      this.removeUnwantedHorizontalLines(clone);
       clone.style.visibility = "visible";
       clone.style.position = "static";
       clone.style.left = "0";
@@ -1032,7 +986,7 @@
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
           const previewRows = this.state.rows.length
             ? this.state.rows.slice(0, previewCount)
-            : Array.from({ length: previewCount }, () => this.samplePreviewRow());
+            : Array.from({ length: previewCount }, () => ({}));
 
           // The preview is a real print sheet. Each preview card is built from
           // its corresponding Excel row, using exactly the same HTML renderer
@@ -1110,7 +1064,6 @@
 
             const clone = builtCards[i].cloneNode(true);
             this.proxyExternalPreviewImages(clone);
-            this.removeUnwantedHorizontalLines(clone);
             // Preserve the selected template root id so its own CSS remains
             // active in the preview renderer.
             clone.style.width = nativeCardWidth + "px";
@@ -1164,20 +1117,6 @@
       }, 0);
     },
 
-    samplePreviewRow() {
-      const sample = {};
-      const defaults = {
-        name:"Kampala School Student",studentname:"Kampala School Student",firstname:"Kampala",lastname:"Student",
-        othernames:"Sample",regno:"KSHS/2026/0001",registrationno:"KSHS/2026/0001",
-        registrationnumber:"KSHS/2026/0001",sex:"FEMALE",gender:"FEMALE",
-        sitting:"END OF SEMESTER EXAMINATION",exam:"END OF SEMESTER EXAMINATION",
-        course:"Certificate in Biomedical Engineering",programme:"Certificate in Biomedical Engineering",
-        issuedby:"Examinations Office",photo:""
-      };
-      this.state.templateFields.forEach(field => { const n=this.normalize(field); sample[field]=defaults[n] ?? ""; });
-      return sample;
-    },
-
     previewCardCount() {
       const mode = String(document.querySelector('input[name="studentBatchMode"]:checked')?.value || document.getElementById("studentBatchMode")?.value || "cards").toLowerCase();
       if (mode === "single") return 1;
@@ -1205,59 +1144,6 @@
       });
     },
 
-    removeUnwantedHorizontalLines(root) {
-      if (!root) return;
-
-      // Remove all horizontal separators/underlines generated by the template
-      // renderer, while preserving the intentional Issued By line.
-      const isIssuedBy = el => {
-        let node = el;
-        for (let depth = 0; node && depth < 5; depth++, node = node.parentElement) {
-          const text = [
-            node.id,
-            node.className,
-            node.getAttribute?.("data-field"),
-            node.getAttribute?.("data-bind"),
-            node.getAttribute?.("data-bind-src"),
-            node.textContent
-          ].join(" ").toLowerCase();
-          if (/issued\s*by|issuedby/.test(text)) return true;
-        }
-        return false;
-      };
-
-      // Literal separators.
-      root.querySelectorAll("hr").forEach(el => {
-        if (!isIssuedBy(el)) el.remove();
-      });
-
-      // Elements whose inline styles create horizontal rules.
-      root.querySelectorAll("*").forEach(el => {
-        if (isIssuedBy(el)) return;
-        const style = String(el.getAttribute("style") || "");
-        if (/border-(top|bottom)\s*:/i.test(style)) {
-          el.style.setProperty("border-top", "none", "important");
-          el.style.setProperty("border-bottom", "none", "important");
-        }
-        if (/text-decoration\s*:\s*underline/i.test(style)) {
-          el.style.setProperty("text-decoration", "none", "important");
-        }
-      });
-
-      // Prevent stylesheet rules and pseudo-elements from recreating the
-      // unwanted lines in the live preview/export. Issued By is excluded.
-      const cleanupStyle = document.createElement("style");
-      cleanupStyle.textContent = [
-        "hr:not([data-issued-by]){display:none!important}",
-        ".student-batch-no-lines hr{display:none!important}",
-        ".student-batch-no-lines *:not([data-issued-by]){border-top-color:transparent!important;border-bottom-color:transparent!important}",
-        ".student-batch-no-lines *:not([data-issued-by])::before,.student-batch-no-lines *:not([data-issued-by])::after{border-top-color:transparent!important;border-bottom-color:transparent!important;background-image:none!important}",
-        ".student-batch-no-lines *:not([data-issued-by])::before,.student-batch-no-lines *:not([data-issued-by])::after{box-shadow:none!important}"
-      ].join("");
-      root.classList.add("student-batch-no-lines");
-      root.appendChild(cleanupStyle);
-    },
-
     renderTemplatePreview() {
       const host = document.getElementById("studentBatchPrintPreview");
       if (!host || this.state.templateMode !== "html") return;
@@ -1277,7 +1163,6 @@
       // children loses root-level classes, inline sizing, borders and layout.
       const body = source.cloneNode(true);
       this.proxyExternalPreviewImages(body);
-      this.removeUnwantedHorizontalLines(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
       wrapper.appendChild(body);
