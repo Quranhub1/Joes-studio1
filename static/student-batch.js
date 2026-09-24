@@ -1417,20 +1417,30 @@
 
       if (fieldsEl) this.renderFieldMapping(fieldsEl);
 
-      const generate = document.getElementById("studentBatchGenerate");
       const missingMappings = this.state.templateFields.filter(field =>
         !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
       );
+      const batchReady =
+        !!this.state.rows.length &&
+        !!this.state.templateFile &&
+        !!this.state.templateFields.length &&
+        !missingMappings.length;
+
+      const generate = document.getElementById("studentBatchGenerate");
       if (generate) {
         // Badge/logo upload is optional. A selected template may already contain
         // its own logo, or the badge field may intentionally remain empty.
-        generate.disabled =
-          !this.state.rows.length ||
-          !this.state.templateFile ||
-          !this.state.templateFields.length ||
-          !!missingMappings.length;
+        generate.disabled = !batchReady;
         generate.title = missingMappings.length
           ? "Map every non-image template data field to an Excel column before generating."
+          : "";
+      }
+
+      const print = document.getElementById("studentBatchPrint");
+      if (print) {
+        print.disabled = !batchReady;
+        print.title = missingMappings.length
+          ? "Map every non-image template data field to an Excel column before printing."
           : "";
       }
 
