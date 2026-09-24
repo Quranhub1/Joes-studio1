@@ -37,6 +37,8 @@
     notify(msg, type = "info") {
       if (window.Utils?.toast) {
         window.Utils.toast(msg, type);
+      } else if (window.toast) {
+        window.toast(msg, type);
       } else {
         console.log("[" + String(type).toUpperCase() + "] " + msg);
       }
@@ -50,6 +52,8 @@
     hideLoading() {
       if (window.App?.ui?.hideLoading) window.App.ui.hideLoading();
       else if (window.Utils?.hideLoading) window.Utils.hideLoading();
+      // Remove any stuck backdrop overlay elements if present
+      document.querySelectorAll(".loading-overlay, #loadingOverlay").forEach(el => el.remove());
     },
 
     normalize(value) {
@@ -60,9 +64,22 @@
         .replace(/[^a-z0-9]/g, "");
     },
 
-    // Always render the exact card element from the selected HTML file.
-    // KSHS templates use #exam-card / .card-container, while custom templates
-    // may use one of the other supported card selectors.
+    isIgnoredField(field = "") {
+      const key = this.normalize(field);
+      return /^(photoplaceholder|passportphotoplaceholder|badgeplaceholder|issuedby|signature|sign|date|stamp|note|footer|kshs)$/i.test(key);
+    },
+
+    isStudentPhotoField(field = "") {
+      const key = this.normalize(field);
+      return /(photo|studentphoto|studentimage|picture|avatar|passport)/i.test(key) &&
+        !/(badge|logo|crest|emblem|seal)/i.test(key);
+    },
+
+    isBadgeField(field = "") {
+      const key = this.normalize(field);
+      return /(badge|logo|crest|emblem|seal)/i.test(key);
+    },
+
     findHtmlCardRoot(doc) {
       return doc.querySelector(
         "#exam-card, [data-card], .card-container, .exam-card, .student-card, " +
@@ -78,6 +95,7 @@
     close() {
       document.getElementById("studentBatchModal")?.classList.add("hidden");
       this.cleanupPreview();
+      this.hideLoading();
     },
 
     chooseTemplate() {
@@ -154,9 +172,7 @@
         .map(s => s.textContent || "")
         .join("\n");
 
-      // Preserve the supplied template as the source of truth while removing
-      // only the generic detail-value underline that was causing unwanted
-      // horizontal rules in generated cards.
+      // Strip unwanted underline borders on data values
       styles += "\n.detail-value { border-bottom: none !important; }\n";
 
       const cardRoot = this.findHtmlCardRoot(doc);
@@ -177,8 +193,9 @@
       this.state.mapping = this.autoMapHtml();
       this.refresh();
       this.previewBatch();
-      this.notify("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " fields detected");
+      this.notify("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " data fields detected");
     },
+
     detectPlaceholders(text) {
       const found = [];
       const seen = new Set();
@@ -188,12 +205,7 @@
         if (!field) return;
         const key = this.normalize(field);
 
-        // These are visual placeholder labels, not data fields.
-        if (
-          key === "photoplaceholder" ||
-          key === "passportphotoplaceholder" ||
-          key === "badgeplaceholder"
-        ) return;
+        if (this.isIgnoredField(key)) return;
 
         if (key && !seen.has(key)) {
           seen.add(key);
@@ -229,7 +241,7 @@
           const outMatch = id.match(/^out[-_](.+)$/i);
           if (outMatch) {
             const name = outMatch[1].replace(/[-_]+/g, " ");
-            if (!/^(photo[-_]?placeholder|badge[-_]?placeholder)$/i.test(name)) {
+            if (!this.isIgnoredField(name)) {
               add(name);
             }
             return;
@@ -247,10 +259,8 @@
             const tag = el.tagName.toLowerCase();
             const type = String(el.getAttribute("type") || "").toLowerCase();
             const isDataInput = ["text","number","date","email","tel","search",""].includes(type);
-            const isOutputPaired =
-              !!doc.querySelector("#out-" + inMatch[1] + ", #out_" + inMatch[1]);
-            const isControl =
-              /^(?:badge[-_]?(?:file|url)|file|url|button|submit|reset|search)$/i.test(inMatch[1]);
+            const isOutputPaired = !!doc.querySelector("#out-" + inMatch[1] + ", #out_" + inMatch[1]);
+            const isControl = /^(?:badge[-_]?(?:file|url)|file|url|button|submit|reset|search)$/i.test(inMatch[1]);
 
             if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) {
               add(name);
@@ -261,6 +271,7 @@
 
       return found;
     },
+
     detectHtmlCardSize(doc, root) {
       const attrW = root.getAttribute("data-card-width-mm") || root.querySelector("[data-card-width-mm]")?.getAttribute("data-card-width-mm");
       const attrH = root.getAttribute("data-card-height-mm") || root.querySelector("[data-card-height-mm]")?.getAttribute("data-card-height-mm");
@@ -305,9 +316,6 @@
       const key = this.normalize(field);
       if (!key) return null;
 
-      // Automatic mapping is intentionally conservative. Only an exact
-      // normalized match is accepted. Anything uncertain is left for the
-      // user to map explicitly in the mapping panel.
       const exact = headers.filter(header => this.normalize(header) === key);
       return exact.length === 1 ? exact[0] : null;
     },
@@ -317,7 +325,6 @@
       const key = this.normalize(field);
       if (!key || !headers.length) return null;
 
-      // Provide a suggestion for the UI, but never silently apply it.
       const scored = headers.map(header => {
         const value = this.normalize(header);
         if (!value) return { header, score: 0 };
@@ -383,7 +390,7 @@
             ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="h-10 w-10 object-contain rounded border border-slate-200 bg-white p-1">'
             : '<div class="h-10 w-10 rounded border border-dashed border-slate-300 bg-white flex items-center justify-center"><i class="ph ph-image text-slate-300"></i></div>';
 
-          return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
+          return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2">' +
             '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
             '<div class="text-[9px] text-slate-400">School Badge / Logo (Optional upload)</div></div>' +
             '<div class="flex items-center gap-2 min-w-0">' +
@@ -400,7 +407,7 @@
           ? ' <span class="text-[9px] text-emerald-600 font-medium">auto-matched to Excel/Photos</span>'
           : suggestionText;
 
-        return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
+        return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2">' +
           '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
           '<div class="text-[9px] text-slate-400">Template field' + helper + '</div></div>' +
           '<select class="student-batch-map-select w-full border rounded-lg p-2 bg-white text-xs" data-template-field="' + escapeHtml(field) + '">' +
@@ -435,7 +442,7 @@
 
     autoMapPaper() {
       const map = {};
-      const objects = App.canvas?.getObjects?.() || [];
+      const objects = window.App?.canvas?.getObjects?.() || [];
       objects.forEach(obj => {
         if (!obj.dataBinding || obj.dataBinding.type !== "variable") return;
         const field = String(obj.dataBinding.field || obj.rawContent || obj.text || "").replace(/^\{\{|\}\}$/g, "").trim();
@@ -452,144 +459,138 @@
     },
 
     async extractEmbeddedExcelImages(buffer) {
-  const result = new Map();
-  if (!window.JSZip) return result;
+      const result = new Map();
+      if (!window.JSZip) return result;
 
-  try {
-    const zip = await window.JSZip.loadAsync(buffer);
+      try {
+        const zip = await window.JSZip.loadAsync(buffer);
+        const sheetNameByPath = {};
+        const workbookFile = zip.file("xl/workbook.xml");
+        const workbookRelFile = zip.file("xl/_rels/workbook.xml.rels");
 
-    // Resolve worksheet XML paths to their actual workbook sheet names.
-    const sheetNameByPath = {};
-    const workbookFile = zip.file("xl/workbook.xml");
-    const workbookRelFile = zip.file("xl/_rels/workbook.xml.rels");
-    if (workbookFile && workbookRelFile) {
-      const workbookDoc = new DOMParser().parseFromString(
-        await workbookFile.async("text"),
-        "application/xml"
-      );
-      const workbookRelDoc = new DOMParser().parseFromString(
-        await workbookRelFile.async("text"),
-        "application/xml"
-      );
-      const workbookRelMap = {};
-      Array.from(workbookRelDoc.getElementsByTagName("*")).forEach(rel => {
-        if (rel.localName.toLowerCase() !== "relationship") return;
-        const id = rel.getAttribute("Id");
-        const target = rel.getAttribute("Target");
-        if (id && target) {
-          workbookRelMap[id] = this.resolveZipPath(
-            "xl/_rels/workbook.xml.rels",
-            target
+        if (workbookFile && workbookRelFile) {
+          const workbookDoc = new DOMParser().parseFromString(
+            await workbookFile.async("text"),
+            "application/xml"
           );
+          const workbookRelDoc = new DOMParser().parseFromString(
+            await workbookRelFile.async("text"),
+            "application/xml"
+          );
+          const workbookRelMap = {};
+          Array.from(workbookRelDoc.getElementsByTagName("*")).forEach(rel => {
+            if (rel.localName.toLowerCase() !== "relationship") return;
+            const id = rel.getAttribute("Id");
+            const target = rel.getAttribute("Target");
+            if (id && target) {
+              workbookRelMap[id] = this.resolveZipPath("xl/_rels/workbook.xml.rels", target);
+            }
+          });
+          Array.from(workbookDoc.getElementsByTagName("*")).forEach(sheet => {
+            if (sheet.localName.toLowerCase() !== "sheet") return;
+            const name = sheet.getAttribute("name");
+            const relId =
+              sheet.getAttribute("r:id") ||
+              sheet.getAttribute("id") ||
+              Array.from(sheet.attributes).find(a => a.localName === "id")?.value;
+            if (name && relId && workbookRelMap[relId]) {
+              sheetNameByPath[workbookRelMap[relId]] = name;
+            }
+          });
         }
-      });
-      Array.from(workbookDoc.getElementsByTagName("*")).forEach(sheet => {
-        if (sheet.localName.toLowerCase() !== "sheet") return;
-        const name = sheet.getAttribute("name");
-        const relId =
-          sheet.getAttribute("r:id") ||
-          sheet.getAttribute("id") ||
-          Array.from(sheet.attributes).find(a => a.localName === "id")?.value;
-        if (name && relId && workbookRelMap[relId]) {
-          sheetNameByPath[workbookRelMap[relId]] = name;
+
+        const sheetFiles = Object.keys(zip.files).filter(path => /^xl\/worksheets\/sheet\d+\.xml$/i.test(path));
+
+        for (const sheetPath of sheetFiles) {
+          const sheetRelPath = sheetPath.replace("xl/worksheets/", "xl/worksheets/_rels/") + ".rels";
+          const sheetFile = zip.file(sheetPath);
+          const relFile = zip.file(sheetRelPath);
+          if (!sheetFile || !relFile) continue;
+
+          const relXml = await relFile.async("text");
+          const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
+          const relMap = {};
+
+          Array.from(relDoc.getElementsByTagName("*")).forEach(rel => {
+            if (rel.localName.toLowerCase() === "relationship") {
+              const id = rel.getAttribute("Id");
+              const target = rel.getAttribute("Target");
+              if (id && target) relMap[id] = this.resolveZipPath(sheetRelPath, target);
+            }
+          });
+
+          const sheetXml = await sheetFile.async("text");
+          const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
+          const drawingNode = Array.from(sheetDoc.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "drawing");
+          if (!drawingNode) continue;
+
+          const drawingRelId =
+            drawingNode.getAttribute("r:id") ||
+            drawingNode.getAttribute("id") ||
+            Array.from(drawingNode.attributes).find(a => a.localName === "id")?.value;
+          const drawingPath = relMap[drawingRelId];
+          if (!drawingPath) continue;
+
+          const drawingFile = zip.file(drawingPath);
+          const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
+          const drawingRelFile = zip.file(drawingRelPath);
+          if (!drawingFile || !drawingRelFile) continue;
+
+          const drawingRelXml = await drawingRelFile.async("text");
+          const drawingRelDoc = new DOMParser().parseFromString(drawingRelXml, "application/xml");
+          const imageMap = {};
+          Array.from(drawingRelDoc.getElementsByTagName("*")).forEach(rel => {
+            if (rel.localName.toLowerCase() === "relationship") {
+              const id = rel.getAttribute("Id");
+              const target = rel.getAttribute("Target");
+              if (id && target) imageMap[id] = this.resolveZipPath(drawingRelPath, target);
+            }
+          });
+
+          const drawingXml = await drawingFile.async("text");
+          const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
+          const anchors = Array.from(drawingDoc.getElementsByTagName("*")).filter(el =>
+            ["twocellanchor", "onecellanchor"].includes(el.localName.toLowerCase())
+          );
+
+          for (const anchor of anchors) {
+            const fromNode = Array.from(anchor.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "from");
+            const blipNode = Array.from(anchor.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "blip");
+            if (!fromNode || !blipNode) continue;
+
+            const rowNode = Array.from(fromNode.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "row");
+            const relId =
+              blipNode.getAttribute("r:embed") ||
+              blipNode.getAttribute("embed") ||
+              Array.from(blipNode.attributes).find(a => a.localName === "embed")?.value;
+            const row = Number(rowNode?.textContent);
+            const imagePath = imageMap[relId];
+            if (!Number.isFinite(row) || !imagePath) continue;
+
+            const imageFile = zip.file(imagePath.replace(/^\//, ""));
+            if (!imageFile) continue;
+
+            const blob = await imageFile.async("blob");
+            const dataUrl = await this.fileToDataUrl(blob);
+            if (dataUrl) {
+              const worksheetName = sheetNameByPath[sheetPath] || sheetPath;
+              result.set(worksheetName + "::" + row, dataUrl);
+              result.set("row::" + row, dataUrl);
+            }
+          }
         }
-      });
-    }
-    
-    // Find all worksheet XML files in the zip
-    const sheetFiles = Object.keys(zip.files).filter(path => /^xl\/worksheets\/sheet\d+\.xml$/i.test(path));
-    
-    for (const sheetPath of sheetFiles) {
-      const sheetRelPath = sheetPath.replace("xl/worksheets/", "xl/worksheets/_rels/") + ".rels";
-      const sheetFile = zip.file(sheetPath);
-      const relFile = zip.file(sheetRelPath);
-      if (!sheetFile || !relFile) continue;
-
-      const relXml = await relFile.async("text");
-      const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
-      const relMap = {};
-      
-      Array.from(relDoc.getElementsByTagName("*")).forEach(rel => {
-        if (rel.localName.toLowerCase() === "relationship") {
-          const id = rel.getAttribute("Id");
-          const target = rel.getAttribute("Target");
-          if (id && target) relMap[id] = this.resolveZipPath(sheetRelPath, target);
-        }
-      });
-
-      const sheetXml = await sheetFile.async("text");
-      const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
-      const drawingNodes = Array.from(sheetDoc.getElementsByTagName("*")).filter(el => el.localName.toLowerCase() === "drawing");
-      if (!drawingNodes.length) continue;
-
-      const drawingRelId = drawingNodes[0].getAttribute("r:id") ||
-        drawingNodes[0].getAttribute("id") ||
-        Array.from(drawingNodes[0].attributes).find(a => a.localName === "id")?.value;
-      const drawingPath = relMap[drawingRelId];
-      if (!drawingPath) continue;
-
-      const drawingFile = zip.file(drawingPath);
-      const drawingRelPath = this.zipSiblingRelsPath(drawingPath);
-      const drawingRelFile = zip.file(drawingRelPath);
-      if (!drawingFile || !drawingRelFile) continue;
-
-      const drawingRelXml = await drawingRelFile.async("text");
-      const drawingRelDoc = new DOMParser().parseFromString(drawingRelXml, "application/xml");
-      const imageMap = {};
-      Array.from(drawingRelDoc.getElementsByTagName("*")).forEach(rel => {
-        if (rel.localName.toLowerCase() === "relationship") {
-          const id = rel.getAttribute("Id");
-          const target = rel.getAttribute("Target");
-          if (id && target) imageMap[id] = this.resolveZipPath(drawingRelPath, target);
-        }
-      });
-
-      const drawingXml = await drawingFile.async("text");
-      const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
-      const anchors = Array.from(drawingDoc.getElementsByTagName("*")).filter(el => 
-        ["twocellanchor", "onecellanchor"].includes(el.localName.toLowerCase())
-      );
-
-      for (const anchor of anchors) {
-        const fromNode = Array.from(anchor.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "from");
-        const blipNode = Array.from(anchor.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "blip");
-        if (!fromNode || !blipNode) continue;
-
-        const rowNode = Array.from(fromNode.getElementsByTagName("*")).find(el => el.localName.toLowerCase() === "row");
-        const relId = blipNode.getAttribute("r:embed") ||
-          blipNode.getAttribute("embed") ||
-          Array.from(blipNode.attributes).find(a => a.localName === "embed")?.value;
-        const row = Number(rowNode?.textContent);
-        const imagePath = imageMap[relId];
-        if (!Number.isFinite(row) || !imagePath) continue;
-
-        const imageFile = zip.file(imagePath.replace(/^\//, ""));
-        if (!imageFile) continue;
-
-        const blob = await imageFile.async("blob");
-        const dataUrl = await this.fileToDataUrl(blob);
-        if (dataUrl) {
-          const worksheetName = sheetNameByPath[sheetPath] || sheetPath;
-          result.set(worksheetName + "::" + row, dataUrl);
-        }
+      } catch (error) {
+        console.warn("Embedded Excel image extraction failed:", error);
       }
-    }
-  } catch (error) {
-    console.warn("Embedded Excel image extraction failed:", error);
-  }
 
-  return result;
-},
+      return result;
+    },
 
     resolveZipPath(referencePath, target) {
       const cleanTarget = String(target || "").split("#")[0];
       const base = referencePath.split("/");
       base.pop();
 
-      // In an OOXML .rels file, relationship targets are resolved relative
-      // to the owning part's directory, not the _rels directory itself.
-      // Example: xl/worksheets/_rels/sheet1.xml.rels + ../drawings/drawing1.xml
-      // resolves to xl/drawings/drawing1.xml.
       if (base[base.length - 1] === "_rels") base.pop();
 
       for (const part of cleanTarget.split("/")) {
@@ -611,9 +612,6 @@
       try {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-        // SheetJS reads cell values, but Excel-embedded photos live in the
-        // workbook ZIP drawing/media parts rather than cell values. Extract
-        // those photos separately and associate them with their anchored row.
         this.state.embeddedPhotos = await this.extractEmbeddedExcelImages(buffer);
         const sheetName = workbook.SheetNames[0];
         if (!sheetName) throw new Error("The workbook has no worksheets.");
@@ -626,9 +624,6 @@
           blankrows: true
         });
 
-        // Real-world school workbooks may contain titles, merged headings,
-        // logos, blank spacer rows, or instructions before the actual table.
-        // Find a row that behaves like a header AND has real records beneath it.
         const nonEmpty = row => row.filter(v => String(v ?? "").trim() !== "");
         const normalizedCells = row => nonEmpty(row).map(v => this.normalize(v)).filter(Boolean);
         const keywordScore = row => {
@@ -644,7 +639,6 @@
         const scan = matrix.slice(0, Math.min(matrix.length, 150));
         let headerIndex = -1;
         let bestScore = -Infinity;
-        let bestDataRows = [];
 
         scan.forEach((candidate, i) => {
           const headerCells = normalizedCells(candidate);
@@ -661,7 +655,6 @@
             if (!cells.length) continue;
 
             const filled = row.slice(0, Math.max(width, 1)).filter(v => String(v ?? "").trim() !== "").length;
-            // A record should contain actual values, not just another heading.
             if (filled > 0) {
               usableRows++;
               populatedCells += filled;
@@ -676,9 +669,6 @@
           const dataEvidence = Math.min(usableRows, 30);
           const density = usableRows ? populatedCells / Math.max(1, usableRows * width) : 0;
 
-          // Strongly favor rows followed by records. This prevents a workbook
-          // title such as "STUDENT EXAMINATION CARDS" from being mistaken for
-          // the header simply because it contains the word student.
           let score = dataEvidence * 100 + keyword * 20 + Math.min(width, 50) + unique;
           score += hasEnoughColumns ? 25 : -20;
           score += Math.round(density * 20);
@@ -686,7 +676,6 @@
           if (score > bestScore) {
             bestScore = score;
             headerIndex = i;
-            bestDataRows = [];
           }
         });
 
@@ -729,25 +718,22 @@
         });
 
         if (!rows.length) {
-          // Do not reject a workbook merely because the first selected sheet
-          // has headers without records. Give a precise message and keep the
-          // importer ready for another sheet.
           throw new Error("The selected worksheet has headers but no student records. Choose the sheet containing the student table.");
         }
 
-        // Embedded images are keyed by the source worksheet XML plus the
-        // absolute zero-based worksheet row. This keeps images attached to
-        // the correct student even when blank rows exist.
         this.state.rows = rows.map(row => {
           const copy = { ...row };
           const excelRowIndex = Number(row.__worksheetRowIndex);
-          const embedded = this.state.embeddedPhotos.get(sheetName + "::" + excelRowIndex);
+          const embedded =
+            this.state.embeddedPhotos.get(sheetName + "::" + excelRowIndex) ||
+            this.state.embeddedPhotos.get("row::" + excelRowIndex);
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
         }).filter(row =>
           Object.keys(row).some(key => key !== "__worksheetRowIndex" && String(row[key] ?? "").trim() !== "") ||
           !!row.__embeddedPhoto
         );
+
         this.state.headers = headers;
         if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
         else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
@@ -755,7 +741,7 @@
         this.notify(rows.length + " student records loaded • " + Object.keys(this.state.mapping).length + " fields matched");
       } catch (e) {
         console.error(e);
-        Utils.toast("Excel import failed: " + e.message, "error");
+        this.notify("Excel import failed: " + e.message, "error");
       }
     },
 
@@ -771,8 +757,8 @@
 
     async loadBadge(file) {
       if (!file) return;
-      if (!/^image\/png$/i.test(file.type || "") && !/\.png$/i.test(file.name || "")) {
-        Utils.toast("Badge image must be a PNG file.", "error");
+      if (!/^image\//i.test(file.type || "") && !/\.(png|jpe?g|webp|svg)$/i.test(file.name || "")) {
+        this.notify("Badge must be an image file (PNG, JPG, SVG).", "error");
         return;
       }
 
@@ -780,19 +766,19 @@
         this.state.badgeFile = file;
         this.state.badgeDataUrl = await this.fileToDataUrl(file);
         this.refresh();
-        Utils.toast("Badge PNG loaded: " + file.name);
+        this.notify("Badge image loaded: " + file.name);
       } catch (e) {
         console.error(e);
         this.state.badgeFile = null;
         this.state.badgeDataUrl = "";
-        Utils.toast("Badge image could not be loaded: " + e.message, "error");
+        this.notify("Badge image could not be loaded: " + e.message, "error");
       }
     },
 
     resolveValue(row, field) {
-      // Badge artwork is supplied by the mapping panel, not by Excel.
-      // Every badge field in the selected HTML template uses this uploaded PNG.
-      if (this.isBadgeField(field)) return this.state.badgeDataUrl || "";
+      if (this.isBadgeField(field) && this.state.badgeDataUrl) {
+        return this.state.badgeDataUrl;
+      }
 
       const header = this.state.mapping[field];
       if (header && row[header] !== undefined) return row[header];
@@ -803,7 +789,6 @@
 
     displayValue(row, field) {
       const value = this.resolveValue(row, field);
-      // Excel is the only source for populated values. Empty stays empty.
       return String(value ?? "").trim() === "" ? "" : value;
     },
 
@@ -814,16 +799,6 @@
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-    },
-
-    isStudentPhotoField(field = "") {
-      const key = this.normalize(field);
-      return /(photo|studentphoto|studentimage|picture|avatar|passport)/i.test(key) &&
-        !/(badge|logo|crest|emblem|seal)/i.test(key);
-    },
-    isBadgeField(field = "") {
-      const key = this.normalize(field);
-      return /(badge|logo|crest|emblem|seal)/i.test(key);
     },
 
     async resolvePhoto(value, row, field = "") {
@@ -863,6 +838,7 @@
 
       return file ? await this.fileToDataUrl(file) : (row?.__embeddedPhoto || "");
     },
+
     replacePlaceholders(html, row) {
       return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
         const field = String(name).trim();
@@ -915,7 +891,6 @@
         }
       });
     },
-
 
     async putImageIntoBoundElement(el, value, field, row) {
       const isBadge = this.isBadgeField(field);
@@ -1026,6 +1001,10 @@
           el.setAttribute(attr.name, replaced);
         }
 
+        if (el.classList.contains("detail-value")) {
+          el.style.borderBottom = "none";
+        }
+
         const idMatch = String(el.id || "").match(/^(?:out|in|field|data)[-_](.+)$/i);
         if (idMatch) {
           const field = idMatch[1].replace(/[-_]+/g, " ");
@@ -1040,7 +1019,11 @@
             }
           } else if (!/^in[-_]/i.test(el.id)) {
             const textVal = this.displayValue(row, field);
-            if (textVal) el.textContent = textVal;
+            if (textVal) {
+              el.textContent = textVal;
+            } else if (/^_+$/.test(el.textContent.trim())) {
+              el.textContent = "";
+            }
           }
         }
 
@@ -1076,7 +1059,6 @@
         }
       }
 
-      // Final guard: no unresolved image placeholder may reach the DOM.
       this.sanitizePlaceholderImages(body);
       this.proxyExternalPreviewImages(body);
       return { doc, body };
@@ -1094,12 +1076,8 @@
       const styles = document.createElement("style");
       styles.textContent = this.state.htmlStyles;
       wrapper.appendChild(styles);
-      // Keep the actual card root. The template stylesheet targets
-      // .exam-card (and similar root selectors), so moving only its children
-      // strips the selector that controls the badge, fields, borders and
-      // internal positioning. That is why only the badge was surviving.
+
       const cardClone = body.cloneNode(true);
-      // Preserve the selected template's own geometry and styles.
       wrapper.appendChild(cardClone);
       document.body.appendChild(wrapper);
 
@@ -1114,19 +1092,9 @@
         const src = String(img.getAttribute("src") || "").trim();
         if (!src || /^(?:data:|blob:)/i.test(src)) return;
 
-        // External images such as the KSHS badge must be inlined before the
-        // card is serialized into a data-SVG. Browsers may show the image in
-        // the live preview but silently drop it when that SVG is rasterized
-        // for the PDF. Fetching it into a data URL makes the preview/export
-        // renderer deterministic.
         img.setAttribute("crossorigin", "anonymous");
         try {
-          // GitHub Pages cannot fetch arbitrary external images when the
-          // source server omits CORS headers. Do not request the original
-          // URL first, because that only produces a console error and still
-          // leaves the export renderer without the image.
-          const proxyUrl = "https://images.weserv.nl/?url=" +
-            encodeURIComponent(src);
+          const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
           const response = await fetch(proxyUrl, {
             mode: "cors",
             credentials: "omit",
@@ -1139,8 +1107,6 @@
           if (!dataUrl) throw new Error("Image proxy returned no usable image data");
           img.setAttribute("src", dataUrl);
         } catch (error) {
-          // Keep the original source as a last-resort browser rendering path.
-          // Do not replace the actual badge with a fake placeholder.
           console.warn("Could not inline card image for PDF export:", src, error);
         }
       }));
@@ -1157,11 +1123,6 @@
       clone.style.width = width + "px";
       clone.style.height = height + "px";
       await this.inlineExportImages(clone);
-      clone.style.position = "static";
-      clone.style.left = "0";
-      clone.style.top = "0";
-      clone.style.width = width + "px";
-      clone.style.height = height + "px";
 
       const css = this.state.htmlStyles.replace(/url\((?!['"]?(?:data:|https?:|blob:))/gi, "url(");
       const svg = [
@@ -1219,10 +1180,6 @@
       const gy = Number(this.state.gapY) || 0;
       const requested = Math.max(1, Number(this.state.cardsPerPage) || 1);
 
-      // Keep the real card aspect ratio. Cards are enlarged uniformly until
-      // they fill the available grid as much as physically possible. This
-      // avoids the previous two bad extremes: cards stranded in one corner
-      // and cards stretched independently in X/Y.
       let best = null;
       for (let cols = 1; cols <= requested; cols++) {
         const rows = Math.ceil(requested / cols);
@@ -1363,14 +1320,6 @@
           host.style.justifyContent = "flex-start";
           host.appendChild(page);
 
-          const info = document.createElement("div");
-          info.className = "text-xs text-slate-500 text-center mt-2";
-          info.textContent = "Live print preview • " + previewRows.length + " card" +
-            (previewRows.length === 1 ? "" : "s") + " • Excel data integrated • " +
-            this.state.orientation + " • " + this.state.sheetSize +
-            " • " + layout.cols + " × " + layout.rows + " layout";
-          host.appendChild(info);
-
           const status = document.getElementById("studentBatchPreviewStatus");
           if (status) status.textContent = "Live print preview • " + previewRows.length +
             " Excel record" + (previewRows.length === 1 ? "" : "s") + " • " +
@@ -1403,10 +1352,6 @@
         if (!/^https?:\/\//i.test(src)) return;
         if (/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1|images\.weserv\.nl)(?::\d+)?\//i.test(src)) return;
 
-        // The KSHS image server does not send CORS headers. The browser can
-        // display the image in some contexts, but the preview/export pipeline
-        // cannot reliably use it from GitHub Pages. Route external template
-        // images through the same public image proxy used by PDF export.
         img.setAttribute(
           "src",
           "https://images.weserv.nl/?url=" + encodeURIComponent(src)
@@ -1430,12 +1375,8 @@
       const style = document.createElement("style");
       style.textContent = this.state.htmlStyles;
       wrapper.appendChild(style);
-      // Preserve the selected template's actual root element. Moving only its
-      // children loses root-level classes, inline sizing, borders and layout.
+
       const body = source.cloneNode(true);
-      // Never allow literal template placeholders such as {{photo}} to become
-      // browser requests like /{{photo}}. They are intentionally blank until
-      // Excel/photo data is available.
       this.sanitizePlaceholderImages(body);
       this.proxyExternalPreviewImages(body);
       body.style.margin = "0";
@@ -1464,48 +1405,32 @@
 
       if (fieldsEl) this.renderFieldMapping(fieldsEl);
 
-      const missingMappings = this.state.templateFields.filter(field =>
-        !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
-      );
-      const batchReady =
-        !!this.state.rows.length &&
-        !!this.state.templateFile &&
-        !!this.state.templateFields.length &&
-        !missingMappings.length;
+      const hasRequiredData = !!this.state.rows.length && !!this.state.templateFile;
 
       const generate = document.getElementById("studentBatchGenerate");
       if (generate) {
-        // Badge/logo upload is optional. A selected template may already contain
-        // its own logo, or the badge field may intentionally remain empty.
-        generate.disabled = !batchReady;
-        generate.title = missingMappings.length
-          ? "Map every non-image template data field to an Excel column before generating."
-          : "";
+        generate.disabled = !hasRequiredData;
+        generate.style.pointerEvents = hasRequiredData ? "auto" : "none";
+        generate.style.opacity = hasRequiredData ? "1" : "0.5";
+        generate.style.cursor = hasRequiredData ? "pointer" : "not-allowed";
+        generate.title = hasRequiredData ? "Generate PDF Batch" : "Upload an HTML template and Excel spreadsheet first.";
       }
 
       const print = document.getElementById("studentBatchPrint");
       if (print) {
-        print.disabled = !batchReady;
-        print.title = missingMappings.length
-          ? "Map every non-image template data field to an Excel column before printing."
-          : "";
+        print.disabled = !hasRequiredData;
+        print.style.pointerEvents = hasRequiredData ? "auto" : "none";
+        print.style.opacity = hasRequiredData ? "1" : "0.5";
+        print.style.cursor = hasRequiredData ? "pointer" : "not-allowed";
+        print.title = hasRequiredData ? "Print Cards Batch" : "Upload an HTML template and Excel spreadsheet first.";
       }
 
       if (this.state.templateMode === "html") this.previewBatch();
     },
 
     async print() {
-      if (!this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length) {
-        Utils.toast("Select an HTML template and Excel data first.", "error");
-        return;
-      }
-
-      const missing = this.state.templateFields.filter(field =>
-        !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
-      );
-      if (missing.length) {
-        Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
-        this.renderFieldMapping(document.getElementById("studentBatchFields"));
+      if (!this.state.rows.length || !this.state.templateFile) {
+        this.notify("Select an HTML template and Excel data first.", "error");
         return;
       }
 
@@ -1527,10 +1452,8 @@
       let iframe = null;
 
       try {
-        App.ui.showLoading("Preparing batch print...");
+        this.showLoading("Preparing batch print...");
 
-        // Create the print frame while still inside the user click event. This
-        // avoids popup/print-dialog blocking after the asynchronous card build.
         iframe = document.createElement("iframe");
         iframe.id = "student-batch-print-iframe";
         iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;";
@@ -1616,7 +1539,7 @@
             page.appendChild(frame);
 
             if ((cardNumber + 1) % Math.max(1, Math.floor(totalCards / 10)) === 0 || cardNumber + 1 === totalCards) {
-              App.ui.showLoading("Preparing print card " + (cardNumber + 1) + " of " + totalCards + "...");
+              this.showLoading("Preparing print card " + (cardNumber + 1) + " of " + totalCards + "...");
             }
           }
 
@@ -1626,16 +1549,15 @@
         await waitForImages(printDoc.body);
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-        // Print the fully rendered batch, not the editor canvas.
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
 
-        Utils.toast("Print prepared: " + totalCards + " cards on " + totalPages + " pages.");
+        this.notify("Print prepared: " + totalCards + " cards on " + totalPages + " pages.");
       } catch (e) {
         console.error("Student batch print failed", e);
-        Utils.toast("Batch print failed: " + (e.message || "Unable to prepare print."), "error");
+        this.notify("Batch print failed: " + (e.message || "Unable to prepare print."), "error");
       } finally {
-        App.ui.hideLoading();
+        this.hideLoading();
         if (iframe) {
           setTimeout(() => {
             try { iframe.remove(); } catch (_) {}
@@ -1650,42 +1572,36 @@
 
     async generate() {
       if (!this.state.rows.length || !this.state.templateFile) {
-        Utils.toast("Select an HTML template and Excel data first.", "error");
+        this.notify("Select an HTML template and Excel data first.", "error");
         return;
       }
 
-      const missing = this.state.templateFields.filter(f =>
-        !this.isBadgeField(f) && !this.isStudentPhotoField(f) && !this.state.mapping[f]
-      );
-      if (missing.length) {
-        Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
-        this.renderFieldMapping(document.getElementById("studentBatchFields"));
+      const JsPDFClass = window.jspdf?.jsPDF || window.jsPDF;
+      if (!JsPDFClass) {
+        this.notify("jsPDF library is not loaded on this page.", "error");
         return;
       }
 
-      // Badge upload is optional. Keep the template's existing badge/logo when
-      // no custom PNG has been selected, or leave the badge slot empty when the
-      // template uses an empty placeholder.
       const layout = this.layout();
       const copies = Math.max(1, Number(this.state.copies) || 1);
       const totalCards = this.state.rows.length * copies;
       const totalPages = Math.ceil(totalCards / layout.perPage);
-      const pdf = new window.jspdf.jsPDF({
+      const pdf = new JsPDFClass({
         orientation: layout.sheet.w > layout.sheet.h ? "l" : "p",
         unit: "mm",
         format: [layout.sheet.w, layout.sheet.h],
         compress: true,
       });
 
-      const originalIndex = App.state.currentDataIndex || 0;
-      const originalSheet = App.state.dataSource.currentSheet;
-      const originalOnly = App.state.printCurrentOnly;
-      const oldData = App.state.dataSource.data;
-      const oldHeaders = App.state.dataSource.headers;
-      const oldActive = App.state.dataSource.isActive;
+      const originalIndex = window.App?.state?.currentDataIndex || 0;
+      const originalSheet = window.App?.state?.dataSource?.currentSheet;
+      const originalOnly = window.App?.state?.printCurrentOnly;
+      const oldData = window.App?.state?.dataSource?.data;
+      const oldHeaders = window.App?.state?.dataSource?.headers;
+      const oldActive = window.App?.state?.dataSource?.isActive;
 
       try {
-        App.ui.showLoading("Preparing HTML batch...");
+        this.showLoading("Preparing HTML batch...");
         let cardNumber = 0;
 
         for (let rowIndex = 0; rowIndex < this.state.rows.length; rowIndex++) {
@@ -1709,7 +1625,7 @@
             pdf.addImage(image, "PNG", x, y, layout.card.w, layout.card.h, undefined, "FAST");
             cardNumber++;
             if (cardNumber === 1 || cardNumber % Math.max(1, Math.floor(totalCards / 20)) === 0 || cardNumber === totalCards) {
-              App.ui.showLoading("Generating card " + cardNumber + " of " + totalCards + "...");
+              this.showLoading("Generating card " + cardNumber + " of " + totalCards + "...");
             }
           }
         }
@@ -1718,94 +1634,17 @@
           .replace(/\.(html?|paper)$/i, "")
           .replace(/[^a-z0-9_-]+/gi, "_");
         pdf.save(safeName + "_batch_" + new Date().toISOString().slice(0, 10) + ".pdf");
-        Utils.toast("Batch complete: " + totalCards + " cards on " + totalPages + " pages.");
+        this.notify("Batch complete: " + totalCards + " cards on " + totalPages + " pages.");
       } catch (e) {
         console.error(e);
-        Utils.toast("Batch generation failed: " + e.message, "error");
+        this.notify("Batch generation failed: " + e.message, "error");
       } finally {
-        App.state.dataSource.data = oldData;
-        App.state.dataSource.headers = oldHeaders;
-        App.state.dataSource.isActive = oldActive;
-        App.state.printCurrentOnly = originalOnly;
-        if (this.state.templateMode === "paper") await App.dataSource.renderPage(originalIndex);
-        App.ui.hideLoading();
-      }
-    },
-
-    async renderPaperCard(studentIndex) {
-      const oldData = App.state.dataSource.data;
-      const oldHeaders = App.state.dataSource.headers;
-      const oldActive = App.state.dataSource.isActive;
-      App.state.dataSource.data = this.state.rows;
-      App.state.dataSource.headers = this.state.headers;
-      App.state.dataSource.isActive = true;
-      App.state.dataSource.currentSheet = "Batch";
-      await App.dataSource.renderPage(studentIndex);
-      const exportCanvas = await App.io._getExportCanvas();
-      exportCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-      const image = document.createElement("canvas");
-      image.width = exportCanvas.getWidth() * 2;
-      image.height = exportCanvas.getHeight() * 2;
-      image.getContext("2d").drawImage(exportCanvas.lowerCanvasEl, 0, 0, image.width, image.height);
-      exportCanvas.dispose();
-      App.state.dataSource.data = oldData;
-      App.state.dataSource.headers = oldHeaders;
-      App.state.dataSource.isActive = oldActive;
-      return image;
-    },
-
-    cleanupPreview() {
-      const host = document.getElementById("studentBatchPrintPreview");
-      if (host) host.innerHTML = "";
-    },
-  };
-
-  function columnName(index) {
-    let n = Number(index) + 1;
-    let out = "";
-    while (n > 0) {
-      const r = (n - 1) % 26;
-      out = String.fromCharCode(65 + r) + out;
-      n = Math.floor((n - 1) / 26);
-    }
-    return out;
-  }
-
-  function fileNameSafe(name) {
-    return String(name || "").replace(/[^a-z0-9_.-]+/gi, "_");
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  window.JoesStudentBatch = Batch;
-  window.addEventListener("load", () => {
-    document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
-    document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
-    document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
-    document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
-    document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
-    document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
-    ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
-      document.getElementById(id)?.addEventListener("input", () => {
-        const keyMap = {
-          studentBatchMargin: "margin",
-          studentBatchGapX: "gapX",
-          studentBatchGapY: "gapY",
-          studentBatchCopies: "copies"
-        };
-        if (id === "studentBatchSheetSize") Batch.state.sheetSize = document.getElementById(id).value;
-        else if (keyMap[id]) Batch.state[keyMap[id]] = Number(document.getElementById(id).value);
-        Batch.refresh();
-      });
-    });
-    Batch.refresh();
-    Batch.previewBatch();
-  });
-})();
+        if (window.App?.state?.dataSource) {
+          App.state.dataSource.data = oldData;
+          App.state.dataSource.headers = oldHeaders;
+          App.state.dataSource.isActive = oldActive;
+          App.state.printCurrentOnly = originalOnly;
+          if (this.state.templateMode === "paper" && App.dataSource?.renderPage) {
+            await App.dataSource.renderPage(originalIndex);
+          }
+        }
