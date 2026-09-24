@@ -19,7 +19,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js" crossorigin="anonymous"></script>
     <script src="./static/idb-keyval.umd.js"></script>
     <script src="./static/bwip-js.min.js"></script>
-    <script src="./static/student-batch.js?v=20260924-suppliedfixes1"></script>
+    <script src="./static/student-batch.js?v=20260924-buttonfix1"></script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
       /* Hide base scrollbar */
@@ -899,8 +899,8 @@
 
         <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
           <button onclick="JoesStudentBatch.close()" class="px-5 py-2.5 rounded-lg border border-gray-300 text-slate-600 font-medium">Cancel</button>
-          <button id="studentBatchPrint" onclick="JoesStudentBatch.print()" disabled class="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"><i class="ph ph-printer mr-1"></i> Print</button>
-          <button id="studentBatchGenerate" onclick="JoesStudentBatch.generate()" disabled class="px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700"><i class="ph ph-stack mr-1"></i> Generate Batch PDF</button>
+          <button id="studentBatchPrint" disabled class="relative z-20 pointer-events-auto px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"><i class="ph ph-printer mr-1"></i> Print</button>
+          <button id="studentBatchGenerate" disabled class="relative z-20 pointer-events-auto px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700"><i class="ph ph-stack mr-1"></i> Generate Batch PDF</button>
         </div>
       </div>
     </div>
