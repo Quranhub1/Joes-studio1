@@ -721,6 +721,36 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
+      // The master examination card uses dotted leader lines on its
+      // editable fields. In batch output those lines should not appear after
+      // NAME, REG NO, SEX, SITTING, or COURSE because the Excel value itself
+      // occupies the field. ISSUED BY remains a field line and is given the
+      // full remaining row width.
+      [
+        "#out-name",
+        "#out-regno",
+        "#out-sex",
+        "#out-sitting",
+        "#out-course"
+      ].forEach(selector => {
+        body.querySelector(selector)?.classList.remove("dots-underline");
+      });
+
+      const issuedBy = body.querySelector("#out-issuedby");
+      if (issuedBy) {
+        issuedBy.classList.add("dots-underline");
+        issuedBy.style.flex = "1 1 auto";
+        issuedBy.style.width = "100%";
+        issuedBy.style.minWidth = "0";
+        issuedBy.style.paddingRight = "0";
+        const issuedRow = issuedBy.parentElement;
+        if (issuedRow) {
+          issuedRow.style.display = "flex";
+          issuedRow.style.alignItems = "flex-end";
+          issuedRow.style.width = "100%";
+        }
+      }
+
       const all = body.querySelectorAll("*");
 
       for (const el of all) {
