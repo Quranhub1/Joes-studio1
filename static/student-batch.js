@@ -952,7 +952,7 @@
         const srcBind = el.getAttribute("data-bind-src");
         if (srcBind) {
           const value = this.resolveValue(row, srcBind);
-          const photo = await this.resolvePhoto(value, row, field);
+          const photo = await this.resolvePhoto(value, row, srcBind);
           if (el.tagName === "IMG" && photo) {
             el.setAttribute("src", this.imageSourceForTemplate(photo));
             el.removeAttribute("alt");
