@@ -984,14 +984,25 @@
 
           const layout = this.layout();
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
-          const previewRows = this.state.rows.length
-            ? this.state.rows.slice(0, previewCount)
-            : Array.from({ length: previewCount }, () => ({}));
+          const copies = Math.max(1, Number(this.state.copies) || 1);
 
-          // The preview is a real print sheet. Each preview card is built from
-          // its corresponding Excel row, using exactly the same HTML renderer
-          // that the PDF generator uses. No placeholder data is repeated across
-          // every card when Excel records are available.
+          // The preview mirrors the real PDF batch. Every Excel row is the
+          // source record, and Copies/student creates that many actual
+          // instances of the selected HTML template.
+          const previewRows = [];
+          if (this.state.rows.length) {
+            for (const rowData of this.state.rows) {
+              for (let copy = 0; copy < copies && previewRows.length < previewCount; copy++) {
+                previewRows.push(rowData);
+              }
+              if (previewRows.length >= previewCount) break;
+            }
+          } else {
+            previewRows.push(...Array.from({ length: previewCount }, () => ({})));
+          }
+
+          // Build every preview card from the actual uploaded HTML template
+          // and its corresponding Excel record.
           const builtCards = [];
           for (const rowData of previewRows) {
             const result = await this.buildHtmlCard(rowData);
@@ -1120,7 +1131,10 @@
     previewCardCount() {
       const mode = String(document.querySelector('input[name="studentBatchMode"]:checked')?.value || document.getElementById("studentBatchMode")?.value || "cards").toLowerCase();
       if (mode === "single") return 1;
-      if (mode === "filled") return Math.max(1, this.state.rows.length || 1);
+      if (mode === "filled") {
+        const copies = Math.max(1, Number(this.state.copies) || 1);
+        return Math.max(1, (this.state.rows.length || 1) * copies);
+      }
       return Math.max(1, Number(this.state.cardsPerPage) || 1);
     },
 
