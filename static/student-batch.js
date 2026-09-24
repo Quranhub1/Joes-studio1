@@ -26,6 +26,7 @@
       rowsPerPage: 0,
       cardWidthMm: 130,
       cardHeightMm: 60,
+      cardBackground: "#ffffff",
       orientation: "portrait",
       cardsPerPage: 6,
       resolution: 300,
@@ -50,6 +51,30 @@
     hideLoading() {
       if (window.App?.ui?.hideLoading) window.App.ui.hideLoading();
       else if (window.Utils?.hideLoading) window.Utils.hideLoading();
+    },
+
+    normalizeCardColor(value) {
+      const raw = String(value || "").trim();
+      return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : "#ffffff";
+    },
+
+    setCardBackground(value) {
+      this.state.cardBackground = this.normalizeCardColor(value);
+      const color = this.state.cardBackground;
+
+      const colorInput = document.getElementById("studentBatchCardBackground");
+      const hexInput = document.getElementById("studentBatchCardBackgroundHex");
+      if (colorInput && colorInput.value !== color) colorInput.value = color;
+      if (hexInput && hexInput.value.toLowerCase() !== color) hexInput.value = color;
+
+      this.refresh();
+    },
+
+    applyCardBackground(root) {
+      if (!root) return;
+      const color = this.normalizeCardColor(this.state.cardBackground);
+      root.style.setProperty("background-color", color, "important");
+      root.setAttribute("data-student-batch-background", color);
     },
 
     normalize(value) {
@@ -971,6 +996,7 @@
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
       const body = this.findHtmlCardRoot(doc);
+      this.applyCardBackground(body);
 
       for (const img of Array.from(body.querySelectorAll("img"))) {
         const srcAttr = String(img.getAttribute("src") || "");
@@ -1085,6 +1111,7 @@
     async renderHtmlCard(row) {
       const { doc, body } = await this.buildHtmlCard(row);
       const wrapper = document.createElement("div");
+      wrapper.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
       wrapper.style.cssText = [
         "position:fixed", "left:-100000px", "top:0", "visibility:hidden",
         "width:" + this.state.cardWidthMm + "mm",
@@ -1328,6 +1355,7 @@
 
             const frame = document.createElement("div");
             frame.className = "student-batch-preview-card";
+            frame.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
             frame.style.cssText = [
               "position:absolute","left:" + xPx + "px","top:" + yPx + "px",
               "width:" + cardWidthPx + "px","height:" + cardHeightPx + "px",
@@ -1335,6 +1363,7 @@
             ].join(";");
 
             const cardStage = document.createElement("div");
+            cardStage.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
             cardStage.style.cssText = [
               "position:absolute","left:0","top:0",
               "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
@@ -1425,6 +1454,7 @@
       const source = this.findHtmlCardRoot(doc);
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
+      wrapper.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
       wrapper.style.height = (Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) * this.state.cardHeightMm / this.state.cardWidthMm) + "px";
       const style = document.createElement("style");
@@ -1452,6 +1482,12 @@
       const fieldsEl = document.getElementById("studentBatchFields");
       const sizeEl = document.getElementById("studentBatchCardSize");
       const photoEl = document.getElementById("studentBatchPhotoName");
+
+      const bgInput = document.getElementById("studentBatchCardBackground");
+      const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
+      const bgValue = this.normalizeCardColor(this.state.cardBackground);
+      if (bgInput && bgInput.value !== bgValue) bgInput.value = bgValue;
+      if (bgHexInput && bgHexInput.value.toLowerCase() !== bgValue) bgHexInput.value = bgValue;
 
       if (fileEl) fileEl.textContent = this.state.templateName || "No template selected";
       if (excelEl) excelEl.textContent = this.state.rows.length ? "Excel data loaded" : "No Excel file selected";
@@ -1541,7 +1577,7 @@
           "body{display:block!important;}",
           ".student-batch-print-page{position:relative;box-sizing:border-box;width:" + sheet.w + "mm;height:" + sheet.h + "mm;overflow:hidden;background:#fff;break-after:page;page-break-after:always;}",
           ".student-batch-print-page:last-child{break-after:auto;page-break-after:auto;}",
-          ".student-batch-print-frame{position:absolute;overflow:hidden;box-sizing:border-box;background:#fff;}",
+          ".student-batch-print-frame{position:absolute;overflow:hidden;box-sizing:border-box;background:" + this.normalizeCardColor(this.state.cardBackground) + ";}",
           ".student-batch-print-stage{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;}",
           "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}",
           this.state.htmlStyles || ""
@@ -1594,6 +1630,7 @@
 
             const stage = printDoc.createElement("div");
             stage.className = "student-batch-print-stage";
+            stage.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
             stage.style.width = nativeW + "px";
             stage.style.height = nativeH + "px";
             stage.style.transform =
@@ -1782,6 +1819,12 @@
     document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
     document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
     document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
+    document.getElementById("studentBatchCardBackground")?.addEventListener("input", e => {
+      Batch.setCardBackground(e.target.value);
+    });
+    document.getElementById("studentBatchCardBackgroundHex")?.addEventListener("change", e => {
+      Batch.setCardBackground(e.target.value);
+    });
     ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", () => {
         const keyMap = {
