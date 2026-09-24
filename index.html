@@ -19,7 +19,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js" crossorigin="anonymous"></script>
     <script src="./static/idb-keyval.umd.js"></script>
     <script src="./static/bwip-js.min.js"></script>
-    <script src="./static/student-batch.js?v=20260924-buttonfix1"></script>
+    <script src="./static/student-batch.js?v=20260924-cardcolor1"></script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
       /* Hide base scrollbar */
@@ -867,6 +867,13 @@
                 <select id="studentBatchResolution" class="mt-1 w-full border rounded-lg p-2 bg-white">
                   <option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300" selected>300 DPI</option><option value="600">600 DPI</option>
                 </select>
+              </label>
+              <label class="text-xs text-slate-500">Card background
+                <div class="mt-1 flex items-center gap-2">
+                  <input id="studentBatchCardBackground" type="color" value="#ffffff" title="Choose card background color" class="h-10 w-12 p-1 border rounded-lg bg-white cursor-pointer">
+                  <input id="studentBatchCardBackgroundHex" type="text" value="#ffffff" maxlength="7" spellcheck="false" class="w-full border rounded-lg p-2 bg-white font-mono text-[11px]" aria-label="Card background hex color">
+                </div>
+                <span class="block mt-1 text-[9px] text-slate-400">White by default, or choose any background color.</span>
               </label>
               <label class="text-xs text-slate-500">Margin (mm)
                 <input id="studentBatchMargin" type="number" min="0" step="0.5" value="5" class="mt-1 w-full border rounded-lg p-2">
