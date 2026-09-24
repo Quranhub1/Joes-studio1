@@ -139,6 +139,10 @@
     },
 
     async loadHtmlTemplate(text) {
+      // Keep the selected template's design intact. Only extend the existing
+      // Issued By dotted signature line in the source text.
+      text = text.replace(/(Issued\\s*By\\s*:\\s*)\\.{3,}/gi, "$1" + ".".repeat(48));
+
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
