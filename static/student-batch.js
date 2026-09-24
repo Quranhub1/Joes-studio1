@@ -662,6 +662,27 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
+      // The master examination-card template is authoritative for its visual
+      // design. Some browser/app styles can add text underlines or bottom
+      // borders to generated data fields even when those lines are not part
+      // of the supplied card. Remove those artifacts from text fields only,
+      // while preserving the card border and the passport-photo border.
+      body.querySelectorAll('[id^="out-"], [id^="out_"], [id^="field-"], [id^="field_"], [id^="data-"], [id^="data_"]').forEach(el => {
+        if (el.tagName === "IMG") return;
+        el.style.borderBottom = "none";
+        el.style.textDecoration = "none";
+        el.style.boxShadow = "none";
+      });
+
+      const cleanupSelectors = [
+        '[id^="out-"]::after', '[id^="out_"]::after',
+        '[id^="field-"]::after', '[id^="field_"]::after',
+        '[id^="data-"]::after', '[id^="data_"]::after'
+      ].join(",");
+      const cleanupStyle = document.createElement("style");
+      cleanupStyle.textContent = cleanupSelectors + "{content:none !important;border:0 !important;box-shadow:none !important;text-decoration:none !important;}";
+      body.prepend(cleanupStyle);
+
       const all = body.querySelectorAll("*");
       // Mark external images for CORS-aware preview/export. In particular,
       // the KSHS badge is an external image and must not be treated as a
