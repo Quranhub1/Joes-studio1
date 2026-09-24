@@ -844,7 +844,33 @@
         // renderer deterministic.
         img.setAttribute("crossorigin", "anonymous");
         try {
-          const response = await fetch(src, { mode: "cors", credentials: "omit", cache: "force-cache" });
+          let response;
+          try {
+            // First try the original URL. This works when the image host
+            // explicitly allows GitHub Pages to read the image with CORS.
+            response = await fetch(src, {
+              mode: "cors",
+              credentials: "omit",
+              cache: "force-cache"
+            });
+          } catch (_) {
+            response = null;
+          }
+
+          // Many school/institution websites do not send CORS headers.
+          // The browser can display their <img>, but fetch() cannot read it
+          // and therefore html2canvas cannot safely put it into the PDF.
+          // Use a public image transformation proxy as the second path.
+          if (!response || !response.ok) {
+            const proxyUrl = "https://images.weserv.nl/?url=" +
+              encodeURIComponent(src);
+            response = await fetch(proxyUrl, {
+              mode: "cors",
+              credentials: "omit",
+              cache: "no-store"
+            });
+          }
+
           if (!response.ok) throw new Error("HTTP " + response.status);
           const blob = await response.blob();
           const dataUrl = await this.fileToDataUrl(blob);
