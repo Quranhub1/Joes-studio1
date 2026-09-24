@@ -1195,67 +1195,29 @@
         return false;
       };
 
-      // The Issued By signature area is intentional. Make its signature
-      // line long enough to actually sign on, regardless of whether the
-      // selected template uses <hr>, a bordered element, or literal
-      // underscores. The selected template remains the source of truth for
-      // the label and surrounding layout.
-      const markIssuedBySignatureLine = () => {
-        root.querySelectorAll("*").forEach(el => {
-          if (!/issued\s*by|issuedby/i.test(String(el.textContent || ""))) return;
-          const candidates = Array.from(el.querySelectorAll("*")).filter(node => {
-            const haystack = [
-              String(node.className || ""),
-              String(node.id || ""),
-              String(node.getAttribute("data-field") || ""),
-              String(node.getAttribute("data-bind") || "")
-            ].join(" ").toLowerCase();
-            return node.tagName === "HR" ||
-              /line|underline|signature/.test(haystack);
-          });
+      // Keep the signature line from the selected template exactly as it is.
+      // When the template already contains an Issued By line made from
+      // underscores, simply extend that existing line by 20 characters.
+      // Do not create a new border, element, or replacement line.
+      root.querySelectorAll("*").forEach(el => {
+        if (!/issued\s*by|issuedby/i.test(String(el.textContent || ""))) return;
 
-          let line = candidates.find(node => !/issued\s*by|issuedby/i.test(String(node.textContent || "")));
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const textNodes = [];
+        let node;
+        while ((node = walker.nextNode())) textNodes.push(node);
 
-          if (!line && el.nextElementSibling) {
-            line = el.nextElementSibling;
-          }
+        textNodes.forEach(textNode => {
+          const value = String(textNode.nodeValue || "");
+          if (!/_/.test(value)) return;
 
-          if (line) {
-            line.setAttribute("data-issued-by", "true");
-            line.style.setProperty("display", "inline-block", "important");
-            line.style.setProperty("width", "220px", "important");
-            line.style.setProperty("min-width", "220px", "important");
-            line.style.setProperty("max-width", "220px", "important");
-            line.style.setProperty("border-bottom", "1px solid currentColor", "important");
-            line.style.setProperty("vertical-align", "bottom", "important");
-          }
-
-          // Some templates use literal underscores instead of a border.
-          // Replace only the underscore run belonging to the Issued By area.
-          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-          const textNodes = [];
-          let node;
-          while ((node = walker.nextNode())) textNodes.push(node);
-
-          textNodes.forEach(textNode => {
-            if (!/_{3,}/.test(textNode.nodeValue || "")) return;
-            const span = document.createElement("span");
-            span.setAttribute("data-issued-by", "true");
-            span.style.cssText = [
-              "display:inline-block",
-              "width:220px",
-              "min-width:220px",
-              "max-width:220px",
-              "height:1em",
-              "vertical-align:bottom",
-              "border-bottom:1px solid currentColor"
-            ].join(";");
-            textNode.parentNode.replaceChild(span, textNode);
-          });
+          // Extend the existing underscore run once. Because every preview
+          // starts from a fresh clone of the selected template, this does not
+          // accumulate additional underscores across renders.
+          const extended = value.replace(/(_{3,})(?!_)/, "$1" + "_".repeat(20));
+          if (extended !== value) textNode.nodeValue = extended;
         });
-      };
-
-      markIssuedBySignatureLine();
+      });
 
       // Literal separators.
       root.querySelectorAll("hr").forEach(el => {
