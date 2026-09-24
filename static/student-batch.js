@@ -789,9 +789,15 @@
           const field = idMatch[1].replace(/[-_]+/g, " ");
           const value = this.resolveValue(row, field);
           if (el.tagName === "IMG") {
-            const photo = await this.resolvePhoto(value, row);
-            if (photo) el.setAttribute("src", photo);
-            else el.setAttribute("alt", ".....");
+            const photo = await this.resolvePhoto(value);
+            if (photo) {
+              el.setAttribute("src", photo);
+              el.style.removeProperty("display");
+              const placeholder = el.parentElement?.querySelector(".photo-placeholder, [id$='-placeholder']");
+              if (placeholder) placeholder.style.display = "none";
+            } else {
+              el.setAttribute("alt", ".....");
+            }
           } else if (!/^in[-_]/i.test(el.id)) {
             el.textContent = this.displayValue(row, field);
           }
@@ -809,9 +815,15 @@
 
         const srcBind = el.getAttribute("data-bind-src");
         if (srcBind && el.tagName === "IMG") {
-          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind), row);
-          if (photo) el.setAttribute("src", photo);
-          else el.setAttribute("alt", ".....");
+          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind));
+          if (photo) {
+            el.setAttribute("src", photo);
+            el.style.removeProperty("display");
+            const placeholder = el.parentElement?.querySelector(".photo-placeholder, [id$='-placeholder']");
+            if (placeholder) placeholder.style.display = "none";
+          } else {
+            el.setAttribute("alt", ".....");
+          }
         }
 
         const qrBind = el.getAttribute("data-bind-qr");
