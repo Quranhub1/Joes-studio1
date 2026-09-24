@@ -399,7 +399,7 @@
         const zip = await window.JSZip.loadAsync(buffer);
         
         // Find all worksheet XML files in the zip
-        const sheetFiles = Object.keys(zip.files).filter(path => /^xl\\/worksheets\\/sheet\\d+\\.xml$/i.test(path));
+        const sheetFiles = Object.keys(zip.files).filter(path => /^xl\/worksheets\/sheet\d+\.xml$/i.test(path));
         
         for (const sheetPath of sheetFiles) {
           const sheetRelPath = sheetPath.replace("xl/worksheets/", "xl/worksheets/_rels/") + ".rels";
