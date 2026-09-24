@@ -1399,6 +1399,125 @@
       }, 0);
     },
 
+    async printPreview() {
+      if (!this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length) {
+        Utils.toast("Load the HTML template and Excel data before printing.", "error");
+        return;
+      }
+      if (this.state.templateMode !== "html") {
+        Utils.toast("Direct batch printing is currently available for HTML card templates.", "error");
+        return;
+      }
+
+      const layout = this.layout();
+      const copies = Math.max(1, Number(this.state.copies) || 1);
+      const totalCards = this.state.rows.length * copies;
+      const totalPages = Math.max(1, Math.ceil(totalCards / layout.perPage));
+
+      // Open the print surface synchronously from the button click so the
+      // browser does not treat it as a popup after async rendering work.
+      const printWindow = window.open("", "_blank", "noopener,noreferrer");
+      if (!printWindow) {
+        Utils.toast("The print window was blocked by the browser. Allow pop-ups for this site.", "error");
+        return;
+      }
+
+      printWindow.document.open();
+      printWindow.document.write(
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>KSHS Student Examination Cards</title>" +
+        "<style>" +
+        "@page{size:" + layout.sheet.w + "mm " + layout.sheet.h + "mm;margin:0;}" +
+        "*{box-sizing:border-box;}" +
+        "html,body{margin:0;padding:0;background:#fff;}" +
+        "body{font-family:serif;}" +
+        ".print-page{position:relative;width:" + layout.sheet.w + "mm;height:" + layout.sheet.h + "mm;overflow:hidden;page-break-after:always;break-after:page;background:#fff;}" +
+        ".print-page:last-child{page-break-after:auto;break-after:auto;}" +
+        ".print-card{position:absolute;overflow:hidden;}" +
+        "</style></head><body><div id=\"print-root\"></div></body></html>"
+      );
+      printWindow.document.close();
+
+      try {
+        const root = printWindow.document.getElementById("print-root");
+
+        App.ui.showLoading("Preparing print cards...");
+        for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+          const page = printWindow.document.createElement("div");
+          page.className = "print-page";
+
+          const firstCard = pageIndex * layout.perPage;
+          const lastCard = Math.min(totalCards, firstCard + layout.perPage);
+
+          for (let cardNumber = firstCard; cardNumber < lastCard; cardNumber++) {
+            const rowIndex = Math.floor(cardNumber / copies);
+            const built = await this.buildHtmlCard(this.state.rows[rowIndex]);
+
+            const slot = cardNumber % layout.perPage;
+            const col = slot % layout.cols;
+            const row = Math.floor(slot / layout.cols);
+
+            const cellX = Number(this.state.margin) + col * (layout.cellW + Number(this.state.gapX));
+            const cellY = Number(this.state.margin) + row * (layout.cellH + Number(this.state.gapY));
+            const x = cellX + (layout.cellW - layout.card.w) / 2;
+            const y = cellY + (layout.cellH - layout.card.h) / 2;
+
+            const frame = printWindow.document.createElement("div");
+            frame.className = "print-card";
+            frame.style.left = x + "mm";
+            frame.style.top = y + "mm";
+            frame.style.width = layout.card.w + "mm";
+            frame.style.height = layout.card.h + "mm";
+
+            const style = printWindow.document.createElement("style");
+            style.textContent = this.state.htmlStyles;
+            frame.appendChild(style);
+
+            const clone = printWindow.document.importNode(built.body, true);
+            clone.removeAttribute("id");
+            clone.style.width = this.state.cardWidthMm + "mm";
+            clone.style.height = this.state.cardHeightMm + "mm";
+            clone.style.minWidth = this.state.cardWidthMm + "mm";
+            clone.style.minHeight = this.state.cardHeightMm + "mm";
+            clone.style.maxWidth = "none";
+            clone.style.maxHeight = "none";
+            clone.style.margin = "0";
+            clone.style.position = "relative";
+            clone.style.transformOrigin = "top left";
+
+            const scaleX = layout.card.w / Number(this.state.cardWidthMm);
+            const scaleY = layout.card.h / Number(this.state.cardHeightMm);
+            clone.style.transform = "scaleX(" + scaleX + ") scaleY(" + scaleY + ")";
+            frame.appendChild(clone);
+            page.appendChild(frame);
+          }
+
+          root.appendChild(page);
+          App.ui.showLoading("Preparing print page " + (pageIndex + 1) + " of " + totalPages + "...");
+        }
+
+        const images = Array.from(printWindow.document.images);
+        await Promise.all(images.map(img => new Promise(resolve => {
+          if (img.complete) {
+            resolve();
+            return;
+          }
+          img.addEventListener("load", resolve, {once:true});
+          img.addEventListener("error", resolve, {once:true});
+          setTimeout(resolve, 5000);
+        })));
+
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 250);
+        Utils.toast("Print preview ready: " + totalCards + " card" + (totalCards === 1 ? "" : "s") + " across " + totalPages + " page" + (totalPages === 1 ? "" : "s") + ".");
+      } catch (e) {
+        console.error("Student batch print failed", e);
+        try { printWindow.close(); } catch (_) {}
+        Utils.toast("Printing failed: " + e.message, "error");
+      } finally {
+        App.ui.hideLoading();
+      }
+    },
+
     samplePreviewRow() {
       const sample = {};
       const defaults = {
