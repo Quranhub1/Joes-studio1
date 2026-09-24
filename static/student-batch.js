@@ -30,6 +30,8 @@
       cardsPerPage: 6,
       resolution: 300,
       embeddedPhotos: new Map(),
+      badgeFile: null,
+      badgeDataUrl: "",
     },
 
     normalize(value) {
@@ -78,6 +80,14 @@
 
     choosePhotos() {
       const input = document.getElementById("studentBatchPhotoInput");
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    },
+
+    chooseBadge() {
+      const input = document.getElementById("studentBatchBadgeInput");
       if (input) {
         input.value = "";
         input.click();
@@ -344,9 +354,33 @@
           ? ' <span class="text-[9px] text-slate-400">suggestion: ' + escapeHtml(suggestion) + '</span>'
           : "";
 
+        if (this.isBadgeField(field)) {
+          const fileName = this.state.badgeFile?.name || "No PNG selected";
+          const buttonText = this.state.badgeDataUrl ? "Replace PNG" : "Upload PNG";
+          const preview = this.state.badgeDataUrl
+            ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="h-10 w-10 object-contain rounded border border-slate-200 bg-white p-1">'
+            : '<div class="h-10 w-10 rounded border border-dashed border-slate-300 bg-white flex items-center justify-center"><i class="ph ph-image text-slate-300"></i></div>';
+
+          return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
+            '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
+            '<div class="text-[9px] text-slate-400">Badge image • supplied here as a PNG</div></div>' +
+            '<div class="flex items-center gap-2 min-w-0">' +
+            preview +
+            '<button type="button" class="student-batch-badge-button flex-1 min-w-0 border rounded-lg px-3 py-2 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50" data-template-field="' + escapeHtml(field) + '">' +
+            '<i class="ph ph-upload-simple mr-1"></i>' + buttonText + '</button>' +
+            '<span class="text-[9px] text-slate-400 truncate max-w-[110px]" title="' + escapeHtml(fileName) + '">' + escapeHtml(fileName) + '</span>' +
+            '</div>' +
+            '</div>';
+        }
+
+        const isPhoto = this.isStudentPhotoField(field);
+        const helper = isPhoto
+          ? ' <span class="text-[9px] text-slate-400">student photo</span>'
+          : suggestionText;
+
         return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
           '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
-          '<div class="text-[9px] text-slate-400">Template field' + suggestionText + '</div></div>' +
+          '<div class="text-[9px] text-slate-400">Template field' + helper + '</div></div>' +
           '<select class="student-batch-map-select w-full border rounded-lg p-2 bg-white text-xs" data-template-field="' + escapeHtml(field) + '">' +
           '<option value="">Do not map / leave blank</option>' +
           options.replace(
@@ -370,6 +404,10 @@
           }));
           this.refresh();
         });
+      });
+
+      host.querySelectorAll(".student-batch-badge-button").forEach(button => {
+        button.addEventListener("click", () => this.chooseBadge());
       });
     },
 
@@ -709,7 +747,31 @@
       Utils.toast(Math.floor(this.state.photoFiles.size / 2) + " photo files indexed • Excel photo fields will be matched automatically");
     },
 
+    async loadBadge(file) {
+      if (!file) return;
+      if (!/^image\/png$/i.test(file.type || "") && !/\.png$/i.test(file.name || "")) {
+        Utils.toast("Badge image must be a PNG file.", "error");
+        return;
+      }
+
+      try {
+        this.state.badgeFile = file;
+        this.state.badgeDataUrl = await this.fileToDataUrl(file);
+        this.refresh();
+        Utils.toast("Badge PNG loaded: " + file.name);
+      } catch (e) {
+        console.error(e);
+        this.state.badgeFile = null;
+        this.state.badgeDataUrl = "";
+        Utils.toast("Badge image could not be loaded: " + e.message, "error");
+      }
+    },
+
     resolveValue(row, field) {
+      // Badge artwork is supplied by the mapping panel, not by Excel.
+      // Every badge field in the selected HTML template uses this uploaded PNG.
+      if (this.isBadgeField(field)) return this.state.badgeDataUrl || "";
+
       const header = this.state.mapping[field];
       if (header && row[header] !== undefined) return row[header];
       if (row[field] !== undefined) return row[field];
@@ -1397,16 +1459,24 @@
       if (fieldsEl) this.renderFieldMapping(fieldsEl);
 
       const generate = document.getElementById("studentBatchGenerate");
-      const missingMappings = this.state.templateFields.filter(field => !this.state.mapping[field]);
+      const missingMappings = this.state.templateFields.filter(field =>
+        !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
+      );
+      const missingBadge = this.state.templateFields.some(field =>
+        this.isBadgeField(field) && !this.state.badgeDataUrl
+      );
       if (generate) {
         generate.disabled =
           !this.state.rows.length ||
           !this.state.templateFile ||
           !this.state.templateFields.length ||
-          !!missingMappings.length;
+          !!missingMappings.length ||
+          !!missingBadge;
         generate.title = missingMappings.length
-          ? "Map every template field to an Excel column before generating."
-          : "";
+          ? "Map every non-image template field to an Excel column before generating."
+          : missingBadge
+            ? "Upload the PNG for the badge field in the mapping panel before generating."
+            : "";
       }
 
       if (this.state.templateMode === "html") this.previewBatch();
@@ -1418,9 +1488,18 @@
         return;
       }
 
-      const missing = this.state.templateFields.filter(f => !this.state.mapping[f]);
+      const missing = this.state.templateFields.filter(f =>
+        !this.isBadgeField(f) && !this.isStudentPhotoField(f) && !this.state.mapping[f]
+      );
       if (missing.length) {
         Utils.toast("Map these template fields to Excel columns first: " + missing.join(", "), "error");
+        this.renderFieldMapping(document.getElementById("studentBatchFields"));
+        return;
+      }
+
+      const badgeFields = this.state.templateFields.filter(f => this.isBadgeField(f));
+      if (badgeFields.length && !this.state.badgeDataUrl) {
+        Utils.toast("Upload the PNG for the badge field in the mapping panel first.", "error");
         this.renderFieldMapping(document.getElementById("studentBatchFields"));
         return;
       }
