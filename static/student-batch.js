@@ -731,6 +731,25 @@
         }
       }
 
+      // Resolve image source placeholders before the generic text
+      // placeholder replacement. Otherwise {{photo}} becomes the "....."
+      // missing-field marker and the browser shows a white broken-image box.
+      for (const img of Array.from(body.querySelectorAll("img"))) {
+        const src = String(img.getAttribute("src") || "");
+        const match = src.match(/{{\\s*([^{}]+?)\\s*}}/);
+        if (!match) continue;
+
+        const field = String(match[1] || "").trim();
+        const photo = await this.resolvePhoto(this.resolveValue(row, field), row);
+        if (photo) {
+          img.setAttribute("src", photo);
+          img.removeAttribute("alt");
+        } else {
+          img.removeAttribute("src");
+          img.setAttribute("alt", "");
+        }
+      }
+
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
