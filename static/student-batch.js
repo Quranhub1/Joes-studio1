@@ -1195,6 +1195,62 @@
         return false;
       };
 
+      // The Issued By signature area is intentional. Make its signature
+      // line long enough to actually sign on, regardless of whether the
+      // selected template uses <hr>, a bordered element, or literal
+      // underscores. The selected template remains the source of truth for
+      // the label and surrounding layout.
+      const markIssuedBySignatureLine = () => {
+        root.querySelectorAll("*").forEach(el => {
+          if (!/issued\\s*by|issuedby/i.test(String(el.textContent || ""))) return;
+
+          const candidates = [
+            ...el.querySelectorAll("hr, [class*='line' i], [class*='underline' i], [class*='signature' i], [id*='line' i], [id*='signature' i]')
+          ];
+
+          let line = candidates.find(node => !/issued\\s*by|issuedby/i.test(String(node.textContent || "")));
+
+          if (!line && el.nextElementSibling) {
+            line = el.nextElementSibling;
+          }
+
+          if (line) {
+            line.setAttribute("data-issued-by", "true");
+            line.style.setProperty("display", "inline-block", "important");
+            line.style.setProperty("width", "220px", "important");
+            line.style.setProperty("min-width", "220px", "important");
+            line.style.setProperty("max-width", "220px", "important");
+            line.style.setProperty("border-bottom", "1px solid currentColor", "important");
+            line.style.setProperty("vertical-align", "bottom", "important");
+          }
+
+          // Some templates use literal underscores instead of a border.
+          // Replace only the underscore run belonging to the Issued By area.
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          const textNodes = [];
+          let node;
+          while ((node = walker.nextNode())) textNodes.push(node);
+
+          textNodes.forEach(textNode => {
+            if (!/_{3,}/.test(textNode.nodeValue || "")) return;
+            const span = document.createElement("span");
+            span.setAttribute("data-issued-by", "true");
+            span.style.cssText = [
+              "display:inline-block",
+              "width:220px",
+              "min-width:220px",
+              "max-width:220px",
+              "height:1em",
+              "vertical-align:bottom",
+              "border-bottom:1px solid currentColor"
+            ].join(";");
+            textNode.parentNode.replaceChild(span, textNode);
+          });
+        });
+      };
+
+      markIssuedBySignatureLine();
+
       // Literal separators.
       root.querySelectorAll("hr").forEach(el => {
         if (!isIssuedBy(el)) el.remove();
