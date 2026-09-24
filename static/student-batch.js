@@ -569,7 +569,10 @@
 
         this.state.rows = rows.map((row, dataIndex) => {
           const copy = { ...row };
-          const excelRowIndex = headerIndex + 1 + dataIndex;
+          // Drawing anchors in the XLSX XML use zero-based row indexes.
+          // The matrix index is also zero-based, so use the actual worksheet
+          // row index rather than shifting the photo lookup down by one.
+          const excelRowIndex = headerIndex + 1 + dataIndex - 1;
           const embedded = this.state.embeddedPhotos.get(excelRowIndex);
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
