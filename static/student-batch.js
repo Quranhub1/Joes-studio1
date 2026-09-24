@@ -659,28 +659,69 @@
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
       const body = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+
+      // Prepare the KSHS badge before body.innerHTML is assigned. Assigning
+      // HTML containing the original remote image would trigger a direct
+      // https://www.kshs.ac.ug request immediately, which is blocked by CORS
+      // before our renderer gets a chance to replace it.
+      const badgeImg = body.querySelector("#badge-custom-img");
+      const badgeSvg = body.querySelector("#badge-svg");
+      if (badgeImg && badgeSvg) {
+        const badgeSrc = String(badgeImg.getAttribute("src") || "").trim();
+        if (/kshs\.ac\.ug\/images\/kampala(?:%20|\s)+logo\.png/i.test(badgeSrc)) {
+          let prepared = false;
+          try {
+            const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(badgeSrc);
+            const response = await fetch(proxy, {
+              mode: "cors",
+              credentials: "omit",
+              cache: "force-cache"
+            });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            const blob = await response.blob();
+            const dataUrl = await this.fileToDataUrl(blob);
+            if (dataUrl) {
+              badgeImg.setAttribute("src", dataUrl);
+              badgeImg.removeAttribute("crossorigin");
+              badgeImg.removeAttribute("onerror");
+              badgeImg.classList.remove("hidden");
+              badgeImg.loading = "eager";
+              badgeImg.decoding = "sync";
+              prepared = true;
+            }
+          } catch (error) {
+            console.warn("KSHS badge proxy load failed; using the template's embedded badge.", error);
+          }
+
+          // The supplied template already contains its own badge SVG. Use it
+          // only when the real KSHS PNG cannot be fetched through the proxy.
+          if (!prepared) {
+            const fallbackSvg = badgeSvg.cloneNode(true);
+            fallbackSvg.classList.remove("hidden");
+            fallbackSvg.style.width = "100%";
+            fallbackSvg.style.height = "100%";
+            fallbackSvg.style.display = "block";
+            fallbackSvg.removeAttribute("id");
+            const fallbackMarkup = new XMLSerializer().serializeToString(fallbackSvg);
+            badgeImg.setAttribute(
+              "src",
+              "data:image/svg+xml;charset=utf-8," + encodeURIComponent(fallbackMarkup)
+            );
+            badgeImg.removeAttribute("crossorigin");
+            badgeImg.removeAttribute("onerror");
+            badgeImg.classList.remove("hidden");
+            badgeImg.loading = "eager";
+            badgeImg.decoding = "sync";
+          }
+
+          badgeSvg.classList.add("hidden");
+        }
+      }
+
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
       const all = body.querySelectorAll("*");
-
-      // The supplied master template uses the real KSHS badge image at
-      // https://www.kshs.ac.ug/images/kampala%20logo.png. That server does not
-      // expose Access-Control-Allow-Origin to GitHub Pages, so a crossorigin
-      // image request is rejected by the browser. Keep the template artwork,
-      // but route that one external badge through the same read-only image
-      // proxy used by the renderer so the live preview never requests KSHS
-      // directly from the GitHub Pages origin.
-      body.querySelectorAll("img[src]").forEach(img => {
-        const src = String(img.getAttribute("src") || "").trim();
-        if (/kshs\.ac\.ug\/images\/kampala(?:%20|\s)+logo\.png/i.test(src)) {
-          const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
-          img.setAttribute("src", proxy);
-          img.removeAttribute("crossorigin");
-          img.loading = "eager";
-          img.decoding = "sync";
-        }
-      });
 
       for (const el of all) {
         for (const attr of Array.from(el.attributes)) {
