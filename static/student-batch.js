@@ -767,20 +767,28 @@
       if (issuedBy) {
         issuedBy.classList.add("dots-underline");
         issuedBy.style.setProperty("border-bottom", "1.5px dotted #000000", "important");
-        issuedBy.style.setProperty("width", "auto", "important");
+        issuedBy.style.setProperty("width", "100%", "important");
         issuedBy.style.setProperty("max-width", "none", "important");
         issuedBy.style.setProperty("min-width", "0", "important");
-        issuedBy.style.setProperty("flex", "none", "important");
+        issuedBy.style.setProperty("flex", "1 1 auto", "important");
         issuedBy.style.setProperty("display", "block", "important");
+        issuedBy.style.setProperty("box-sizing", "border-box", "important");
+        issuedBy.style.setProperty("margin-left", "0", "important");
+        issuedBy.style.setProperty("padding-left", "0", "important");
         issuedBy.style.setProperty("padding-right", "0", "important");
+        issuedBy.style.setProperty("justify-self", "stretch", "important");
+        issuedBy.style.setProperty("align-self", "end", "important");
 
         const issuedRow = issuedBy.parentElement;
         if (issuedRow) {
           issuedRow.style.setProperty("display", "grid", "important");
           issuedRow.style.setProperty("grid-template-columns", "max-content minmax(0, 1fr)", "important");
+          issuedRow.style.setProperty("column-gap", "0", "important");
           issuedRow.style.setProperty("align-items", "end", "important");
           issuedRow.style.setProperty("width", "100%", "important");
+          issuedRow.style.setProperty("max-width", "100%", "important");
           issuedRow.style.setProperty("min-width", "0", "important");
+          issuedRow.style.setProperty("box-sizing", "border-box", "important");
         }
       }
 
