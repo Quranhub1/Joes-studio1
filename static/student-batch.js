@@ -247,7 +247,7 @@
       if (Number(attrW) > 0 && Number(attrH) > 0) return { w: Number(attrW), h: Number(attrH) };
 
       const css = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
-      const classMatch = css.match(/(?:\.exam-card|\.student-card|\.card|\#student-card|\#card)[^{]*\{([^}]*)\}/i);
+      const classMatch = css.match(/(?:\.exam-card|\.student-card|\.card|\.card-container|\#exam-card|\#student-card|\#card)[^{]*\{([^}]*)\}/i);
       const block = classMatch ? classMatch[1] : css;
       const w = this.parseCssLength((block.match(/\bwidth\s*:\s*([^;]+)/i) || [])[1]);
       const h = this.parseCssLength((block.match(/\bheight\s*:\s*([^;]+)/i) || [])[1]);
