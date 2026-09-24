@@ -1111,12 +1111,11 @@
     async renderHtmlCard(row) {
       const { doc, body } = await this.buildHtmlCard(row);
       const wrapper = document.createElement("div");
-      wrapper.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
       wrapper.style.cssText = [
         "position:fixed", "left:-100000px", "top:0", "visibility:hidden",
         "width:" + this.state.cardWidthMm + "mm",
         "height:" + this.state.cardHeightMm + "mm",
-        "overflow:hidden", "background:#fff"
+        "overflow:hidden", "background:" + this.normalizeCardColor(this.state.cardBackground)
       ].join(";");
       const styles = document.createElement("style");
       styles.textContent = this.state.htmlStyles;
@@ -1363,13 +1362,13 @@
             ].join(";");
 
             const cardStage = document.createElement("div");
-            cardStage.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
             cardStage.style.cssText = [
               "position:absolute","left:0","top:0",
               "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
               "transform-origin:top left",
               "transform:scaleX(" + (cardWidthPx / nativeCardWidth) + ") scaleY(" + (cardHeightPx / nativeCardHeight) + ")",
-              "overflow:hidden"
+              "overflow:hidden",
+              "background:" + this.normalizeCardColor(this.state.cardBackground)
             ].join(";");
 
             const style = document.createElement("style");
