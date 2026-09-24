@@ -342,27 +342,56 @@
 
       try {
         const zip = await window.JSZip.loadAsync(buffer);
-        const sheetPath = "xl/worksheets/sheet1.xml";
-        const relPath = "xl/worksheets/_rels/sheet1.xml.rels";
+
+        // Resolve the workbook's first worksheet through the OOXML
+        // relationships instead of assuming it is always sheet1.xml.
+        const workbookPath = "xl/workbook.xml";
+        const workbookRelPath = "xl/_rels/workbook.xml.rels";
+        const workbookFile = zip.file(workbookPath);
+        const workbookRelFile = zip.file(workbookRelPath);
+        if (!workbookFile || !workbookRelFile) return result;
+
+        const relationshipMap = async (file, relPath) => {
+          const xml = await file.async("text");
+          const doc = new DOMParser().parseFromString(xml, "application/xml");
+          const map = {};
+          Array.from(doc.getElementsByTagNameNS("*", "Relationship")).forEach(rel => {
+            const id = rel.getAttribute("Id");
+            const target = rel.getAttribute("Target");
+            if (id && target) map[id] = this.resolveZipPath(relPath, target);
+          });
+          return map;
+        };
+
+        const workbookRelMap = await relationshipMap(workbookRelFile, workbookRelPath);
+        const workbookXml = await workbookFile.async("text");
+        const workbookDoc = new DOMParser().parseFromString(workbookXml, "application/xml");
+        const sheets = Array.from(workbookDoc.getElementsByTagNameNS("*", "sheet"));
+        const firstSheet = sheets[0];
+        if (!firstSheet) return result;
+
+        const sheetRelId =
+          firstSheet.getAttribute("r:id") ||
+          firstSheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+        const sheetPath = workbookRelMap[sheetRelId];
+        if (!sheetPath) return result;
+
         const sheetFile = zip.file(sheetPath);
+        const relPath = this.zipSiblingRelsPath(sheetPath);
         const relFile = zip.file(relPath);
         if (!sheetFile || !relFile) return result;
 
-        const relXml = await relFile.async("text");
-        const relDoc = new DOMParser().parseFromString(relXml, "application/xml");
-        const relMap = {};
-        relDoc.querySelectorAll("Relationship").forEach(rel => {
-          const id = rel.getAttribute("Id");
-          const target = rel.getAttribute("Target");
-          if (id && target) relMap[id] = this.resolveZipPath(relPath, target);
-        });
+        const relMap = await relationshipMap(relFile, relPath);
 
         const sheetXml = await sheetFile.async("text");
         const sheetDoc = new DOMParser().parseFromString(sheetXml, "application/xml");
-        const drawing = sheetDoc.querySelector("drawing");
+        const drawing = Array.from(sheetDoc.getElementsByTagNameNS("*", "drawing"))[0];
         if (!drawing) return result;
 
-        const drawingPath = relMap[drawing.getAttribute("r:id")];
+        const drawingRelId =
+          drawing.getAttribute("r:id") ||
+          drawing.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+        const drawingPath = relMap[drawingRelId];
         if (!drawingPath) return result;
 
         const drawingFile = zip.file(drawingPath);
@@ -370,36 +399,34 @@
         const drawingRelFile = zip.file(drawingRelPath);
         if (!drawingFile || !drawingRelFile) return result;
 
-        const drawingRelXml = await drawingRelFile.async("text");
-        const drawingRelDoc = new DOMParser().parseFromString(drawingRelXml, "application/xml");
-        const imageMap = {};
-        drawingRelDoc.querySelectorAll("Relationship").forEach(rel => {
-          const id = rel.getAttribute("Id");
-          const target = rel.getAttribute("Target");
-          if (id && target) imageMap[id] = this.resolveZipPath(drawingRelPath, target);
-        });
+        const imageMap = await relationshipMap(drawingRelFile, drawingRelPath);
 
         const drawingXml = await drawingFile.async("text");
         const drawingDoc = new DOMParser().parseFromString(drawingXml, "application/xml");
-        const anchors = Array.from(drawingDoc.querySelectorAll("twoCellAnchor, oneCellAnchor"));
+        const anchorNames = new Set(["twoCellAnchor", "oneCellAnchor", "absoluteAnchor"]);
+        const anchors = Array.from(drawingDoc.getElementsByTagNameNS("*", "*"))
+          .filter(node => anchorNames.has(node.localName));
 
         for (const anchor of anchors) {
-          const from = anchor.querySelector("from");
-          const blip = anchor.querySelector("blip");
+          const from = Array.from(anchor.getElementsByTagNameNS("*", "from"))[0];
+          const blip = Array.from(anchor.getElementsByTagNameNS("*", "blip"))[0];
           if (!from || !blip) continue;
 
-          const rowNode = from.querySelector("row");
-          const relId = blip.getAttribute("r:embed") || blip.getAttribute("embed");
+          const rowNode = Array.from(from.getElementsByTagNameNS("*", "row"))[0];
+          const relId =
+            blip.getAttribute("r:embed") ||
+            blip.getAttribute("embed") ||
+            blip.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
           const row = Number(rowNode?.textContent);
           const imagePath = imageMap[relId];
           if (!Number.isFinite(row) || !imagePath) continue;
 
           const imageFile = zip.file(imagePath.replace(/^\//, ""));
-
           if (!imageFile) continue;
+
           const blob = await imageFile.async("blob");
           const dataUrl = await this.fileToDataUrl(blob);
-          if (dataUrl) result.set(row, dataUrl);
+          if (dataUrl && !result.has(row)) result.set(row, dataUrl);
         }
       } catch (error) {
         console.warn("Embedded Excel image extraction failed:", error);
