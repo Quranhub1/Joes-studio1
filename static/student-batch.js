@@ -990,6 +990,27 @@
       ].join(",") + "{content:none !important;border:0 !important;box-shadow:none !important;text-decoration:none !important;}";
       body.prepend(cleanupStyle);
 
+      // Photo elements in the supplied KSHS template start hidden so the
+      // manual single-card editor can toggle them on after an upload. Batch
+      // rendering must explicitly remove that hidden state when an Excel
+      // photo has been resolved, otherwise the image is present in the DOM
+      // but remains display:none.
+      const applyResolvedPhoto = (img, photo) => {
+        if (!img || img.tagName !== "IMG") return;
+        const placeholder = body.querySelector("#out-photo-placeholder");
+        if (photo) {
+          img.setAttribute("src", photo);
+          img.classList.remove("hidden");
+          img.style.removeProperty("display");
+          if (placeholder) placeholder.classList.add("hidden");
+        } else {
+          img.removeAttribute("src");
+          img.setAttribute("alt", ".....");
+          img.classList.add("hidden");
+          if (placeholder) placeholder.classList.remove("hidden");
+        }
+      };
+
       const all = body.querySelectorAll("*");
       // Leave external template images as ordinary browser images in the live
       // preview. Setting crossorigin="anonymous" on the KSHS badge causes the
@@ -1020,8 +1041,7 @@
           const value = this.resolveValue(row, field);
           if (el.tagName === "IMG") {
             const photo = await this.resolvePhoto(value, row);
-            if (photo) el.setAttribute("src", photo);
-            else el.setAttribute("alt", ".....");
+            applyResolvedPhoto(el, photo);
           } else if (!/^in[-_]/i.test(el.id)) {
             el.textContent = this.displayValue(row, field);
           }
@@ -1032,16 +1052,14 @@
           const value = this.resolveValue(row, bind);
           if (el.tagName === "IMG") {
             const photo = await this.resolvePhoto(value, row);
-            if (photo) el.setAttribute("src", photo);
-            else el.setAttribute("alt", ".....");
+            applyResolvedPhoto(el, photo);
           } else el.textContent = this.displayValue(row, bind);
         }
 
         const srcBind = el.getAttribute("data-bind-src");
         if (srcBind && el.tagName === "IMG") {
           const photo = await this.resolvePhoto(this.resolveValue(row, srcBind), row);
-          if (photo) el.setAttribute("src", photo);
-          else el.setAttribute("alt", ".....");
+            applyResolvedPhoto(el, photo);
         }
 
         const qrBind = el.getAttribute("data-bind-qr");
