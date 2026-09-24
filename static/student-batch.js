@@ -1015,12 +1015,26 @@
         const badgeSrc = String(badgeImg.getAttribute("src") || "").trim();
         const badgeInlined = badgeImg.dataset.joesInlined === "true" || /^(?:data:|blob:)/i.test(badgeSrc);
         if (!badgeInlined && /^https?:/i.test(badgeSrc)) {
-          badgeImg.classList.add("hidden");
+          // Make the master template's own embedded badge artwork a real
+          // image data URL. This survives the later SVG/foreignObject
+          // rasterization used for both preview and PDF generation.
+          const fallbackSvg = badgeSvg.cloneNode(true);
+          fallbackSvg.classList.remove("hidden");
+          fallbackSvg.style.width = "100%";
+          fallbackSvg.style.height = "100%";
+          fallbackSvg.style.display = "block";
+          fallbackSvg.removeAttribute("id");
+          fallbackSvg.removeAttribute("aria-hidden");
+          const fallbackMarkup = new XMLSerializer().serializeToString(fallbackSvg);
+          const fallbackUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(fallbackMarkup);
+          badgeImg.setAttribute("src", fallbackUrl);
+          badgeImg.dataset.joesInlined = "true";
           badgeImg.removeAttribute("crossorigin");
-          badgeSvg.classList.remove("hidden");
-          badgeSvg.style.width = "100%";
-          badgeSvg.style.height = "100%";
-          badgeSvg.style.display = "block";
+          badgeImg.removeAttribute("onerror");
+          badgeImg.classList.remove("hidden");
+          badgeImg.loading = "eager";
+          badgeImg.decoding = "sync";
+          badgeSvg.classList.add("hidden");
         }
       }
 
