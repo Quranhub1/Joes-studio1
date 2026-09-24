@@ -52,70 +52,6 @@
       else if (window.Utils?.hideLoading) window.Utils.hideLoading();
     },
 
-    scopeTemplateStyles(css, scope = ".student-batch-template-scope") {
-      const source = String(css || "").trim();
-      if (!source) return "";
-      const scopeSelector = String(scope || ".student-batch-template-scope");
-
-      const scopeOneSelector = selector => {
-        let s = String(selector || "").trim();
-        if (!s) return s;
-        s = s.replace(/(^|[\s>+~,(])(?:html|body)(?=([\s>+~.#[:]|$))/gi, "$1" + scopeSelector);
-        s = s.replace(/:root\b/gi, scopeSelector);
-        return s.indexOf(scopeSelector) === 0 ? s : scopeSelector + " " + s;
-      };
-
-      const serializeRules = rules => {
-        let out = "";
-        for (const rule of Array.from(rules || [])) {
-          if (rule.type === CSSRule.STYLE_RULE) {
-            const selectors = String(rule.selectorText || "").split(",").map(scopeOneSelector).join(", ");
-            out += selectors + "{" + rule.style.cssText + "}";
-            continue;
-          }
-          const ruleText = String(rule.cssText || "");
-          if (rule.cssRules && /^@(media|supports|layer|container)\b/i.test(ruleText)) {
-            const open = ruleText.indexOf("{");
-            if (open > 0) {
-              out += ruleText.slice(0, open) + "{" + serializeRules(rule.cssRules) + "}";
-              continue;
-            }
-          }
-          out += ruleText;
-        }
-        return out;
-      };
-
-      try {
-        if (typeof CSSStyleSheet !== "undefined") {
-          const sheet = new CSSStyleSheet();
-          if (typeof sheet.replaceSync === "function") {
-            sheet.replaceSync(source);
-            return serializeRules(sheet.cssRules) + "\n" + scopeSelector +
-              "{position:relative !important;isolation:isolate !important;}";
-          }
-        }
-      } catch (error) {
-        console.warn("Template CSS isolation failed:", error);
-      }
-
-      try {
-        const style = document.createElement("style");
-        style.textContent = source;
-        (document.head || document.documentElement).appendChild(style);
-        const result = serializeRules(style.sheet?.cssRules || []);
-        style.remove();
-        if (result) {
-          return result + "\n" + scopeSelector +
-            "{position:relative !important;isolation:isolate !important;}";
-        }
-      } catch (error) {
-        console.warn("Template CSS isolation fallback failed:", error);
-      }
-
-      return source;
-    },
-
     normalize(value) {
       return String(value ?? "")
         .toLowerCase()
@@ -221,9 +157,7 @@
       // Preserve the supplied template as the source of truth while removing
       // only the generic detail-value underline that was causing unwanted
       // horizontal rules in generated cards.
-      // Keep template CSS inside the generated card instead of letting it style the editor UI.
       styles += "\n.detail-value { border-bottom: none !important; }\n";
-      styles = this.scopeTemplateStyles(styles, ".student-batch-template-scope");
 
       const cardRoot = this.findHtmlCardRoot(doc);
       if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
@@ -1151,7 +1085,6 @@
     async renderHtmlCard(row) {
       const { doc, body } = await this.buildHtmlCard(row);
       const wrapper = document.createElement("div");
-      wrapper.className = "student-batch-template-scope";
       wrapper.style.cssText = [
         "position:fixed", "left:-100000px", "top:0", "visibility:hidden",
         "width:" + this.state.cardWidthMm + "mm",
@@ -1394,7 +1327,7 @@
             const cardHeightPx = layout.card.h * pageScale;
 
             const frame = document.createElement("div");
-            frame.className = "student-batch-preview-card student-batch-template-scope";
+            frame.className = "student-batch-preview-card";
             frame.style.cssText = [
               "position:absolute","left:" + xPx + "px","top:" + yPx + "px",
               "width:" + cardWidthPx + "px","height:" + cardHeightPx + "px",
@@ -1491,7 +1424,7 @@
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
       const source = this.findHtmlCardRoot(doc);
       const wrapper = document.createElement("div");
-      wrapper.className = "student-batch-preview-card student-batch-template-scope";
+      wrapper.className = "student-batch-preview-card";
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
       wrapper.style.height = (Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) * this.state.cardHeightMm / this.state.cardWidthMm) + "px";
       const style = document.createElement("style");
@@ -1644,7 +1577,7 @@
 
         for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
           const page = printDoc.createElement("div");
-          page.className = "student-batch-print-page student-batch-template-scope";
+          page.className = "student-batch-print-page";
 
           const startCard = pageIndex * layout.perPage;
           const endCard = Math.min(totalCards, startCard + layout.perPage);
