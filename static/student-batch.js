@@ -821,7 +821,13 @@
         if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
         else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
         this.refresh();
-        Utils.toast(rows.length + " student records loaded • " + Object.keys(this.state.mapping).length + " fields matched");
+
+        const attachedPhotos = this.state.rows.filter(row => !!row.__embeddedPhoto).length;
+        Utils.toast(
+          rows.length + " student records loaded • " +
+          Object.keys(this.state.mapping).length + " fields matched • " +
+          attachedPhotos + " Excel photo" + (attachedPhotos === 1 ? "" : "s") + " attached"
+        );
       } catch (e) {
         console.error(e);
         Utils.toast("Excel import failed: " + e.message, "error");
