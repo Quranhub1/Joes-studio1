@@ -1160,7 +1160,7 @@
       root.querySelectorAll("img[src]").forEach(img => {
         const src = String(img.getAttribute("src") || "").trim();
         if (!/^https?:\/\//i.test(src)) return;
-        if (/^https?:\/\//(?:quranhub1\\.github\\.io|localhost|127\\.0\\.1)(?::\\d+)?\///i.test(src)) return;
+        if (/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1)(?::\d+)?\//i.test(src)) return;
 
         // The KSHS image server does not send CORS headers. The browser can
         // display the image in some contexts, but the preview/export pipeline
