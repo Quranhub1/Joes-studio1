@@ -1025,10 +1025,13 @@
           const layout = this.layout();
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
           if (!this.state.rows.length) {
-            this.renderTemplatePreview();
+            host.innerHTML = '<div class="flex flex-col items-center justify-center min-h-[220px] text-sm text-slate-400 text-center p-4">' +
+              '<i class="ph ph-file-xls text-3xl mb-2 text-slate-300"></i>' +
+              '<span>Import an Excel file to preview cards with real data.</span>' +
+              '<span class="text-[10px] mt-1">The uploaded spreadsheet is the only source for student records.</span></div>';
             const status = document.getElementById("studentBatchPreviewStatus");
             if (status) {
-              status.textContent = "Template preview • import Excel data to populate the selected template";
+              status.textContent = "Awaiting Excel data • import a spreadsheet to generate real cards";
             }
             return;
           }
