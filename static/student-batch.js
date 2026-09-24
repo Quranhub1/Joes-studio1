@@ -397,6 +397,44 @@
 
   try {
     const zip = await window.JSZip.loadAsync(buffer);
+
+    // Resolve worksheet XML paths to their actual workbook sheet names.
+    const sheetNameByPath = {};
+    const workbookFile = zip.file("xl/workbook.xml");
+    const workbookRelFile = zip.file("xl/_rels/workbook.xml.rels");
+    if (workbookFile && workbookRelFile) {
+      const workbookDoc = new DOMParser().parseFromString(
+        await workbookFile.async("text"),
+        "application/xml"
+      );
+      const workbookRelDoc = new DOMParser().parseFromString(
+        await workbookRelFile.async("text"),
+        "application/xml"
+      );
+      const workbookRelMap = {};
+      Array.from(workbookRelDoc.getElementsByTagName("*")).forEach(rel => {
+        if (rel.localName.toLowerCase() !== "relationship") return;
+        const id = rel.getAttribute("Id");
+        const target = rel.getAttribute("Target");
+        if (id && target) {
+          workbookRelMap[id] = this.resolveZipPath(
+            "xl/_rels/workbook.xml.rels",
+            target
+          );
+        }
+      });
+      Array.from(workbookDoc.getElementsByTagName("*")).forEach(sheet => {
+        if (sheet.localName.toLowerCase() !== "sheet") return;
+        const name = sheet.getAttribute("name");
+        const relId =
+          sheet.getAttribute("r:id") ||
+          sheet.getAttribute("id") ||
+          Array.from(sheet.attributes).find(a => a.localName === "id")?.value;
+        if (name && relId && workbookRelMap[relId]) {
+          sheetNameByPath[workbookRelMap[relId]] = name;
+        }
+      });
+    }
     
     // Find all worksheet XML files in the zip
     const sheetFiles = Object.keys(zip.files).filter(path => /^xl\/worksheets\/sheet\d+\.xml$/i.test(path));
@@ -470,7 +508,10 @@
 
         const blob = await imageFile.async("blob");
         const dataUrl = await this.fileToDataUrl(blob);
-        if (dataUrl) result.set(sheetPath + "::" + row, dataUrl);
+        if (dataUrl) {
+          const worksheetName = sheetNameByPath[sheetPath] || sheetPath;
+          result.set(worksheetName + "::" + row, dataUrl);
+        }
       }
     }
   } catch (error) {
@@ -637,13 +678,10 @@
         // Embedded images are keyed by the source worksheet XML plus the
         // absolute zero-based worksheet row. This keeps images attached to
         // the correct student even when blank rows exist.
-        const selectedSheetIndex = workbook.SheetNames.indexOf(sheetName);
-        const selectedSheetPath = "xl/worksheets/sheet" + (selectedSheetIndex + 1) + ".xml";
-
         this.state.rows = rows.map(row => {
           const copy = { ...row };
           const excelRowIndex = Number(row.__worksheetRowIndex);
-          const embedded = this.state.embeddedPhotos.get(selectedSheetPath + "::" + excelRowIndex);
+          const embedded = this.state.embeddedPhotos.get(sheetName + "::" + excelRowIndex);
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
         }).filter(row =>
