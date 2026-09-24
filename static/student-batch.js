@@ -133,16 +133,10 @@
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
       const styles = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
-      // Prefer the actual card container when the template contains a full
-      // HTML document. This prevents headers, school branding, instructions,
-      // and other page-level content from becoming the generated "card".
       const cardRoot = this.findHtmlCardRoot(doc);
       if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
 
       const fields = this.detectPlaceholders(text);
-      if (!fields.length) {
-        throw new Error("No {{placeholders}} were found in the HTML template.");
-      }
 
       this.state.templateMode = "html";
       this.state.htmlText = text;
@@ -157,7 +151,7 @@
       this.state.mapping = this.autoMapHtml();
       this.refresh();
       this.previewBatch();
-      Utils.toast("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " placeholders detected");
+      Utils.toast("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " fields detected");
     },
 
     detectPlaceholders(text) {
@@ -167,72 +161,53 @@
         const field = String(value || "").trim();
         if (!field) return;
         const key = this.normalize(field);
+        // Exclude placeholder labels or static placeholders
+        if (key === "photoplaceholder" || key === "passportphotoplaceholder") return;
         if (key && !seen.has(key)) {
           seen.add(key);
           found.push(field);
         }
       };
 
-      // Primary syntax: {{Student Name}}
       const mustache = /{{\s*([^{}]+?)\s*}}/g;
       let m;
       while ((m = mustache.exec(text))) add(m[1]);
 
-      // Also accept HTML data bindings, so templates do not have to put
-      // placeholders visibly inside the card text.
       try {
         const doc = new DOMParser().parseFromString(text, "text/html");
         doc.querySelectorAll("[data-bind],[data-field],[data-bind-src],[data-bind-qr],[data-bind-barcode]").forEach(el => {
           ["data-bind", "data-field", "data-bind-src", "data-bind-qr", "data-bind-barcode"].forEach(attr => {
             const value = el.getAttribute(attr);
-            if (value) add(value.replace(/^{{\\s*|\\s*}}$/g, ""));
+            if (value) add(value.replace(/^{{\s*|\s*}}$/g, ""));
           });
         });
       } catch (_) {}
 
-      // Recognize arbitrary semantic field IDs. The final template may use any
-      // field name, so do not maintain a fixed KSHS-only list. Output fields
-      // (out-*) are authoritative; editable text inputs (in-*) are accepted
-      // when they represent data rather than UI controls.
       try {
         const doc = new DOMParser().parseFromString(text, "text/html");
-
         doc.querySelectorAll("[id]").forEach(el => {
           const id = String(el.id || "").trim();
           const outMatch = id.match(/^out[-_](.+)$/i);
           if (outMatch) {
-            add(outMatch[1].replace(/[-_]+/g, " "));
+            const name = outMatch[1].replace(/[-_]+/g, " ");
+            if (!/^(photo[-_]?placeholder|badge[-_]?placeholder)$/i.test(name)) add(name);
             return;
           }
-
           const fieldMatch = id.match(/^(?:field|data)[-_](.+)$/i);
           if (fieldMatch) {
             add(fieldMatch[1].replace(/[-_]+/g, " "));
             return;
           }
-
           const inMatch = id.match(/^in[-_](.+)$/i);
           if (inMatch) {
             const name = inMatch[1].replace(/[-_]+/g, " ");
             const tag = el.tagName.toLowerCase();
             const type = String(el.getAttribute("type") || "").toLowerCase();
-            const isDataInput = ["text", "number", "date", "email", "tel", "search", ""].includes(type);
+            const isDataInput = ["text","number","date","email","tel","search",""].includes(type);
             const isOutputPaired = !!doc.querySelector("#out-" + inMatch[1] + ", #out_" + inMatch[1]);
             const isControl = /^(?:badge[-_]?(?:file|url)|file|url|button|submit|reset|search)$/i.test(inMatch[1]);
-            if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) {
-              add(name);
-            }
+            if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) add(name);
           }
-        });
-
-        // Explicit data bindings always define fields, including completely
-        // custom names such as programme, index number, department, campus,
-        // intake, phone, nationality, or any future spreadsheet column.
-        doc.querySelectorAll("[data-field],[data-bind],[data-bind-src],[data-bind-qr],[data-bind-barcode]").forEach(el => {
-          ["data-field","data-bind","data-bind-src","data-bind-qr","data-bind-barcode"].forEach(attr => {
-            const value = el.getAttribute(attr);
-            if (value) add(value.replace(/^{{\s*|\s*}}$/g, ""));
-          });
         });
       } catch (_) {}
 
@@ -257,7 +232,7 @@
         if (nums) return { w: this.toMm(nums[1], nums[2]), h: this.toMm(nums[3], nums[4]) };
       }
 
-      return { w: 85.6, h: 54 };
+      return { w: 130, h: 60 };
     },
 
     parseCssLength(value) {
@@ -355,15 +330,15 @@
           : "";
 
         if (this.isBadgeField(field)) {
-          const fileName = this.state.badgeFile?.name || "No PNG selected";
-          const buttonText = this.state.badgeDataUrl ? "Replace PNG" : "Upload PNG";
+          const fileName = this.state.badgeFile?.name || "Using template logo";
+          const buttonText = this.state.badgeDataUrl ? "Replace Logo" : "Upload Custom Logo";
           const preview = this.state.badgeDataUrl
             ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="h-10 w-10 object-contain rounded border border-slate-200 bg-white p-1">'
             : '<div class="h-10 w-10 rounded border border-dashed border-slate-300 bg-white flex items-center justify-center"><i class="ph ph-image text-slate-300"></i></div>';
 
           return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
             '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
-            '<div class="text-[9px] text-slate-400">Badge image • supplied here as a PNG</div></div>' +
+            '<div class="text-[9px] text-slate-400">School Badge / Logo (Optional upload)</div></div>' +
             '<div class="flex items-center gap-2 min-w-0">' +
             preview +
             '<button type="button" class="student-batch-badge-button flex-1 min-w-0 border rounded-lg px-3 py-2 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50" data-template-field="' + escapeHtml(field) + '">' +
@@ -375,14 +350,14 @@
 
         const isPhoto = this.isStudentPhotoField(field);
         const helper = isPhoto
-          ? ' <span class="text-[9px] text-slate-400">student photo</span>'
+          ? ' <span class="text-[9px] text-emerald-600 font-medium">auto-matched to Excel/Photos</span>'
           : suggestionText;
 
         return '<div class="grid grid-cols-[minmax(130px,1fr)_minmax(160px,1fr)] items-center gap-3 py-2 border-b border-slate-100 last:border-0">' +
           '<div class="min-w-0"><div class="font-mono text-[11px] text-slate-700 truncate">{{' + escapeHtml(field) + '}}</div>' +
           '<div class="text-[9px] text-slate-400">Template field' + helper + '</div></div>' +
           '<select class="student-batch-map-select w-full border rounded-lg p-2 bg-white text-xs" data-template-field="' + escapeHtml(field) + '">' +
-          '<option value="">Do not map / leave blank</option>' +
+          '<option value="">' + (isPhoto ? 'Auto-detect from Excel / Folder' : 'Do not map / leave blank') + '</option>' +
           options.replace(
             '<option value="' + escapeHtml(selected) + '">',
             '<option value="' + escapeHtml(selected) + '" selected>'
@@ -796,7 +771,7 @@
 
     isStudentPhotoField(field = "") {
       const key = this.normalize(field);
-      return /(photo|studentphoto|studentimage|picture|avatar)/i.test(key) &&
+      return /(photo|studentphoto|studentimage|picture|avatar|passport)/i.test(key) &&
         !/(badge|logo|crest|emblem|seal)/i.test(key);
     },
 
@@ -806,13 +781,11 @@
     },
 
     async resolvePhoto(value, row, field = "") {
-      // An embedded Excel image belongs to the student's photo field only.
-      // Never reuse it for a badge/logo field.
-      if (row?.__embeddedPhoto && this.isStudentPhotoField(field)) {
+      if (row?.__embeddedPhoto && (this.isStudentPhotoField(field) || !field)) {
         return row.__embeddedPhoto;
       }
 
-      if (!value) return "";
+      if (!value) return row?.__embeddedPhoto || "";
       const raw = String(value).trim();
       if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
 
@@ -840,7 +813,7 @@
         }
       }
 
-      return file ? await this.fileToDataUrl(file) : "";
+      return file ? await this.fileToDataUrl(file) : (row?.__embeddedPhoto || "");
     },
 
     replacePlaceholders(html, row) {
@@ -887,10 +860,17 @@
     },
 
     async putImageIntoBoundElement(el, value, field, row) {
-      const imageField = this.isImageField(field);
-      if (!imageField) return false;
+      const isBadge = this.isBadgeField(field);
+      const isPhoto = this.isStudentPhotoField(field);
+      if (!isBadge && !isPhoto) return false;
 
-      const resolved = await this.resolvePhoto(value, row, field);
+      let resolved = "";
+      if (isBadge) {
+        resolved = this.state.badgeDataUrl || (el.getAttribute("src") || "");
+      } else {
+        resolved = await this.resolvePhoto(value, row, field);
+      }
+
       if (!resolved) return false;
 
       const src = this.imageSourceForTemplate(resolved);
@@ -898,6 +878,7 @@
 
       if (el.tagName === "IMG") {
         el.setAttribute("src", src);
+        el.style.display = "block";
         el.removeAttribute("alt");
         return true;
       }
@@ -906,17 +887,18 @@
       if (images.length) {
         images.forEach(img => {
           img.setAttribute("src", src);
+          img.style.display = "block";
           img.removeAttribute("alt");
         });
         return true;
       }
 
-      // Keep the existing template container and its CSS. Only replace its
-      // bound placeholder content with the actual image.
       if (el.children.length === 0) {
         const img = document.createElement("img");
         img.setAttribute("src", src);
-        img.setAttribute("alt", "");
+        img.style.maxWidth = "100%";
+        img.style.maxHeight = "100%";
+        img.style.display = "block";
         el.textContent = "";
         el.appendChild(img);
         return true;
@@ -932,54 +914,50 @@
 
       const body = this.findHtmlCardRoot(doc);
 
-      // Resolve image source placeholders before generic text replacement.
-      // This allows {{Photo}}, {{BadgeURL}}, and similar image fields to
-      // become real images instead of being rendered as text.
       for (const img of Array.from(body.querySelectorAll("img"))) {
-        const src = String(img.getAttribute("src") || "");
-        const match = src.match(/{{\s*([^{}]+?)\s*}}/);
-        if (!match) continue;
+        const srcAttr = String(img.getAttribute("src") || "");
+        const bindSrc = img.getAttribute("data-bind-src") || "";
+        const idAttr = String(img.id || "");
+        const classAttr = String(img.className || "");
 
-        const field = String(match[1] || "").trim();
-        const photo = await this.resolvePhoto(this.resolveValue(row, field), row, field);
-        if (photo) {
-          img.setAttribute("src", photo);
+        const isBadge = this.isBadgeField(idAttr) ||
+          this.isBadgeField(bindSrc) ||
+          this.isBadgeField(classAttr) ||
+          /badge|logo/i.test(srcAttr);
+
+        const isPhoto = this.isStudentPhotoField(idAttr) ||
+          this.isStudentPhotoField(bindSrc) ||
+          this.isStudentPhotoField(classAttr) ||
+          /photo|picture/i.test(srcAttr) ||
+          srcAttr.includes("{{");
+
+        if (isBadge) {
+          if (this.state.badgeDataUrl) {
+            img.setAttribute("src", this.imageSourceForTemplate(this.state.badgeDataUrl));
+          }
+          img.style.display = "block";
           img.removeAttribute("alt");
-        } else {
-          img.removeAttribute("src");
-          img.setAttribute("alt", "");
+        } else if (isPhoto) {
+          const match = srcAttr.match(/{{\s*([^{}]+?)\s*}}/) || [null, bindSrc || "photo"];
+          const field = match[1] ? match[1].trim() : "photo";
+          const photoData = await this.resolvePhoto(this.resolveValue(row, field), row, field);
+
+          const placeholder = body.querySelector(".photo-placeholder, #photo-placeholder, #out-photo-placeholder");
+          if (photoData) {
+            img.setAttribute("src", this.imageSourceForTemplate(photoData));
+            img.style.display = "block";
+            img.removeAttribute("alt");
+            if (placeholder) placeholder.style.display = "none";
+          } else {
+            img.style.display = "none";
+            img.removeAttribute("src");
+            if (placeholder) placeholder.style.display = "block";
+          }
         }
-      }
-
-      // Some templates use a plain text placeholder inside a photo/badge
-      // container instead of data-bind or an <img>. Resolve those placeholders
-      // before the generic text replacement so they become real images.
-      const textWalker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
-      const imageTextNodes = [];
-      let textNode;
-      while ((textNode = textWalker.nextNode())) {
-        const rawText = String(textNode.nodeValue || "");
-        const match = rawText.match(/^\s*{{\s*([^{}]+?)\s*}}\s*$/);
-        if (!match) continue;
-
-        const field = String(match[1] || "").trim();
-        if (!this.isImageField(field)) continue;
-
-        const photo = await this.resolvePhoto(this.resolveValue(row, field), row, field);
-        if (!photo) continue;
-
-        const img = document.createElement("img");
-        img.setAttribute("src", this.imageSourceForTemplate(photo));
-        img.setAttribute("alt", "");
-        textNode.parentNode.replaceChild(img, textNode);
       }
 
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
-
-      // The selected HTML template is the visual source of truth.
-      // Do not impose field-specific borders, line lengths, fonts, spacing,
-      // colors, or positioning here. Those belong to the selected template.
 
       const all = body.querySelectorAll("*");
 
@@ -990,34 +968,31 @@
           el.setAttribute(attr.name, replaced);
         }
 
-        // Bind arbitrary semantic IDs such as out-name, out-program,
-        // in-index, field-photo, data-address, etc.
         const idMatch = String(el.id || "").match(/^(?:out|in|field|data)[-_](.+)$/i);
         if (idMatch) {
           const field = idMatch[1].replace(/[-_]+/g, " ");
-          const value = this.resolveValue(row, field);
-          if (await this.putImageIntoBoundElement(el, value, field, row)) {
-            // Render mapped image/badge URLs as images.
+          if (this.isBadgeField(field)) {
+            if (this.state.badgeDataUrl) {
+              await this.putImageIntoBoundElement(el, this.state.badgeDataUrl, field, row);
+            }
+          } else if (this.isStudentPhotoField(field)) {
+            const photoVal = await this.resolvePhoto(this.resolveValue(row, field), row, field);
+            if (photoVal) {
+              await this.putImageIntoBoundElement(el, photoVal, field, row);
+            }
           } else if (!/^in[-_]/i.test(el.id)) {
-            el.textContent = this.displayValue(row, field);
+            const textVal = this.displayValue(row, field);
+            if (textVal) el.textContent = textVal;
           }
         }
 
         const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
         if (bind) {
           const value = this.resolveValue(row, bind);
-          if (!(await this.putImageIntoBoundElement(el, value, bind, row))) {
+          if (this.isImageField(bind)) {
+            await this.putImageIntoBoundElement(el, value, bind, row);
+          } else {
             el.textContent = this.displayValue(row, bind);
-          }
-        }
-
-        const srcBind = el.getAttribute("data-bind-src");
-        if (srcBind) {
-          const value = this.resolveValue(row, srcBind);
-          const photo = await this.resolvePhoto(value, row, srcBind);
-          if (el.tagName === "IMG" && photo) {
-            el.setAttribute("src", this.imageSourceForTemplate(photo));
-            el.removeAttribute("alt");
           }
         }
 
@@ -1043,12 +1018,7 @@
         }
       }
 
-      // Rewrite every remaining external image URL before this card is placed
-      // in the document. This prevents the browser from requesting the
-      // original cross-origin URL (such as kshs.ac.ug) and only then trying
-      // to repair it during PDF export.
       this.proxyExternalPreviewImages(body);
-
       return { doc, body };
     },
 
@@ -1246,21 +1216,13 @@
           const layout = this.layout();
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
           if (!this.state.rows.length) {
-            host.innerHTML = '<div class="flex flex-col items-center justify-center min-h-[220px] text-sm text-slate-400 text-center p-4">' +
-              '<i class="ph ph-file-xls text-3xl mb-2 text-slate-300"></i>' +
-              '<span>Import an Excel file to preview cards with real data.</span>' +
-              '<span class="text-[10px] mt-1">The uploaded spreadsheet is the only source for student records.</span></div>';
+            this.renderTemplatePreview();
             const status = document.getElementById("studentBatchPreviewStatus");
-            if (status) {
-              status.textContent = "Awaiting Excel data • import a spreadsheet to generate real cards";
-            }
+            if (status) status.textContent = "Template preview • import Excel data to populate cards";
             return;
           }
 
           const copies = Math.max(1, Number(this.state.copies) || 1);
-
-          // Every preview card is an actual copy of the uploaded template,
-          // populated only from its corresponding Excel row.
           const previewRows = [];
           for (const rowData of this.state.rows) {
             for (let copy = 0; copy < copies && previewRows.length < previewCount; copy++) {
@@ -1279,22 +1241,16 @@
           const pageScale = maxPageWidth / layout.sheet.w;
           const pageWidth = Math.round(layout.sheet.w * pageScale);
           const pageHeight = Math.round(layout.sheet.h * pageScale);
-          const nativeCardWidth = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 85.6) * 96 / 25.4));
-          const nativeCardHeight = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 54) * 96 / 25.4));
+          const nativeCardWidth = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
+          const nativeCardHeight = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
 
           const page = document.createElement("div");
           page.className = "student-batch-preview-page";
           page.style.cssText = [
-            "position:relative",
-            "box-sizing:border-box",
-            "flex:none",
-            "width:" + pageWidth + "px",
-            "height:" + pageHeight + "px",
-            "margin:0 auto",
-            "background:#fff",
-            "border:1px solid #cbd5e1",
-            "box-shadow:0 3px 12px rgba(15,23,42,.12)",
-            "overflow:hidden"
+            "position:relative","box-sizing:border-box","flex:none",
+            "width:" + pageWidth + "px","height:" + pageHeight + "px",
+            "margin:0 auto","background:#fff",
+            "border:1px solid #cbd5e1","box-shadow:0 3px 12px rgba(15,23,42,.12)","overflow:hidden"
           ].join(";");
 
           for (let i = 0; i < builtCards.length; i++) {
@@ -1313,23 +1269,15 @@
             const frame = document.createElement("div");
             frame.className = "student-batch-preview-card";
             frame.style.cssText = [
-              "position:absolute",
-              "left:" + xPx + "px",
-              "top:" + yPx + "px",
-              "width:" + cardWidthPx + "px",
-              "height:" + cardHeightPx + "px",
-              "overflow:hidden",
-              "box-sizing:border-box",
-              "background:#fff"
+              "position:absolute","left:" + xPx + "px","top:" + yPx + "px",
+              "width:" + cardWidthPx + "px","height:" + cardHeightPx + "px",
+              "overflow:hidden","box-sizing:border-box","background:#fff"
             ].join(";");
 
             const cardStage = document.createElement("div");
             cardStage.style.cssText = [
-              "position:absolute",
-              "left:0",
-              "top:0",
-              "width:" + nativeCardWidth + "px",
-              "height:" + nativeCardHeight + "px",
+              "position:absolute","left:0","top:0",
+              "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
               "transform-origin:top left",
               "transform:scaleX(" + (cardWidthPx / nativeCardWidth) + ") scaleY(" + (cardHeightPx / nativeCardHeight) + ")",
               "overflow:hidden"
@@ -1341,7 +1289,6 @@
 
             const clone = builtCards[i].cloneNode(true);
             this.proxyExternalPreviewImages(clone);
-            // Preserve the selected template's own geometry and styles.
             cardStage.appendChild(clone);
 
             frame.appendChild(cardStage);
@@ -1357,28 +1304,22 @@
 
           const info = document.createElement("div");
           info.className = "text-xs text-slate-500 text-center mt-2";
-          info.textContent =
-            "Live print preview • " + previewRows.length + " card" +
+          info.textContent = "Live print preview • " + previewRows.length + " card" +
             (previewRows.length === 1 ? "" : "s") + " • Excel data integrated • " +
             this.state.orientation + " • " + this.state.sheetSize +
             " • " + layout.cols + " × " + layout.rows + " layout";
           host.appendChild(info);
 
           const status = document.getElementById("studentBatchPreviewStatus");
-          if (status) {
-            status.textContent =
-              "Live print preview • " + previewRows.length +
-              " Excel record" + (previewRows.length === 1 ? "" : "s") +
-              " • " + layout.cols + " × " + layout.rows +
-              " • " + this.state.orientation;
-          }
+          if (status) status.textContent = "Live print preview • " + previewRows.length +
+            " Excel record" + (previewRows.length === 1 ? "" : "s") + " • " +
+            layout.cols + " × " + layout.rows + " • " + this.state.orientation;
         } catch (e) {
           console.error("Student batch preview failed", e);
           host.innerHTML =
             '<div class="flex flex-col items-center justify-center min-h-[220px] text-sm text-red-500 text-center p-4">' +
             "<strong>Preview failed</strong><span class=\"mt-1\">" +
-            escapeHtml(e.message || "Unable to render the template.") +
-            "</span></div>";
+            escapeHtml(e.message || "Unable to render the template.") + "</span></div>";
         }
       }, 0);
     },
