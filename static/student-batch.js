@@ -1195,30 +1195,6 @@
         return false;
       };
 
-      // Keep the signature line from the selected template exactly as it is.
-      // When the template already contains an Issued By line made from
-      // underscores, simply extend that existing line by 20 characters.
-      // Do not create a new border, element, or replacement line.
-      root.querySelectorAll("*").forEach(el => {
-        if (!/issued\s*by|issuedby/i.test(String(el.textContent || ""))) return;
-
-        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-        const textNodes = [];
-        let node;
-        while ((node = walker.nextNode())) textNodes.push(node);
-
-        textNodes.forEach(textNode => {
-          const value = String(textNode.nodeValue || "");
-          if (!/_/.test(value)) return;
-
-          // Extend the existing underscore run once. Because every preview
-          // starts from a fresh clone of the selected template, this does not
-          // accumulate additional underscores across renders.
-          const extended = value.replace(/(_{3,})(?!_)/, "$1" + "_".repeat(20));
-          if (extended !== value) textNode.nodeValue = extended;
-        });
-      });
-
       // Literal separators.
       root.querySelectorAll("hr").forEach(el => {
         if (!isIssuedBy(el)) el.remove();
