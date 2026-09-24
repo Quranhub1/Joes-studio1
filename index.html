@@ -801,7 +801,7 @@
         <div class="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="ph ph-identification-card text-red-600"></i> Student Card Batch Generator</h2>
-            <p class="text-xs text-slate-500 mt-1">HTML template → automatic placeholder matching → Excel → print-ready cards</p>
+            <p class="text-xs text-slate-500 mt-1">Use your HTML template → map its fields to your Excel columns → preview real student cards → generate PDF</p>
           </div>
           <button onclick="JoesStudentBatch.close()" class="w-9 h-9 rounded-full hover:bg-gray-100 text-slate-500"><i class="ph ph-x text-lg"></i></button>
         </div>
@@ -811,7 +811,7 @@
             <h3 class="font-bold text-slate-700 mb-2">1. HTML Card Template</h3>
             <p id="studentBatchTemplateName" class="text-xs text-slate-500 truncate mb-3">No template selected</p>
             <button onclick="JoesStudentBatch.chooseTemplate()" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700"><i class="ph ph-file-html mr-1"></i> Open HTML Template</button>
-            <p class="text-[10px] text-slate-400 mt-2">Gemini-generated HTML is supported. Use placeholders such as {{StudentName}} and {{RegistrationNumber}}.</p>
+            <p class="text-[10px] text-slate-400 mt-2">Use any HTML card template. Its {{placeholders}} / data bindings define exactly what must be mapped to the Excel sheet.</p>
             <div class="mt-3 flex items-center justify-between text-[10px] text-slate-500">
               <span>Detected card size</span><strong id="studentBatchCardSize">85.6 × 54.0 mm</strong>
             </div>
@@ -826,8 +826,8 @@
 
           <section class="col-span-2 border border-slate-200 rounded-xl p-4">
             <div class="flex items-center justify-between mb-2">
-              <h3 class="font-bold text-slate-700">Automatic Field Matching</h3>
-              <span class="text-[10px] text-slate-400">No manual mapping required when names match</span>
+              <h3 class="font-bold text-slate-700">Template ↔ Excel Field Mapping</h3>
+              <span class="text-[10px] text-slate-400">Exact matches are selected automatically; verify or change every field here.</span>
             </div>
             <div id="studentBatchFields" class="max-h-44 overflow-y-auto bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs">
               <span class="text-slate-400">Load an HTML template to detect {{placeholders}}.</span>
