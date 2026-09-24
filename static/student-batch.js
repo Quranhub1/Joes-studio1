@@ -730,79 +730,9 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // Batch cards are filled from Excel, so NAME, REG NO, SEX, SITTING and
-      // COURSE must have no horizontal field line at all. Remove both the
-      // template class and any equivalent inline border styling. ISSUED BY is
-      // the only field that keeps the dotted line, and its line is forced to
-      // occupy every remaining pixel in the row.
-      const noLineFields = [
-        "#out-name",
-        "#out-regno",
-        "#out-sex",
-        "#out-sitting",
-        "#out-course"
-      ];
-
-      noLineFields.forEach(selector => {
-        const field = body.querySelector(selector);
-        if (!field) return;
-        field.classList.remove("dots-underline", "border-b", "border-b-dotted");
-        field.style.setProperty("border-bottom", "none", "important");
-        field.style.setProperty("border-bottom-width", "0", "important");
-        field.style.setProperty("border-bottom-style", "none", "important");
-        field.style.setProperty("box-shadow", "none", "important");
-        field.style.setProperty("background-image", "none", "important");
-
-        // Guard against a template placing the underline on the immediate
-        // wrapper rather than on the value element.
-        const wrapper = field.parentElement;
-        if (wrapper) {
-          wrapper.style.setProperty("border-bottom", "none", "important");
-          wrapper.style.setProperty("border-bottom-width", "0", "important");
-          wrapper.style.setProperty("border-bottom-style", "none", "important");
-          wrapper.style.setProperty("box-shadow", "none", "important");
-        }
-      });
-
-      // There should be exactly one field underline in the generated card.
-      body.querySelectorAll(".dots-underline").forEach(el => {
-        if (el.id !== "out-issuedby") {
-          el.classList.remove("dots-underline");
-          el.style.setProperty("border-bottom", "none", "important");
-        }
-      });
-
-      const issuedBy = body.querySelector("#out-issuedby");
-      if (issuedBy) {
-        issuedBy.classList.add("dots-underline");
-        issuedBy.style.setProperty("border-bottom", "1.5px dotted #000000", "important");
-        // Deliberately oversize the line. The card root clips overflow, so this
-        // guarantees the dotted line reaches the card's right edge even when
-        // a template wrapper has a narrower computed width.
-        issuedBy.style.setProperty("width", "calc(100% + 30mm)", "important");
-        issuedBy.style.setProperty("max-width", "none", "important");
-        issuedBy.style.setProperty("min-width", "0", "important");
-        issuedBy.style.setProperty("flex", "0 0 auto", "important");
-        issuedBy.style.setProperty("display", "block", "important");
-        issuedBy.style.setProperty("box-sizing", "border-box", "important");
-        issuedBy.style.setProperty("margin-left", "0", "important");
-        issuedBy.style.setProperty("padding-left", "0", "important");
-        issuedBy.style.setProperty("padding-right", "0", "important");
-        issuedBy.style.setProperty("justify-self", "stretch", "important");
-        issuedBy.style.setProperty("align-self", "end", "important");
-
-        const issuedRow = issuedBy.parentElement;
-        if (issuedRow) {
-          issuedRow.style.setProperty("display", "grid", "important");
-          issuedRow.style.setProperty("grid-template-columns", "max-content minmax(0, 1fr)", "important");
-          issuedRow.style.setProperty("column-gap", "0", "important");
-          issuedRow.style.setProperty("align-items", "end", "important");
-          issuedRow.style.setProperty("width", "100%", "important");
-          issuedRow.style.setProperty("max-width", "100%", "important");
-          issuedRow.style.setProperty("min-width", "0", "important");
-          issuedRow.style.setProperty("box-sizing", "border-box", "important");
-        }
-      }
+      // The selected HTML template is the visual source of truth.
+      // Do not impose field-specific borders, line lengths, fonts, spacing,
+      // colors, or positioning here. Those belong to the selected template.
 
       const all = body.querySelectorAll("*");
 
@@ -886,7 +816,8 @@
       // strips the selector that controls the badge, fields, borders and
       // internal positioning. That is why only the badge was surviving.
       const cardClone = body.cloneNode(true);
-      cardClone.removeAttribute("id");
+      // Preserve the template root id because the template may style it with
+      // an ID selector such as #exam-card.
       cardClone.style.width = this.state.cardWidthMm + "mm";
       cardClone.style.height = this.state.cardHeightMm + "mm";
       cardClone.style.maxWidth = "none";
@@ -1134,7 +1065,8 @@
             cardStage.appendChild(style);
 
             const clone = builtCards[i].cloneNode(true);
-            clone.removeAttribute("id");
+            // Preserve the selected template root id so its own CSS remains
+            // active in the preview renderer.
             clone.style.width = nativeCardWidth + "px";
             clone.style.height = nativeCardHeight + "px";
             clone.style.minWidth = nativeCardWidth + "px";
