@@ -1005,19 +1005,32 @@
       // hardening, so this restores the behavior without inventing a new asset.
       await this.inlineExportImages(body);
 
-      // Leave external template images as ordinary browser images in the live
-      // preview. Setting crossorigin="anonymous" on the KSHS badge causes the
-      // browser to enforce CORS and hide an otherwise displayable image.
+      // The supplied master template already contains the badge artwork as an
+      // inline SVG fallback. When the remote KSHS image cannot be fetched,
+      // reveal that exact template artwork instead of leaving a broken/hidden
+      // badge. No replacement logo is invented here.
+      const badgeImg = body.querySelector("#badge-custom-img");
+      const badgeSvg = body.querySelector("#badge-svg");
+      if (badgeImg && badgeSvg) {
+        const badgeSrc = String(badgeImg.getAttribute("src") || "").trim();
+        const badgeInlined = badgeImg.dataset.joesInlined === "true" || /^(?:data:|blob:)/i.test(badgeSrc);
+        if (!badgeInlined && /^https?:/i.test(badgeSrc)) {
+          badgeImg.classList.add("hidden");
+          badgeImg.removeAttribute("crossorigin");
+          badgeSvg.classList.remove("hidden");
+          badgeSvg.style.width = "100%";
+          badgeSvg.style.height = "100%";
+          badgeSvg.style.display = "block";
+        }
+      }
+
+      // Keep template images eager in the live preview. Remove CORS mode from
+      // images that remain external so the browser may render them normally.
       body.querySelectorAll("img[src]").forEach(img => {
         img.removeAttribute("crossorigin");
         img.loading = "eager";
         img.decoding = "sync";
       });
-
-      // Do not replace external template images with a failed fetch in the
-      // live preview. Browsers can display the badge directly even when the
-      // source does not grant CORS. Keep the real src for preview; the PDF
-      // renderer separately inlines images when it rasterizes the card.
 
       for (const el of all) {
         for (const attr of Array.from(el.attributes)) {
@@ -1139,6 +1152,7 @@
           const dataUrl = await this.fileToDataUrl(blob);
           if (dataUrl) {
             img.setAttribute("src", dataUrl);
+            img.dataset.joesInlined = "true";
             return;
           }
           throw new Error("Empty image response");
