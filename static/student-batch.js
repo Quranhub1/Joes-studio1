@@ -470,7 +470,7 @@
 
         const blob = await imageFile.async("blob");
         const dataUrl = await this.fileToDataUrl(blob);
-        if (dataUrl) result.set(row, dataUrl);
+        if (dataUrl) result.set(sheetPath + "::" + row, dataUrl);
       }
     }
   } catch (error) {
@@ -522,7 +522,7 @@
           raw: false,
           dateNF: "yyyy-mm-dd",
           defval: "",
-          blankrows: false
+          blankrows: true
         });
 
         // Real-world school workbooks may contain titles, merged headings,
@@ -625,7 +625,7 @@
             configurable: true
           });
           return obj;
-        }).filter(row => Object.values(row).some(v => String(v ?? "").trim() !== ""));
+        });
 
         if (!rows.length) {
           // Do not reject a workbook merely because the first selected sheet
@@ -646,7 +646,10 @@
           const embedded = this.state.embeddedPhotos.get(selectedSheetPath + "::" + excelRowIndex);
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
-        });
+        }).filter(row =>
+          Object.keys(row).some(key => key !== "__worksheetRowIndex" && String(row[key] ?? "").trim() !== "") ||
+          !!row.__embeddedPhoto
+        );
         this.state.headers = headers;
         if (this.state.templateMode === "html") this.state.mapping = this.autoMapHtml();
         else if (this.state.templateMode === "paper") this.state.mapping = this.autoMapPaper();
@@ -817,9 +820,9 @@
 
       const body = this.findHtmlCardRoot(doc);
 
-      // Resolve image source placeholders before the generic text
-      // placeholder replacement. Otherwise {{photo}} becomes the "....."
-      // missing-field marker and the browser shows a white broken-image box.
+      // Resolve image source placeholders before generic text replacement.
+      // This allows {{Photo}}, {{BadgeURL}}, and similar image fields to
+      // become real images instead of being rendered as text.
       for (const img of Array.from(body.querySelectorAll("img"))) {
         const src = String(img.getAttribute("src") || "");
         const match = src.match(/{{\s*([^{}]+?)\s*}}/);
@@ -844,7 +847,7 @@
       let textNode;
       while ((textNode = textWalker.nextNode())) {
         const rawText = String(textNode.nodeValue || "");
-        const match = rawText.match(/^\\s*{{\\s*([^{}]+?)\\s*}}\\s*$/);
+        const match = rawText.match(/^\s*{{\s*([^{}]+?)\s*}}\s*$/);
         if (!match) continue;
 
         const field = String(match[1] || "").trim();
