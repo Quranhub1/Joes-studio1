@@ -817,11 +817,9 @@
     },
 
     replacePlaceholders(html, row) {
-      const values = {};
-      for (const field of this.state.templateFields) values[field] = this.resolveValue(row, field);
-
       return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
         const field = String(name).trim();
+        if (this.isImageField(field)) return "";
         return escapeHtml(this.displayValue(row, field));
       });
     },
@@ -1403,21 +1401,17 @@
       const missingMappings = this.state.templateFields.filter(field =>
         !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
       );
-      const missingBadge = this.state.templateFields.some(field =>
-        this.isBadgeField(field) && !this.state.badgeDataUrl
-      );
       if (generate) {
+        // Badge/logo upload is optional. A selected template may already contain
+        // its own logo, or the badge field may intentionally remain empty.
         generate.disabled =
           !this.state.rows.length ||
           !this.state.templateFile ||
           !this.state.templateFields.length ||
-          !!missingMappings.length ||
-          !!missingBadge;
+          !!missingMappings.length;
         generate.title = missingMappings.length
-          ? "Map every non-image template field to an Excel column before generating."
-          : missingBadge
-            ? "Upload the PNG for the badge field in the mapping panel before generating."
-            : "";
+          ? "Map every non-image template data field to an Excel column before generating."
+          : "";
       }
 
       if (this.state.templateMode === "html") this.previewBatch();
@@ -1438,13 +1432,9 @@
         return;
       }
 
-      const badgeFields = this.state.templateFields.filter(f => this.isBadgeField(f));
-      if (badgeFields.length && !this.state.badgeDataUrl) {
-        Utils.toast("Upload the PNG for the badge field in the mapping panel first.", "error");
-        this.renderFieldMapping(document.getElementById("studentBatchFields"));
-        return;
-      }
-
+      // Badge upload is optional. Keep the template's existing badge/logo when
+      // no custom PNG has been selected, or leave the badge slot empty when the
+      // template uses an empty placeholder.
       const layout = this.layout();
       const copies = Math.max(1, Number(this.state.copies) || 1);
       const totalCards = this.state.rows.length * copies;
