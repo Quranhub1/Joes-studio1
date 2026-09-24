@@ -939,43 +939,6 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // Restore the master template's own badge logic. Do not remove,
-      // replace, or redraw the badge. The template supplies both the real KSHS
-      // image and its embedded SVG artwork. Keep the SVG visible underneath
-      // the real image so the badge remains present even when the remote image
-      // cannot be loaded inside the detached preview DOM.
-      const badgeImage = body.querySelector("#badge-custom-img");
-      const badgeSvg = body.querySelector("#badge-svg");
-      const badgeContainer = body.querySelector("#badge-container");
-
-      if (badgeContainer) {
-        badgeContainer.style.position = "relative";
-      }
-
-      if (badgeSvg) {
-        badgeSvg.classList.remove("hidden");
-        badgeSvg.style.position = "absolute";
-        badgeSvg.style.inset = "0";
-        badgeSvg.style.width = "100%";
-        badgeSvg.style.height = "100%";
-        badgeSvg.style.display = "block";
-        badgeSvg.style.zIndex = "0";
-      }
-
-      if (badgeImage) {
-        badgeImage.removeAttribute("onerror");
-        badgeImage.removeAttribute("onload");
-        badgeImage.removeAttribute("crossorigin");
-        badgeImage.classList.remove("hidden");
-        badgeImage.style.position = "absolute";
-        badgeImage.style.inset = "0";
-        badgeImage.style.width = "100%";
-        badgeImage.style.height = "100%";
-        badgeImage.style.objectFit = "contain";
-        badgeImage.style.display = "block";
-        badgeImage.style.zIndex = "1";
-      }
-
       // The master card supplied for this workflow uses the legacy
       // "dots-underline" class on its data fields. The requested batch card
       // must not show those horizontal fill-in lines, so remove the class
