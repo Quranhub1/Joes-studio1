@@ -732,10 +732,24 @@
       });
     },
 
-    async resolvePhoto(value, row) {
-      // Embedded Excel photos are attached to the worksheet row, not stored
-      // as a normal cell value. Prefer the extracted row image when present.
-      if (row?.__embeddedPhoto) return row.__embeddedPhoto;
+    isStudentPhotoField(field = "") {
+      const key = this.normalize(field);
+      return /(photo|studentphoto|studentimage|picture|avatar)/i.test(key) &&
+        !/(badge|logo|crest|emblem|seal)/i.test(key);
+    },
+
+    isBadgeField(field = "") {
+      const key = this.normalize(field);
+      return /(badge|logo|crest|emblem|seal)/i.test(key);
+    },
+
+    async resolvePhoto(value, row, field = "") {
+      // An embedded Excel image belongs to the student's photo field only.
+      // Never reuse it for a badge/logo field.
+      if (row?.__embeddedPhoto && this.isStudentPhotoField(field)) {
+        return row.__embeddedPhoto;
+      }
+
       if (!value) return "";
       const raw = String(value).trim();
       if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
@@ -754,8 +768,6 @@
         if (file) break;
       }
 
-      // Final fallback: compare normalized filename stems. This handles Excel
-      // values such as "STU-001", "stu_001.jpg", or "photos/stu 001.png".
       if (!file) {
         const target = this.normalize(stem);
         for (const [key, candidate] of this.state.photoFiles.entries()) {
@@ -781,7 +793,7 @@
 
     isImageField(field = "") {
       const key = this.normalize(field);
-      return /(photo|image|picture|avatar|badge|logo|crest|emblem|seal|url)/i.test(key);
+      return /(photo|image|picture|avatar|badge|logo|crest|emblem|seal)/i.test(key);
     },
 
     isImageUrl(value, field = "") {
@@ -816,7 +828,7 @@
       const imageField = this.isImageField(field);
       if (!imageField) return false;
 
-      const resolved = await this.resolvePhoto(value, row);
+      const resolved = await this.resolvePhoto(value, row, field);
       if (!resolved) return false;
 
       const src = this.imageSourceForTemplate(resolved);
@@ -867,7 +879,7 @@
         if (!match) continue;
 
         const field = String(match[1] || "").trim();
-        const photo = await this.resolvePhoto(this.resolveValue(row, field), row);
+        const photo = await this.resolvePhoto(this.resolveValue(row, field), row, field);
         if (photo) {
           img.setAttribute("src", photo);
           img.removeAttribute("alt");
@@ -891,7 +903,7 @@
         const field = String(match[1] || "").trim();
         if (!this.isImageField(field)) continue;
 
-        const photo = await this.resolvePhoto(this.resolveValue(row, field), row);
+        const photo = await this.resolvePhoto(this.resolveValue(row, field), row, field);
         if (!photo) continue;
 
         const img = document.createElement("img");
@@ -940,7 +952,7 @@
         const srcBind = el.getAttribute("data-bind-src");
         if (srcBind) {
           const value = this.resolveValue(row, srcBind);
-          const photo = await this.resolvePhoto(value, row);
+          const photo = await this.resolvePhoto(value, row, field);
           if (el.tagName === "IMG" && photo) {
             el.setAttribute("src", this.imageSourceForTemplate(photo));
             el.removeAttribute("alt");
