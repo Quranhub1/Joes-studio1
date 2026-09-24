@@ -873,6 +873,7 @@
       const width = Math.max(1, Math.round(wMm * 96 / 25.4));
       const height = Math.max(1, Math.round(hMm * 96 / 25.4));
       const clone = element.cloneNode(true);
+      this.removeUnwantedHorizontalLines(clone);
       clone.style.visibility = "visible";
       clone.style.position = "static";
       clone.style.left = "0";
@@ -1151,6 +1152,46 @@
       return Math.max(1, Number(this.state.cardsPerPage) || 1);
     },
 
+    removeUnwantedHorizontalLines(root) {
+      if (!root) return;
+
+      // The template itself is the visual source of truth. Remove only
+      // separator rules that the batch preview/export renderer should not
+      // display. Keep the dedicated Issued By rule if the template has one.
+      root.querySelectorAll("hr").forEach(el => {
+        const text = String(el.textContent || "").toLowerCase();
+        const attrs = String(el.id || "") + " " + String(el.className || "") + " " +
+          String(el.getAttribute("data-field") || "") + " " +
+          String(el.getAttribute("data-bind") || "");
+        if (!/issued\\s*by|issuedby/.test(text + " " + attrs)) el.remove();
+      });
+
+      const keepIssuedBy = el => {
+        let node = el;
+        for (let depth = 0; node && depth < 4; depth++, node = node.parentElement) {
+          const haystack = [
+            node.id,
+            node.className,
+            node.getAttribute?.("data-field"),
+            node.getAttribute?.("data-bind"),
+            node.getAttribute?.("data-bind-src"),
+            node.textContent
+          ].join(" ").toLowerCase();
+          if (/issued\\s*by|issuedby/.test(haystack)) return true;
+        }
+        return false;
+      };
+
+      root.querySelectorAll("*").forEach(el => {
+        if (keepIssuedBy(el)) return;
+        const style = el.getAttribute("style");
+        if (style && /border-(?:top|bottom)\\s*:/i.test(style)) {
+          el.style.borderTop = "none";
+          el.style.borderBottom = "none";
+        }
+      });
+    },
+
     renderTemplatePreview() {
       const host = document.getElementById("studentBatchPrintPreview");
       if (!host || this.state.templateMode !== "html") return;
@@ -1169,6 +1210,7 @@
       // Preserve the selected template's actual root element. Moving only its
       // children loses root-level classes, inline sizing, borders and layout.
       const body = source.cloneNode(true);
+      this.removeUnwantedHorizontalLines(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
       wrapper.appendChild(body);
