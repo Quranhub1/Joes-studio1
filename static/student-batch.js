@@ -40,6 +40,16 @@
         .replace(/[^a-z0-9]/g, "");
     },
 
+    // Always render the exact card element from the selected HTML file.
+    // KSHS templates use #exam-card / .card-container, while custom templates
+    // may use one of the other supported card selectors.
+    findHtmlCardRoot(doc) {
+      return doc.querySelector(
+        "#exam-card, [data-card], .card-container, .exam-card, .student-card, " +
+        "#student-card, .id-card, #id-card, .card"
+      ) || doc.body;
+    },
+
     aliases: {
       name: ["name", "studentname", "fullname", "studentfullname", "student"],
       studentname: ["studentname", "name", "fullname", "studentfullname", "student"],
@@ -137,8 +147,7 @@
       // Prefer the actual card container when the template contains a full
       // HTML document. This prevents headers, school branding, instructions,
       // and other page-level content from becoming the generated "card".
-      const root = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card");
-      const cardRoot = root || doc.body;
+      const cardRoot = this.findHtmlCardRoot(doc);
       if (!cardRoot || !cardRoot.innerHTML.trim()) throw new Error("The HTML template is empty.");
 
       const fields = this.detectPlaceholders(text);
@@ -658,7 +667,7 @@
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
 
-      const body = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+      const body = this.findHtmlCardRoot(doc);
 
       // Prepare the KSHS badge before body.innerHTML is assigned. Assigning
       // HTML containing the original remote image would trigger a direct
@@ -1205,7 +1214,7 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
-      const source = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
+      const source = this.findHtmlCardRoot(doc);
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
       wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
@@ -1213,8 +1222,12 @@
       const style = document.createElement("style");
       style.textContent = this.state.htmlStyles;
       wrapper.appendChild(style);
+      // Preserve the selected template's actual root element. Moving only its
+      // children loses root-level classes, inline sizing, borders and layout.
       const body = source.cloneNode(true);
-      while (body.firstChild) wrapper.appendChild(body.firstChild);
+      body.style.margin = "0";
+      body.style.boxSizing = "border-box";
+      wrapper.appendChild(body);
       host.appendChild(wrapper);
     },
 
