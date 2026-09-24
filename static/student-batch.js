@@ -437,8 +437,9 @@
 
     resolveZipPath(referencePath, target) {
       const cleanTarget = String(target || "").split("#")[0];
-      const base = referencePath.split("/");
-      base.pop();
+      const absolute = cleanTarget.startsWith("/");
+      const base = absolute ? [] : referencePath.split("/");
+      if (!absolute) base.pop();
 
       // In an OOXML .rels file, relationship targets are resolved relative
       // to the owning part's directory, not the _rels directory itself.
@@ -707,6 +708,20 @@
       const body = doc.querySelector("[data-card], .exam-card, .student-card, #student-card, .id-card, #id-card, .card") || doc.body;
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
+
+      // The supplied KSHS master contains a local SVG badge fallback beside
+      // its remote badge image. Prefer that embedded SVG so the generated
+      // batch card never needs the CORS-blocked kshs.ac.ug image.
+      body.querySelectorAll("img[src]").forEach(img => {
+        const src = String(img.getAttribute("src") || "");
+        if (/kshs\.ac\.ug\/images\/kampala(?:%20| )logo\.png/i.test(src)) {
+          const localBadge = body.querySelector("#badge-svg");
+          if (localBadge) {
+            img.remove();
+            localBadge.classList.remove("hidden");
+          }
+        }
+      });
 
       // The master card supplied for this workflow uses the legacy
       // "dots-underline" class on its data fields. The requested batch card
