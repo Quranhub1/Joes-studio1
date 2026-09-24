@@ -1487,6 +1487,21 @@
           head.appendChild(printWindow.document.importNode(node, true));
         });
 
+        // The main Joes Studio page has a global @media print rule that hides
+        // every body child except #printContainer. This is correct for the
+        // main editor, but would hide our dedicated #print-root in this new
+        // print window and produce a perfectly blank sheet. Override only that
+        // legacy selector for this print surface.
+        const printOverride = printWindow.document.createElement("style");
+        printOverride.textContent =
+          "@media print{" +
+          "body > *:not(#printContainer){display:block !important;}" +
+          "#print-root{display:block !important;visibility:visible !important;}" +
+          ".print-page{display:block !important;visibility:visible !important;}" +
+          ".print-card{display:block !important;visibility:visible !important;}" +
+          "}";
+        head.appendChild(printOverride);
+
         const root = printWindow.document.getElementById("print-root");
         if (!root) throw new Error("The print surface could not be created.");
 
