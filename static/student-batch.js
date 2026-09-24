@@ -708,6 +708,70 @@
       });
     },
 
+    isImageUrl(value, field = "") {
+      const raw = String(value ?? "").trim();
+      if (!raw) return false;
+      if (/^(?:data:image\/|blob:)/i.test(raw)) return true;
+      if (!/^https?:\/\//i.test(raw)) return false;
+
+      const name = this.normalize(field);
+      if (/(badge|logo|crest|emblem|seal|photo|image|picture|avatar)/i.test(name)) return true;
+
+      try {
+        const url = new URL(raw);
+        return /\.(?:png|jpe?g|gif|webp|bmp|svg|avif)(?:$|[?#])/i.test(url.pathname);
+      } catch (_) {
+        return /\.(?:png|jpe?g|gif|webp|bmp|svg|avif)(?:$|[?#])/i.test(raw);
+      }
+    },
+
+    imageSourceForTemplate(value) {
+      const raw = String(value ?? "").trim();
+      if (!raw) return "";
+      if (/^(?:data:|blob:)/i.test(raw)) return raw;
+      if (/^https?:\/\//i.test(raw) &&
+          !/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1|images\.weserv\.nl)(?::\d+)?\//i.test(raw)) {
+        return "https://images.weserv.nl/?url=" + encodeURIComponent(raw);
+      }
+      return raw;
+    },
+
+    putImageIntoBoundElement(el, value, field) {
+      if (!this.isImageUrl(value, field)) return false;
+      const src = this.imageSourceForTemplate(value);
+      if (!src) return false;
+
+      if (el.tagName === "IMG") {
+        el.setAttribute("src", src);
+        el.removeAttribute("alt");
+        return true;
+      }
+
+      const images = el.querySelectorAll("img");
+      if (images.length) {
+        images.forEach(img => {
+          img.setAttribute("src", src);
+          img.removeAttribute("alt");
+        });
+        return true;
+      }
+
+      if (el.children.length === 0) {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = "";
+        img.setAttribute("data-batch-bound-image", "true");
+        img.style.maxWidth = "100%";
+        img.style.maxHeight = "100%";
+        img.style.display = "block";
+        el.textContent = "";
+        el.appendChild(img);
+        return true;
+      }
+
+      return false;
+    },
+
     async buildHtmlCard(row) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
@@ -756,18 +820,8 @@
         if (idMatch) {
           const field = idMatch[1].replace(/[-_]+/g, " ");
           const value = this.resolveValue(row, field);
-          if (el.tagName === "IMG") {
-            const photo = await this.resolvePhoto(value, row);
-            if (photo) el.setAttribute("src", photo);
-            else {
-              el.removeAttribute("src");
-              el.setAttribute("alt", "");
-            }
-          } else if (el.querySelector("img")) {
-            const photo = await this.resolvePhoto(value, row);
-            if (photo) {
-              el.querySelectorAll("img").forEach(img => img.setAttribute("src", photo));
-            }
+          if (this.putImageIntoBoundElement(el, value, field)) {
+            // Render mapped image/badge URLs as images.
           } else if (!/^in[-_]/i.test(el.id)) {
             el.textContent = this.displayValue(row, field);
           }
@@ -776,28 +830,19 @@
         const bind = el.getAttribute("data-bind") || el.getAttribute("data-field");
         if (bind) {
           const value = this.resolveValue(row, bind);
-          if (el.tagName === "IMG") {
-            const photo = await this.resolvePhoto(value, row);
-            if (photo) el.setAttribute("src", photo);
-            else {
-              el.removeAttribute("src");
-              el.setAttribute("alt", "");
-            }
-          } else if (el.querySelector("img")) {
-            const photo = await this.resolvePhoto(value, row);
-            if (photo) {
-              el.querySelectorAll("img").forEach(img => img.setAttribute("src", photo));
-            }
-          } else {
+          if (!this.putImageIntoBoundElement(el, value, bind)) {
             el.textContent = this.displayValue(row, bind);
           }
         }
 
         const srcBind = el.getAttribute("data-bind-src");
-        if (srcBind && el.tagName === "IMG") {
-          const photo = await this.resolvePhoto(this.resolveValue(row, srcBind), row);
-          if (photo) el.setAttribute("src", photo);
-          else el.setAttribute("alt", "");
+        if (srcBind) {
+          const value = this.resolveValue(row, srcBind);
+          const photo = await this.resolvePhoto(value, row);
+          if (el.tagName === "IMG" && photo) {
+            el.setAttribute("src", this.imageSourceForTemplate(photo));
+            el.removeAttribute("alt");
+          }
         }
 
         const qrBind = el.getAttribute("data-bind-qr");
