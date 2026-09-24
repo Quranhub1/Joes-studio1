@@ -820,6 +820,13 @@
           }
         }
       }
+
+      // Rewrite every remaining external image URL before this card is placed
+      // in the document. This prevents the browser from requesting the
+      // original cross-origin URL (such as kshs.ac.ug) and only then trying
+      // to repair it during PDF export.
+      this.proxyExternalPreviewImages(body);
+
       return { doc, body };
     },
 
