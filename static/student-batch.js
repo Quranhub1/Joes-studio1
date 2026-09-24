@@ -787,9 +787,33 @@
           throw new Error("The selected worksheet has headers but no student records. Choose the sheet containing the student table.");
         }
 
+        // Prefer an image stored in the exact Photo column cell, then fall
+        // back to an image anchored anywhere on the student's worksheet row.
+        const photoColumnIndex = headers.findIndex(header =>
+          this.aliases.photo.includes(this.normalize(header)) ||
+          /photo|image|picture|passport|portrait/i.test(String(header))
+        );
+
         this.state.rows = rows.map(row => {
+          const worksheetRowIndex = row.__worksheetRowIndex;
           const copy = { ...row };
-          const embedded = this.state.embeddedPhotos.get(row.__worksheetRowIndex);
+
+          Object.defineProperty(copy, "__worksheetRowIndex", {
+            value: worksheetRowIndex,
+            enumerable: false,
+            configurable: true
+          });
+
+          let embedded = null;
+          if (photoColumnIndex >= 0) {
+            const photoCellRef = columnName(photoColumnIndex) + String(worksheetRowIndex + 1);
+            embedded = this.state.embeddedPhotos.get(photoCellRef) || null;
+          }
+
+          if (!embedded) {
+            embedded = this.state.embeddedPhotos.get(worksheetRowIndex) || null;
+          }
+
           if (embedded) copy.__embeddedPhoto = embedded;
           return copy;
         });
