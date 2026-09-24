@@ -684,12 +684,13 @@
       body.prepend(cleanupStyle);
 
       const all = body.querySelectorAll("*");
-      // Mark external images for CORS-aware preview/export. In particular,
-      // the KSHS badge is an external image and must not be treated as a
-      // decorative browser-only asset.
+      // Leave external template images as ordinary browser images in the live
+      // preview. Setting crossorigin="anonymous" on the KSHS badge causes the
+      // browser to enforce CORS and hide an otherwise displayable image.
       body.querySelectorAll("img[src]").forEach(img => {
-        const src = String(img.getAttribute("src") || "");
-        if (/^https?:/i.test(src)) img.setAttribute("crossorigin", "anonymous");
+        img.removeAttribute("crossorigin");
+        img.loading = "eager";
+        img.decoding = "sync";
       });
 
       // Do not replace external template images with a failed fetch in the
@@ -802,17 +803,38 @@
         // the live preview but silently drop it when that SVG is rasterized
         // for the PDF. Fetching it into a data URL makes the preview/export
         // renderer deterministic.
-        img.setAttribute("crossorigin", "anonymous");
+        img.removeAttribute("crossorigin");
         try {
           const response = await fetch(src, { mode: "cors", credentials: "omit", cache: "force-cache" });
           if (!response.ok) throw new Error("HTTP " + response.status);
           const blob = await response.blob();
           const dataUrl = await this.fileToDataUrl(blob);
-          if (dataUrl) img.setAttribute("src", dataUrl);
-        } catch (error) {
-          // Keep the original source as a last-resort browser rendering path.
-          // Do not replace the actual badge with a fake placeholder.
-          console.warn("Could not inline card image for PDF export:", src, error);
+          if (dataUrl) {
+            img.setAttribute("src", dataUrl);
+            return;
+          }
+          throw new Error("Empty image response");
+        } catch (directError) {
+          // KSHS currently does not send an Access-Control-Allow-Origin header
+          // for the badge, so a direct browser fetch cannot be used for PDF
+          // rasterization. Fall back to a public image proxy that fetches the
+          // same original image server-side and returns an ordinary image.
+          try {
+            const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
+            const response = await fetch(proxy, { mode: "cors", credentials: "omit", cache: "force-cache" });
+            if (!response.ok) throw new Error("Proxy HTTP " + response.status);
+            const blob = await response.blob();
+            const dataUrl = await this.fileToDataUrl(blob);
+            if (dataUrl) {
+              img.setAttribute("src", dataUrl);
+              return;
+            }
+            throw new Error("Empty proxy image response");
+          } catch (proxyError) {
+            // Keep the original source as a last-resort browser rendering path.
+            // Do not replace the actual badge with a fake placeholder.
+            console.warn("Could not inline card image for PDF export:", src, directError, proxyError);
+          }
         }
       }));
     },
