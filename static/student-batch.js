@@ -939,43 +939,41 @@
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
 
-      // The KSHS badge is part of the supplied master HTML. Render that
-      // embedded SVG as a self-contained data image so it cannot disappear
-      // because of Tailwind's hidden class, template JavaScript, or remote-image
-      // CORS/network behavior.
+      // Restore the master template's own badge logic. Do not remove,
+      // replace, or redraw the badge. The template supplies both the real KSHS
+      // image and its embedded SVG artwork. Keep the SVG visible underneath
+      // the real image so the badge remains present even when the remote image
+      // cannot be loaded inside the detached preview DOM.
       const badgeImage = body.querySelector("#badge-custom-img");
       const badgeSvg = body.querySelector("#badge-svg");
       const badgeContainer = body.querySelector("#badge-container");
 
-      if (badgeContainer && badgeSvg) {
-        try {
-          const badgeClone = badgeSvg.cloneNode(true);
-          badgeClone.removeAttribute("id");
-          badgeClone.classList.remove("hidden");
-          badgeClone.removeAttribute("style");
-          badgeClone.setAttribute("width", "100%");
-          badgeClone.setAttribute("height", "100%");
-          const serializedBadge = new XMLSerializer().serializeToString(badgeClone);
-          const badgeDataUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(serializedBadge);
+      if (badgeContainer) {
+        badgeContainer.style.position = "relative";
+      }
 
-          const renderedBadge = document.createElement("img");
-          renderedBadge.id = "batch-template-badge";
-          renderedBadge.src = badgeDataUrl;
-          renderedBadge.alt = "KSHS Badge";
-          renderedBadge.style.cssText =
-            "position:absolute;inset:0;width:100%;height:100%;" +
-            "object-fit:contain;display:block;z-index:2;";
+      if (badgeSvg) {
+        badgeSvg.classList.remove("hidden");
+        badgeSvg.style.position = "absolute";
+        badgeSvg.style.inset = "0";
+        badgeSvg.style.width = "100%";
+        badgeSvg.style.height = "100%";
+        badgeSvg.style.display = "block";
+        badgeSvg.style.zIndex = "0";
+      }
 
-          badgeSvg.replaceWith(renderedBadge);
-          if (badgeImage) {
-            badgeImage.remove();
-          }
-        } catch (error) {
-          console.warn("Could not serialize embedded KSHS badge:", error);
-          badgeSvg.classList.remove("hidden");
-          badgeSvg.style.display = "block";
-          if (badgeImage) badgeImage.remove();
-        }
+      if (badgeImage) {
+        badgeImage.removeAttribute("onerror");
+        badgeImage.removeAttribute("onload");
+        badgeImage.removeAttribute("crossorigin");
+        badgeImage.classList.remove("hidden");
+        badgeImage.style.position = "absolute";
+        badgeImage.style.inset = "0";
+        badgeImage.style.width = "100%";
+        badgeImage.style.height = "100%";
+        badgeImage.style.objectFit = "contain";
+        badgeImage.style.display = "block";
+        badgeImage.style.zIndex = "1";
       }
 
       // The master card supplied for this workflow uses the legacy
