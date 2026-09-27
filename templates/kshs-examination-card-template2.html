@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampala School of Health Sciences - Examination Card Template</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=Times+New+Roman&display=swap" rel="stylesheet">
+    <!-- html2canvas for image exporting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Arial', 'Helvetica', 'Arimo', sans-serif;
+        }
+
+        /* Printable Area Formatting */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-active, .print-active * {
+                visibility: visible;
+            }
+            #printable-area.print-active {
+                position: absolute;
+                left: 50%;
+                top: 10px;
+                transform: translateX(-50%);
+                width: 125mm;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            #a4-printable-grid.print-active {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 297mm;
+                padding: 8mm;
+                background: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .card-container {
+                box-shadow: none !important;
+                border: 1.5px solid #000 !important;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+        }
+
+        /* Landscape Card Aspect Ratio & Dimensions (Wider than Height) */
+        .card-container {
+            width: 130mm;
+            height: 60mm;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* A4 Page Grid Sheet for Landscape Printing */
+        .a4-page {
+            width: 297mm;
+            min-height: 210mm;
+            padding: 5mm 8mm;
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            display: grid;
+            grid-template-columns: repeat(2, 130mm);
+            grid-template-rows: repeat(3, 60mm);
+            gap: 4mm 8mm;
+            justify-content: center;
+            align-content: center;
+        }
+
+        /* Cut mark guidelines for easy printing & trimming */
+        .cut-box {
+            border: 1px dashed #cbd5e1;
+            position: relative;
+        }
+
+        /* Dotted Leader Lines matching document */
+        .dots-underline {
+            border-bottom: 1.5px dotted #000000;
+        }
+
+        /* Paper Shade Switcher Utility */
+        .paper-white {
+            background-color: #ffffff !important;
+        }
+        .paper-teal {
+            background-color: #a1c8c2 !important;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 shadow-md no-print">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-700 text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-id-card text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-white leading-tight">Examination Card Template Studio</h1>
+                    <p class="text-xs text-slate-400">Kampala School of Health Sciences (Landscape 8-per-A4)</p>
+                </div>
+            </div>
+
+            <!-- Global Action Buttons -->
+            <div class="flex items-center space-x-2 text-sm flex-wrap">
+                <button onclick="setViewMode('single')" id="btn-view-single" class="px-3 py-1.5 rounded bg-emerald-600 text-white font-medium flex items-center space-x-1.5 text-xs transition">
+                    <i class="fa-solid fa-address-card"></i>
+                    <span>Single Card</span>
+                </button>
+                <button onclick="setViewMode('a4grid')" id="btn-view-grid" class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center space-x-1.5 text-xs transition">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>A4 Landscape Sheet</span>
+                </button>
+                <div class="h-5 w-px bg-slate-700 mx-1"></div>
+                <button onclick="setMode('filled')" id="btn-mode-filled" class="px-3 py-1.5 rounded bg-emerald-700 text-white font-medium flex items-center space-x-1.5 text-xs transition">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Filled</span>
+                </button>
+                <button onclick="setMode('blank')" id="btn-mode-blank" class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center space-x-1.5 text-xs transition">
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                    <span>Blank</span>
+                </button>
+                <div class="h-5 w-px bg-slate-700 mx-1"></div>
+                <button onclick="printCard()" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium flex items-center space-x-1.5 text-xs shadow transition">
+                    <i class="fa-solid fa-print"></i>
+                    <span id="lbl-print-btn">Print Single</span>
+                </button>
+                <button onclick="exportPNG()" class="px-3 py-1.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium flex items-center space-x-1.5 text-xs shadow transition">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download PNG</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Input Controls Panel -->
+        <section class="lg:col-span-5 bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-5 no-print flex flex-col justify-between shadow-xl">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Template Form Fields</h2>
+                    <div class="space-x-2">
+                        <button onclick="fillSampleData()" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium">Sample Data</button>
+                        <span class="text-slate-600">|</span>
+                        <button onclick="clearForm()" class="text-xs text-rose-400 hover:text-rose-300 font-medium">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Input Fields matching exact PDF -->
+                <div class="space-y-3.5 text-xs">
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">STUDENT PHOTO:</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="file" id="in-photo" accept="image/*" onchange="handlePhotoUpload(event)" class="hidden">
+                            <button type="button" onclick="document.getElementById('in-photo').click()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-1.5 px-3 rounded text-xs font-medium border border-slate-600 flex items-center justify-center space-x-1.5 transition">
+                                <i class="fa-solid fa-image text-emerald-400"></i>
+                                <span>Upload Photo</span>
+                            </button>
+                            <button type="button" onclick="removePhoto()" class="bg-slate-700 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 py-1.5 px-2.5 rounded text-xs font-medium border border-slate-600 transition" title="Remove Photo">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">NAME:</label>
+                        <input type="text" id="in-name" value="MUKASA SARAH AGNES" oninput="updateCard()" placeholder="e.g. MUKASA SARAH AGNES" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">REG NO:</label>
+                        <input type="text" id="in-regno" value="KSHS/2026/0842" oninput="updateCard()" placeholder="e.g. KSHS/2026/0842" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">SEX:</label>
+                        <input type="text" id="in-sex" value="FEMALE" oninput="updateCard()" placeholder="e.g. FEMALE / MALE" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">SITTING:</label>
+                        <input type="text" id="in-sitting" value="FINAL EXAMINATIONS 2026" oninput="updateCard()" placeholder="e.g. FINAL EXAMINATIONS 2026" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">COURSE:</label>
+                        <input type="text" id="in-course" value="DIPLOMA IN NURSING EXTENSION" oninput="updateCard()" placeholder="e.g. DIPLOMA IN NURSING EXTENSION" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">ISSUED BY:</label>
+                        <input type="text" id="in-issuedby" value="EXAMINATIONS OFFICE / KSHS" oninput="updateCard()" placeholder="e.g. EXAMINATIONS OFFICE / KSHS" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Custom Paper Color Toggle -->
+                <div class="pt-3 border-t border-slate-700 space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300">Paper Background Tint:</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <button onclick="setPaperColor('white')" id="btn-paper-white" class="py-1.5 px-3 rounded border border-emerald-500 bg-slate-700 text-white font-medium flex items-center justify-center space-x-1.5">
+                            <span class="w-3 h-3 rounded-full bg-white border border-slate-400"></span>
+                            <span>White Paper</span>
+                        </button>
+                        <button onclick="setPaperColor('teal')" id="btn-paper-teal" class="py-1.5 px-3 rounded border border-slate-600 bg-slate-900 text-slate-400 font-medium flex items-center justify-center space-x-1.5">
+                            <span class="w-3 h-3 rounded-full bg-[#a1c8c2] border border-slate-400"></span>
+                            <span>Original Teal Paper</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Template View Toggle (PDF vs Photo Card Variant) -->
+                <div class="pt-2 border-t border-slate-700 space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300">Template Design Variant:</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <button onclick="switchVariant('pdf')" id="btn-var-pdf" class="py-1.5 px-2 rounded bg-emerald-600 text-white font-medium text-center">
+                            Exact PDF Card (Image 2)
+                        </button>
+                        <button onclick="switchVariant('detailed')" id="btn-var-detailed" class="py-1.5 px-2 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 font-medium text-center">
+                            Photo Card (Image 1)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-700 text-[11px] text-slate-400 leading-relaxed">
+                <p><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Exact 1:1 replica of Kampala School of Health Sciences Examination Card template. Click <b>Print Card</b> to print directly on card paper.</p>
+            </div>
+        </section>
+
+        <!-- Right Column: Card Template Display Screen -->
+        <section class="lg:col-span-7 flex flex-col items-center justify-start py-2">
+            
+            <!-- SINGLE CARD PREVIEW -->
+            <div id="printable-area" class="py-2 print-active">
+                
+                <!-- CARD TEMPLATE CONTAINER (Landscape W > H) -->
+                <div id="exam-card" class="card-container text-black p-2 border-2 border-black shadow-2xl relative flex flex-col justify-between paper-white selection:bg-slate-200" style="font-family: 'Arial', 'Helvetica', sans-serif;">
+                    
+                    <!-- EXACT PDF TEMPLATE (Landscape Aspect Ratio) -->
+                    <div id="card-variant-pdf" class="h-full flex flex-col justify-between">
+                        <div>
+                            <!-- Header Row with Badge on Upper Left, Titles Center, Photo Box Upper Right -->
+                            <div class="flex items-start justify-between pb-0.5 mb-0.5 border-b border-black/20">
+                                <!-- Badge Emblem on Upper Left Corner -->
+                                <div class="shrink-0">
+                                    <svg viewBox="0 0 200 260" class="w-7 h-10 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M 15 15 C 70 25, 130 25, 185 15 C 170 100, 155 180, 100 245 C 45 180, 30 100, 15 15 Z" fill="#1c1c1c" stroke="#000000" stroke-width="4"/>
+                                        <path d="M 22 22 C 72 31, 128 31, 178 22 C 164 100, 150 174, 100 234 C 50 174, 36 100, 22 22 Z" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.35"/>
+                                        <path d="M 100 45 C 70 20, 25 30, 25 35 C 55 52 78 58 100 52 Z" fill="#ffffff"/>
+                                        <path d="M 100 52 C 72 40, 35 48, 35 52 C 60 62 80 64 100 58 Z" fill="#ffffff"/>
+                                        <path d="M 100 45 C 130 20, 175 30, 175 35 C 145 52 122 58 100 52 Z" fill="#ffffff"/>
+                                        <path d="M 100 52 C 128 40, 165 48, 165 52 C 140 62 120 64 100 58 Z" fill="#ffffff"/>
+                                        <circle cx="100" cy="28" r="6" fill="#ffffff"/>
+                                        <line x1="100" y1="28" x2="100" y2="195" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+                                        <path d="M 100 55 C 80 65 80 85 100 95 C 120 105 120 125 100 135 C 80 145 80 165 100 175 C 120 185 120 190 100 195" fill="none" stroke="#ffffff" stroke-width="3"/>
+                                        <path d="M 100 55 C 120 65 120 85 100 95 C 80 105 80 125 100 135 C 120 145 120 165 100 175 C 80 185 80 190 100 195" fill="none" stroke="#ffffff" stroke-width="3"/>
+                                        <path d="M 60 75 C 50 72 45 82 50 92 L 58 115 C 62 128 72 140 85 145" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                                        <circle cx="48" cy="85" r="4.5" fill="#ffffff"/>
+                                        <line x1="140" y1="78" x2="155" y2="128" stroke="#ffffff" stroke-width="4.5"/>
+                                        <line x1="135" y1="68" x2="143" y2="73" stroke="#ffffff" stroke-width="3"/>
+                                        <line x1="155" y1="128" x2="162" y2="150" stroke="#ffffff" stroke-width="2"/>
+                                        <text x="60" y="218" fill="#ffffff" font-family="'Arial', 'Helvetica', sans-serif" font-weight="900" font-size="24" text-anchor="middle">KS</text>
+                                        <text x="140" y="218" fill="#ffffff" font-family="'Arial', 'Helvetica', sans-serif" font-weight="900" font-size="24" text-anchor="middle">HS</text>
+                                    </svg>
+                                </div>
+
+                                <!-- Institution Header Titles Centered -->
+                                <div class="flex-1 text-center px-1 self-center flex flex-col items-center justify-center">
+                                    <h1 class="text-[9.5px] font-black uppercase tracking-tight leading-tight text-black text-center w-full">
+                                        KAMPALA SCHOOL OF HEALTH SCIENCES
+                                    </h1>
+                                    <h2 class="text-[8.5px] font-black uppercase tracking-wider border-b-2 border-black pb-0.5 text-center inline-block">
+                                        EXAMINATION CARD
+                                    </h2>
+                                </div>
+
+                                <!-- Student Photo Box Upper Right (Enlarged for Visibility) -->
+                                <div class="shrink-0 ml-1">
+                                    <div class="w-[24mm] h-[30mm] border-1.5 border-black flex items-center justify-center bg-transparent overflow-hidden relative shadow-xs">
+                                        <img id="out-photo" src="" alt="Photo" class="w-full h-full object-cover hidden">
+                                        <div id="out-photo-placeholder" class="text-[8px] font-bold text-slate-400 uppercase tracking-wider text-center p-1 leading-tight flex flex-col items-center justify-center">
+                                            <i class="fa-solid fa-user text-slate-300 text-sm mb-0.5"></i>
+                                            <span>PHOTO</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Compact Landscape Field Rows -->
+                            <div class="space-y-0.5 text-[8.5px] font-bold text-black">
+                                
+                                <!-- NAME Field -->
+                                <div class="flex items-end">
+                                    <span class="shrink-0 font-black text-[8.5px]">NAME:</span>
+                                    <div id="out-name" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                </div>
+
+                                <!-- REG NO & SEX Field Row -->
+                                <div class="grid grid-cols-12 gap-1.5 items-end">
+                                    <div class="col-span-8 flex items-end">
+                                        <span class="shrink-0 font-black text-[8.5px]">REG NO:</span>
+                                        <div id="out-regno" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-mono font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                    </div>
+                                    <div class="col-span-4 flex items-end">
+                                        <span class="shrink-0 font-black text-[8.5px]">SEX:</span>
+                                        <div id="out-sex" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                    </div>
+                                </div>
+
+                                <!-- SITTING Field -->
+                                <div class="flex items-end">
+                                    <span class="shrink-0 font-black text-[8.5px]">SITTING:</span>
+                                    <div id="out-sitting" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                </div>
+
+                                <!-- COURSE Field -->
+                                <div class="flex items-end">
+                                    <span class="shrink-0 font-black text-[8.5px]">COURSE:</span>
+                                    <div id="out-course" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                </div>
+
+                            </div>
+
+                            <!-- Warning Notice Paragraph -->
+                            <div class="mt-1 text-[7.5px] leading-tight text-left">
+                                <span class="font-bold">NOTE:</span> This card is void to duplication and any intent to that may lead to expulsion.
+                            </div>
+
+                            <!-- Issued By Line -->
+                            <div class="mt-1 flex items-end text-[8.5px] font-bold text-black w-full">
+                                <span class="shrink-0 font-black text-[8.5px]">Issued by:</span>
+                                <div id="out-issuedby" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold text-[8.5px]"></div>
+                            </div>
+
+                            <!-- Bottom Centered KS HS Branding -->
+                            <div class="mt-0.5 text-center font-black text-[9px] tracking-[0.25em] uppercase text-black w-full">
+                                KS HS
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VARIANT 2: DETAILED TEMPLATE (Matching Image 1) -->
+                    <div id="card-variant-detailed" class="h-full flex flex-col justify-between hidden">
+                        <!-- ... existing detailed variant content ... -->
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- A4 SHEET PREVIEW (LANDSCAPE PRINT SHEET) -->
+            <div id="a4-printable-grid" class="hidden my-2 overflow-auto max-w-full">
+                <div class="text-xs text-slate-300 mb-2 flex items-center justify-between no-print w-full max-w-[297mm]">
+                    <span class="font-medium"><i class="fa-solid fa-grid-2 mr-1 text-emerald-400"></i> A4 Landscape Print Sheet Preview</span>
+                    <span class="text-slate-400">2 Columns × 3 Rows (6 Cards per A4 Landscape Page)</span>
+                </div>
+                <div id="a4-grid-container" class="a4-page">
+                    <!-- Javascript will automatically populate card replicas here -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        let isBlankMode = false;
+        let activeVariant = 'pdf';
+        let paperColor = 'white';
+        let currentPhotoUrl = '';
+        let currentViewMode = 'single'; // 'single' or 'a4grid'
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentPhotoUrl = e.target.result;
+                    renderPhoto();
+                    if (currentViewMode === 'a4grid') renderA4Sheet();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removePhoto() {
+            currentPhotoUrl = '';
+            const photoInput = document.getElementById('in-photo');
+            if (photoInput) photoInput.value = '';
+            renderPhoto();
+            if (currentViewMode === 'a4grid') renderA4Sheet();
+        }
+
+        function renderPhoto() {
+            const photoImg = document.getElementById('out-photo');
+            const placeholder = document.getElementById('out-photo-placeholder');
+            
+            if (currentPhotoUrl && !isBlankMode) {
+                if (photoImg) {
+                    photoImg.src = currentPhotoUrl;
+                    photoImg.classList.remove('hidden');
+                }
+                if (placeholder) placeholder.classList.add('hidden');
+            } else {
+                if (photoImg) {
+                    photoImg.src = '';
+                    photoImg.classList.add('hidden');
+                }
+                if (placeholder) placeholder.classList.remove('hidden');
+            }
+        }
+
+        function updateCard() {
+            if (isBlankMode) return;
+
+            const name = document.getElementById('in-name').value;
+            const regno = document.getElementById('in-regno').value;
+            const sex = document.getElementById('in-sex').value;
+            const sitting = document.getElementById('in-sitting').value;
+            const course = document.getElementById('in-course').value;
+            const issuedby = document.getElementById('in-issuedby').value;
+
+            // Update Primary PDF Variant
+            document.getElementById('out-name').textContent = name;
+            document.getElementById('out-regno').textContent = regno;
+            document.getElementById('out-sex').textContent = sex;
+            document.getElementById('out-sitting').textContent = sitting;
+            document.getElementById('out-course').textContent = course;
+            document.getElementById('out-issuedby').textContent = issuedby;
+
+            // Update Detailed Variant
+            const nameParts = name.trim().split(' ');
+            const surnameEl = document.getElementById('out-det-surname');
+            if (surnameEl) surnameEl.textContent = nameParts[0] || '';
+            const givenNameEl = document.getElementById('out-det-givenname');
+            if (givenNameEl) givenNameEl.textContent = nameParts.slice(1).join(' ') || '';
+            
+            const detRegno = document.getElementById('out-det-regno');
+            if (detRegno) detRegno.textContent = regno;
+            const detSex = document.getElementById('out-det-sex');
+            if (detSex) detSex.textContent = sex;
+            const detCourse = document.getElementById('out-det-course');
+            if (detCourse) detCourse.textContent = course;
+            const detSig = document.getElementById('out-det-signature');
+            if (detSig) detSig.textContent = issuedby;
+
+            renderPhoto();
+
+            if (currentViewMode === 'a4grid') {
+                renderA4Sheet();
+            }
+        }
+
+        function setViewMode(mode) {
+            currentViewMode = mode;
+            const singleContainer = document.getElementById('printable-area');
+            const gridContainer = document.getElementById('a4-printable-grid');
+            const btnSingle = document.getElementById('btn-view-single');
+            const btnGrid = document.getElementById('btn-view-grid');
+            const lblPrintBtn = document.getElementById('lbl-print-btn');
+
+            if (mode === 'a4grid') {
+                singleContainer.classList.add('hidden');
+                singleContainer.classList.remove('print-active');
+                gridContainer.classList.remove('hidden');
+                gridContainer.classList.add('print-active');
+
+                btnGrid.className = "px-3 py-1.5 rounded bg-emerald-600 text-white font-medium flex items-center space-x-1.5 text-xs transition";
+                btnSingle.className = "px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center space-x-1.5 text-xs transition";
+                lblPrintBtn.textContent = "Print A4 Sheet";
+
+                renderA4Sheet();
+            } else {
+                gridContainer.classList.add('hidden');
+                gridContainer.classList.remove('print-active');
+                singleContainer.classList.remove('hidden');
+                singleContainer.classList.add('print-active');
+
+                btnSingle.className = "px-3 py-1.5 rounded bg-emerald-600 text-white font-medium flex items-center space-x-1.5 text-xs transition";
+                btnGrid.className = "px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center space-x-1.5 text-xs transition";
+                lblPrintBtn.textContent = "Print Single";
+            }
+        }
+
+        function renderA4Sheet() {
+            const container = document.getElementById('a4-grid-container');
+            const cardSource = document.getElementById('exam-card');
+            container.innerHTML = '';
+
+            for (let i = 0; i < 6; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'cut-box flex items-center justify-center';
+                
+                const clone = cardSource.cloneNode(true);
+                clone.id = `exam-card-clone-${i}`;
+                clone.style.boxShadow = 'none';
+                clone.style.border = '1px solid #000';
+                
+                wrapper.appendChild(clone);
+                container.appendChild(wrapper);
+            }
+        }
+
+        function printCard() {
+            window.print();
+        }
+
+        function setMode(mode) {
+            const btnFilled = document.getElementById('btn-mode-filled');
+            const btnBlank = document.getElementById('btn-mode-blank');
+
+            if (mode === 'blank') {
+                isBlankMode = true;
+                btnBlank.className = "px-3.5 py-1.5 rounded bg-emerald-600 text-white font-medium flex items-center space-x-1.5 text-xs transition";
+                btnFilled.className = "px-3.5 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center space-x-1.5 text-xs transition";
+                
+                // Clear out rendered text so only dotted lines remain visible
+                const textFields = ['out-name', 'out-regno', 'out-sex', 'out-sitting', 'out-course', 'out-issuedby'];
+                textFields.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '';
+                });
+                renderPhoto();
+            } else {
+                isBlankMode = false;
+                btnFilled.className = "px-3.5 py-1.5 rounded bg-emerald-600 text-white font-medium flex items-center space-x-1.5 text-xs transition";
+                btnBlank.className = "px-3.5 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium flex items-center space-x-1.5 text-xs transition";
+                updateCard();
+            }
+
+            if (currentViewMode === 'a4grid') {
+                renderA4Sheet();
+            }
+        }
+
+        function setPaperColor(color) {
+            paperColor = color;
+            const cardEl = document.getElementById('exam-card');
+            const btnWhite = document.getElementById('btn-paper-white');
+            const btnTeal = document.getElementById('btn-paper-teal');
+
+            if (color === 'teal') {
+                cardEl.classList.remove('paper-white');
+                cardEl.classList.add('paper-teal');
+                if (btnTeal) btnTeal.className = "py-1.5 px-3 rounded border border-emerald-500 bg-slate-700 text-white font-medium flex items-center justify-center space-x-1.5";
+                if (btnWhite) btnWhite.className = "py-1.5 px-3 rounded border border-slate-600 bg-slate-900 text-slate-400 font-medium flex items-center justify-center space-x-1.5";
+            } else {
+                cardEl.classList.remove('paper-teal');
+                cardEl.classList.add('paper-white');
+                if (btnWhite) btnWhite.className = "py-1.5 px-3 rounded border border-emerald-500 bg-slate-700 text-white font-medium flex items-center justify-center space-x-1.5";
+                if (btnTeal) btnTeal.className = "py-1.5 px-3 rounded border border-slate-600 bg-slate-900 text-slate-400 font-medium flex items-center justify-center space-x-1.5";
+            }
+
+            if (currentViewMode === 'a4grid') {
+                renderA4Sheet();
+            }
+        }
+
+        function switchVariant(variant) {
+            activeVariant = variant;
+            const pdfEl = document.getElementById('card-variant-pdf');
+            const detEl = document.getElementById('card-variant-detailed');
+            const btnPdf = document.getElementById('btn-var-pdf');
+            const btnDet = document.getElementById('btn-var-detailed');
+
+            if (variant === 'detailed') {
+                if (pdfEl) pdfEl.classList.add('hidden');
+                if (detEl) detEl.classList.remove('hidden');
+                if (btnDet) btnDet.className = "py-1.5 px-2 rounded bg-emerald-600 text-white font-medium text-center";
+                if (btnPdf) btnPdf.className = "py-1.5 px-2 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 font-medium text-center";
+            } else {
+                if (detEl) detEl.classList.add('hidden');
+                if (pdfEl) pdfEl.classList.remove('hidden');
+                if (btnPdf) btnPdf.className = "py-1.5 px-2 rounded bg-emerald-600 text-white font-medium text-center";
+                if (btnDet) btnDet.className = "py-1.5 px-2 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 font-medium text-center";
+            }
+            updateCard();
+        }
+
+        function fillSampleData() {
+            document.getElementById('in-name').value = "MUKASA SARAH AGNES";
+            document.getElementById('in-regno').value = "KSHS/2026/0842";
+            document.getElementById('in-sex').value = "FEMALE";
+            document.getElementById('in-sitting').value = "FINAL EXAMINATIONS 2026";
+            document.getElementById('in-course').value = "DIPLOMA IN NURSING EXTENSION";
+            document.getElementById('in-issuedby').value = "S. Mukasa / KSHS";
+            setMode('filled');
+        }
+
+        function clearForm() {
+            document.getElementById('in-name').value = "";
+            document.getElementById('in-regno').value = "";
+            document.getElementById('in-sex').value = "";
+            document.getElementById('in-sitting').value = "";
+            document.getElementById('in-course').value = "";
+            document.getElementById('in-issuedby').value = "";
+            updateCard();
+        }
+
+        function exportPNG() {
+            const cardEl = currentViewMode === 'a4grid' ? document.getElementById('a4-grid-container') : document.getElementById('exam-card');
+            html2canvas(cardEl, {
+                scale: 3,
+                useCORS: true,
+                backgroundColor: null
+            }).then(canvas => {
+                const a = document.createElement('a');
+                a.download = currentViewMode === 'a4grid' ? `KSHS_Exam_Cards_A4_Sheet.png` : `KSHS_Examination_Card.png`;
+                a.href = canvas.toDataURL('image/png');
+                a.click();
+            });
+        }
+
+        // Initialize template on load
+        window.onload = function() {
+            updateCard();
+        };
+    </script>
+</body>
+</html>
