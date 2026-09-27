@@ -39,5 +39,19 @@
     "name": "Blank A4",
     "desc": "Default settings, free layout",
     "thumbnail": "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='140' viewBox='0 0 100 140'><rect width='100' height='140' fill='white' stroke='%23ddd'/><text x='50' y='70' font-size='10' text-anchor='middle' fill='%23999'>Blank</text></svg>"
+  },
+  {
+    "id": "kshs_exam_html_1",
+    "name": "KSHS Examination Card Template 1",
+    "desc": "Reusable HTML examination card template",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-template1.html"
+  },
+  {
+    "id": "kshs_exam_html_2",
+    "name": "KSHS Examination Card Template 2",
+    "desc": "Reusable HTML examination card template",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-template2.html"
   }
 ]
