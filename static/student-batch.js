@@ -1528,6 +1528,9 @@
       const fieldsEl = document.getElementById("studentBatchFields");
       const sizeEl = document.getElementById("studentBatchCardSize");
       const photoEl = document.getElementById("studentBatchPhotoName");
+      const badgeNameEl = document.getElementById("studentBatchBadgeName");
+      const badgePreviewEl = document.getElementById("studentBatchBadgePreview");
+      const badgeClearEl = document.getElementById("studentBatchBadgeClear");
 
       const bgInput = document.getElementById("studentBatchCardBackground");
       const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
@@ -1539,6 +1542,17 @@
       if (excelEl) excelEl.textContent = this.state.rows.length ? "Excel data loaded" : "No Excel file selected";
       if (countEl) countEl.textContent = String(this.state.rows.length);
       if (photoEl) photoEl.textContent = this.state.photoFiles.size ? "Photo folder indexed" : "No photo folder (optional)";
+      if (badgeNameEl) {
+        badgeNameEl.textContent = this.state.badgeFile?.name
+          ? "Uploaded: " + this.state.badgeFile.name
+          : "Using the selected template's original badge/logo";
+      }
+      if (badgePreviewEl) {
+        badgePreviewEl.innerHTML = this.state.badgeDataUrl
+          ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="max-h-full max-w-full object-contain p-1">'
+          : '<i class="ph ph-image text-slate-300 text-lg"></i>';
+      }
+      if (badgeClearEl) badgeClearEl.classList.toggle("hidden", !this.state.badgeDataUrl);
       if (sizeEl) sizeEl.textContent = (Number(this.state.cardWidthMm).toFixed(1) + " × " + Number(this.state.cardHeightMm).toFixed(1) + " mm");
 
       const l = this.layout();
@@ -1871,6 +1885,7 @@
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
     document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
     document.getElementById("studentBatchBadgeInput")?.addEventListener("change", e => Batch.loadBadge(e.target.files[0]));
+    document.getElementById("studentBatchBadgeClear")?.addEventListener("click", () => Batch.clearBadge());
     document.getElementById("studentBatchPhotoEnhance")?.addEventListener("change", e => Batch.setPhotoEnhancement({enabled:e.target.checked}));
     document.getElementById("studentBatchPhotoWhiteBg")?.addEventListener("change", e => Batch.setPhotoEnhancement({whiteBackground:e.target.checked}));
     document.getElementById("studentBatchPhotoStrength")?.addEventListener("change", e => Batch.setPhotoEnhancement({strength:e.target.value}));
