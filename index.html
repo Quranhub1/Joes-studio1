@@ -9943,7 +9943,12 @@
         templates: {
           data: [],
           historyKey: "joesStudio.usedTemplates.v1",
+          badgeDbName: "joesStudioTemplateBadges.v1",
+          badgeStoreName: "badges",
+          badgeFallbackKey: "joesStudio.templateBadges.fallback.v1",
+          selectedBadgeKey: "joesStudio.selectedTemplateBadge.v1",
           history: [],
+          activeStartTab: "templates",
 
           getHistory: function () {
             try {
@@ -9967,6 +9972,176 @@
             }
           },
 
+          openBadgeDb: function () {
+            if (!window.indexedDB) return Promise.reject(new Error("IndexedDB unavailable"));
+            return new Promise((resolve, reject) => {
+              const request = indexedDB.open(this.badgeDbName, 1);
+              request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(this.badgeStoreName)) {
+                  db.createObjectStore(this.badgeStoreName, { keyPath: "id" });
+                }
+              };
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error || new Error("Badge database could not be opened"));
+            });
+          },
+
+          getSavedBadges: async function () {
+            try {
+              const db = await this.openBadgeDb();
+              return await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.badgeStoreName, "readonly");
+                const request = tx.objectStore(this.badgeStoreName).getAll();
+                request.onsuccess = () => {
+                  db.close();
+                  resolve((request.result || []).sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0)));
+                };
+                request.onerror = () => {
+                  db.close();
+                  reject(request.error);
+                };
+              });
+            } catch (_) {
+              try {
+                const raw = localStorage.getItem(this.badgeFallbackKey);
+                const items = raw ? JSON.parse(raw) : [];
+                return Array.isArray(items) ? items : [];
+              } catch {
+                return [];
+              }
+            }
+          },
+
+          saveBadgeToLibrary: async function (name, dataUrl, selectAfterSave = true) {
+            const cleanName = String(name || "Template Badge").trim() || "Template Badge";
+            const cleanData = String(dataUrl || "").trim();
+            if (!cleanData) return null;
+
+            const now = Date.now();
+            let existing = null;
+            const current = await this.getSavedBadges();
+            existing = current.find(item => item.dataUrl === cleanData) || null;
+
+            const item = existing
+              ? { ...existing, name: cleanName, updatedAt: now }
+              : {
+                  id: "badge-" + now + "-" + Math.random().toString(36).slice(2, 9),
+                  name: cleanName,
+                  dataUrl: cleanData,
+                  createdAt: now,
+                  updatedAt: now
+                };
+
+            try {
+              const db = await this.openBadgeDb();
+              await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.badgeStoreName, "readwrite");
+                tx.objectStore(this.badgeStoreName).put(item);
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => { db.close(); reject(tx.error); };
+              });
+
+              const after = (await this.getSavedBadges())
+                .sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0));
+              const remove = after.slice(50);
+              if (remove.length) {
+                const db2 = await this.openBadgeDb();
+                await new Promise((resolve, reject) => {
+                  const tx = db2.transaction(this.badgeStoreName, "readwrite");
+                  const store = tx.objectStore(this.badgeStoreName);
+                  remove.forEach(entry => store.delete(entry.id));
+                  tx.oncomplete = () => { db2.close(); resolve(); };
+                  tx.onerror = () => { db2.close(); reject(tx.error); };
+                });
+              }
+            } catch (_) {
+              try {
+                const fallback = (await this.getSavedBadges()).filter(entry => entry.dataUrl !== cleanData);
+                fallback.unshift(item);
+                localStorage.setItem(this.badgeFallbackKey, JSON.stringify(fallback.slice(0, 20)));
+              } catch (e) {
+                console.warn("Could not persist template badge locally.", e);
+              }
+            }
+
+            if (selectAfterSave) {
+              try { localStorage.setItem(this.selectedBadgeKey, item.id); } catch (_) {}
+              if (window.JoesStudentBatch?.useSavedBadge) {
+                window.JoesStudentBatch.useSavedBadge(item.name, item.dataUrl, item.id);
+              }
+            }
+
+            return item;
+          },
+
+          useBadge: async function (id) {
+            const badges = await this.getSavedBadges();
+            const badge = badges.find(item => item.id === id);
+            if (!badge) return;
+            try { localStorage.setItem(this.selectedBadgeKey, badge.id); } catch (_) {}
+            if (window.JoesStudentBatch?.useSavedBadge) {
+              window.JoesStudentBatch.useSavedBadge(badge.name, badge.dataUrl, badge.id);
+            }
+            this.notifyBadgeSelection(badge.name);
+            await this.renderBadgeLibrary();
+          },
+
+          deleteBadge: async function (id) {
+            try {
+              const db = await this.openBadgeDb();
+              await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.badgeStoreName, "readwrite");
+                tx.objectStore(this.badgeStoreName).delete(id);
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => { db.close(); reject(tx.error); };
+              });
+            } catch (_) {
+              try {
+                const items = await this.getSavedBadges();
+                localStorage.setItem(this.badgeFallbackKey, JSON.stringify(items.filter(item => item.id !== id)));
+              } catch (e) {
+                console.warn("Could not delete saved template badge.", e);
+              }
+            }
+
+            try {
+              if (localStorage.getItem(this.selectedBadgeKey) === id) {
+                localStorage.removeItem(this.selectedBadgeKey);
+              }
+            } catch (_) {}
+
+            if (window.JoesStudentBatch?.state?.badgeLibraryId === id) {
+              window.JoesStudentBatch.clearBadge();
+            }
+
+            await this.renderBadgeLibrary();
+          },
+
+          notifyBadgeSelection: function (name) {
+            if (window.Utils?.toast) window.Utils.toast("Template badge selected: " + name);
+          },
+
+          setStartTab: async function (tab) {
+            this.activeStartTab = tab === "badges" ? "badges" : "templates";
+            const title = document.getElementById("startFromTemplateTitle");
+            if (title) title.textContent = this.activeStartTab === "badges" ? "Template Badges" : "Start from Template";
+
+            const templateBtn = document.getElementById("templateStartTab");
+            const badgeBtn = document.getElementById("templateBadgeTab");
+            templateBtn?.classList.toggle("bg-slate-800", this.activeStartTab === "templates");
+            templateBtn?.classList.toggle("text-white", this.activeStartTab === "templates");
+            templateBtn?.classList.toggle("bg-white", this.activeStartTab !== "templates");
+            templateBtn?.classList.toggle("text-slate-600", this.activeStartTab !== "templates");
+            badgeBtn?.classList.toggle("bg-slate-800", this.activeStartTab === "badges");
+            badgeBtn?.classList.toggle("text-white", this.activeStartTab === "badges");
+            badgeBtn?.classList.toggle("bg-white", this.activeStartTab !== "badges");
+            badgeBtn?.classList.toggle("text-slate-600", this.activeStartTab !== "badges");
+
+            if (this.activeStartTab === "badges") await this.renderBadgeLibrary();
+            else this.renderHistory();
+          },
+
           renderHistory: function () {
             const grid = document.getElementById("templateGrid");
             if (!grid) return;
@@ -9987,22 +10162,79 @@
               return;
             }
 
+            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar";
             grid.innerHTML = "";
             used.forEach((t) => {
               const d = document.createElement("div");
               d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
-              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${
-                t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'
-              }</div><div><h3 class="font-bold text-slate-700 text-sm">${t.name}</h3><p class="text-slate-400 text-xs">Used in this application</p></div>`;
+              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'}</div><div><h3 class="font-bold text-slate-700 text-sm">${escapeHtml(t.name)}</h3><p class="text-slate-400 text-xs">Used in this application</p></div>`;
               d.onclick = () => this.load(t.id);
               grid.appendChild(d);
+            });
+          },
+
+          renderBadgeLibrary: async function () {
+            const grid = document.getElementById("templateGrid");
+            if (!grid) return;
+
+            const badges = await this.getSavedBadges();
+            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar";
+            grid.innerHTML = "";
+
+            if (!badges.length) {
+              grid.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center min-h-[360px] text-center px-8">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                  <i class="ph ph-images text-2xl text-slate-400"></i>
+                </div>
+                <h3 class="font-semibold text-slate-600">No saved template badges yet</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-md">Upload a badge or logo in Student Batch. It will be saved here automatically for reuse on future templates.</p>
+              </div>`;
+              return;
+            }
+
+            badges.forEach((badge) => {
+              const card = document.createElement("div");
+              card.className = "bg-white p-3 rounded-xl border border-gray-200 flex flex-col gap-3";
+              const preview = document.createElement("div");
+              preview.className = "h-36 rounded-lg overflow-hidden border border-gray-100 bg-slate-50 flex items-center justify-center";
+              const img = document.createElement("img");
+              img.src = badge.dataUrl;
+              img.alt = badge.name || "Template badge";
+              img.className = "max-h-full max-w-full object-contain p-3";
+              preview.appendChild(img);
+
+              const name = document.createElement("div");
+              name.className = "min-w-0";
+              name.innerHTML = '<h3 class="font-bold text-slate-700 text-sm truncate"></h3><p class="text-slate-400 text-xs">Saved template badge</p>';
+              name.querySelector("h3").textContent = badge.name || "Template Badge";
+
+              const actions = document.createElement("div");
+              actions.className = "flex gap-2";
+              const use = document.createElement("button");
+              use.type = "button";
+              use.className = "flex-1 px-3 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-700";
+              use.innerHTML = '<i class="ph ph-check-circle mr-1"></i> Use Badge';
+              use.onclick = () => this.useBadge(badge.id);
+
+              const remove = document.createElement("button");
+              remove.type = "button";
+              remove.className = "px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50";
+              remove.innerHTML = '<i class="ph ph-trash mr-1"></i> Delete';
+              remove.onclick = () => this.deleteBadge(badge.id);
+
+              actions.appendChild(use);
+              actions.appendChild(remove);
+              card.appendChild(preview);
+              card.appendChild(name);
+              card.appendChild(actions);
+              grid.appendChild(card);
             });
           },
 
           init: async function () {
             try {
               this.data = await (await fetch("./templates/templates.json")).json();
-              this.renderHistory();
+              await this.setStartTab("templates");
             } catch {
               Utils.toast("Template loading failed", "error");
             }
@@ -10040,7 +10272,6 @@
 
             const t = this.data.find((i) => i.id === id);
             if (t?.url) {
-              // Remember the template as soon as the user opens it. The history is local to this browser.
               this.remember(id);
               App.ui.showLoading("Downloading template...");
               try {
