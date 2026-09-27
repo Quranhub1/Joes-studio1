@@ -803,8 +803,8 @@
 
     async loadBadge(file) {
       if (!file) return;
-      if (!/^image\/png$/i.test(file.type || "") && !/\.png$/i.test(file.name || "")) {
-        Utils.toast("Badge image must be a PNG file.", "error");
+      if (!/^image\//i.test(file.type || "") && !/\.(?:png|jpe?g|webp|gif|svg)$/i.test(file.name || "")) {
+        Utils.toast("Please select a badge or logo image (PNG, JPG, WEBP, GIF or SVG).", "error");
         return;
       }
 
@@ -812,13 +812,20 @@
         this.state.badgeFile = file;
         this.state.badgeDataUrl = await this.fileToDataUrl(file);
         this.refresh();
-        Utils.toast("Badge PNG loaded: " + file.name);
+        Utils.toast("Badge / logo loaded: " + file.name);
       } catch (e) {
         console.error(e);
         this.state.badgeFile = null;
         this.state.badgeDataUrl = "";
-        Utils.toast("Badge image could not be loaded: " + e.message, "error");
+        Utils.toast("Badge / logo could not be loaded: " + e.message, "error");
       }
+    },
+
+    clearBadge() {
+      this.state.badgeFile = null;
+      this.state.badgeDataUrl = "";
+      this.refresh();
+      Utils.toast("Uploaded badge / logo removed. The template's original artwork will be used.");
     },
 
     resolveValue(row, field) {
@@ -948,8 +955,13 @@
       const raw = String(value ?? "").trim();
       if (!raw) return "";
       if (/^(?:data:|blob:)/i.test(raw)) return raw;
+
+      // Keep an existing image proxy URL intact. Wrapping it in another
+      // images.weserv.nl request creates a nested proxy URL and returns 404.
+      if (/^https?:\/\/images\.weserv\.nl\//i.test(raw)) return raw;
+
       if (/^https?:\/\//i.test(raw) &&
-          !/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1|images\.weserv\.nl)(?::\d+)?\//i.test(raw)) {
+          !/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1)(?::\d+)?\//i.test(raw)) {
         return "https://images.weserv.nl/?url=" + encodeURIComponent(raw);
       }
       return raw;
@@ -1181,8 +1193,13 @@
           // source server omits CORS headers. Do not request the original
           // URL first, because that only produces a console error and still
           // leaves the export renderer without the image.
-          const proxyUrl = "https://images.weserv.nl/?url=" +
-            encodeURIComponent(src);
+          // buildHtmlCard may already have converted external sources
+          // to images.weserv.nl. Never proxy a proxy URL again.
+          let proxyUrl = src;
+          if (!/^https?:\/\/images\.weserv\.nl\//i.test(src)) {
+            proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
+          }
+
           const response = await fetch(proxyUrl, {
             mode: "cors",
             credentials: "omit",
@@ -1853,6 +1870,7 @@
     document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
     document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
+    document.getElementById("studentBatchBadgeInput")?.addEventListener("change", e => Batch.loadBadge(e.target.files[0]));
     document.getElementById("studentBatchPhotoEnhance")?.addEventListener("change", e => Batch.setPhotoEnhancement({enabled:e.target.checked}));
     document.getElementById("studentBatchPhotoWhiteBg")?.addEventListener("change", e => Batch.setPhotoEnhancement({whiteBackground:e.target.checked}));
     document.getElementById("studentBatchPhotoStrength")?.addEventListener("change", e => Batch.setPhotoEnhancement({strength:e.target.value}));
