@@ -33,6 +33,12 @@
       embeddedPhotos: new Map(),
       badgeFile: null,
       badgeDataUrl: "",
+      photoEnhancement: {
+        enabled: true,
+        whiteBackground: true,
+        strength: "balanced"
+      },
+      enhancedPhotoCache: new Map(),
     },
 
     notify(msg, type = "info") {
@@ -786,6 +792,7 @@
 
     async loadPhotos(files) {
       this.state.photoFiles.clear();
+      this.state.enhancedPhotoCache.clear();
       for (const file of Array.from(files || [])) {
         this.state.photoFiles.set(file.name.toLowerCase(), file);
         this.state.photoFiles.set(file.name.replace(/\.[^.]+$/, "").toLowerCase(), file);
@@ -846,6 +853,25 @@
       return /(photo|studentphoto|studentimage|picture|avatar|passport)/i.test(key) &&
         !/(badge|logo|crest|emblem|seal)/i.test(key);
     },
+    async enhanceStudentPhoto(dataUrl) {
+      if (!dataUrl || !this.state.photoEnhancement.enabled) return dataUrl;
+      const key = dataUrl;
+      const cached = this.state.enhancedPhotoCache.get(key);
+      if (cached) return cached;
+      if (!window.JoesStudentPhotoEnhancer?.process) return dataUrl;
+      try {
+        const enhanced = await window.JoesStudentPhotoEnhancer.process(dataUrl, {
+          strength: this.state.photoEnhancement.strength,
+          whiteBackground: this.state.photoEnhancement.whiteBackground
+        });
+        this.state.enhancedPhotoCache.set(key, enhanced);
+        return enhanced;
+      } catch (error) {
+        console.warn("Student photo enhancement failed; using original photo.", error);
+        return dataUrl;
+      }
+    },
+
     isBadgeField(field = "") {
       const key = this.normalize(field);
       return /(badge|logo|crest|emblem|seal)/i.test(key);
@@ -1024,7 +1050,8 @@
         } else if (isPhoto) {
           const match = srcAttr.match(/{{\s*([^{}]+?)\s*}}/) || [null, bindSrc || "photo"];
           const field = match[1] ? match[1].trim() : "photo";
-          const photoData = await this.resolvePhoto(this.resolveValue(row, field), row, field);
+          let photoData = await this.resolvePhoto(this.resolveValue(row, field), row, field);
+          if (photoData) photoData = await this.enhanceStudentPhoto(photoData);
 
           const placeholder = body.querySelector(".photo-placeholder, #photo-placeholder, #out-photo-placeholder");
           if (photoData) {
@@ -1060,7 +1087,8 @@
               await this.putImageIntoBoundElement(el, this.state.badgeDataUrl, field, row);
             }
           } else if (this.isStudentPhotoField(field)) {
-            const photoVal = await this.resolvePhoto(this.resolveValue(row, field), row, field);
+            let photoVal = await this.resolvePhoto(this.resolveValue(row, field), row, field);
+            if (photoVal) photoVal = await this.enhanceStudentPhoto(photoVal);
             if (photoVal) {
               await this.putImageIntoBoundElement(el, photoVal, field, row);
             }
@@ -1074,7 +1102,9 @@
         if (bind) {
           const value = this.resolveValue(row, bind);
           if (this.isImageField(bind)) {
-            await this.putImageIntoBoundElement(el, value, bind, row);
+            let imageValue = value;
+            if (this.isStudentPhotoField(bind) && imageValue) imageValue = await this.enhanceStudentPhoto(await this.resolvePhoto(value, row, bind));
+            await this.putImageIntoBoundElement(el, imageValue, bind, row);
           } else {
             el.textContent = this.displayValue(row, bind);
           }
@@ -1772,6 +1802,14 @@
       return image;
     },
 
+    setPhotoEnhancement(options = {}) {
+      if (Object.prototype.hasOwnProperty.call(options, "enabled")) this.state.photoEnhancement.enabled = !!options.enabled;
+      if (Object.prototype.hasOwnProperty.call(options, "whiteBackground")) this.state.photoEnhancement.whiteBackground = !!options.whiteBackground;
+      if (options.strength) this.state.photoEnhancement.strength = String(options.strength);
+      this.state.enhancedPhotoCache.clear();
+      this.refresh();
+    },
+
     cleanupPreview() {
       const host = document.getElementById("studentBatchPrintPreview");
       if (host) host.innerHTML = "";
@@ -1815,6 +1853,9 @@
     document.getElementById("studentBatchTemplateInput")?.addEventListener("change", e => Batch.loadTemplate(e.target.files[0]));
     document.getElementById("studentBatchExcelInput")?.addEventListener("change", e => Batch.loadExcel(e.target.files[0]));
     document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
+    document.getElementById("studentBatchPhotoEnhance")?.addEventListener("change", e => Batch.setPhotoEnhancement({enabled:e.target.checked}));
+    document.getElementById("studentBatchPhotoWhiteBg")?.addEventListener("change", e => Batch.setPhotoEnhancement({whiteBackground:e.target.checked}));
+    document.getElementById("studentBatchPhotoStrength")?.addEventListener("change", e => Batch.setPhotoEnhancement({strength:e.target.value}));
     document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
     document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
     document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
