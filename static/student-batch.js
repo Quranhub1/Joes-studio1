@@ -35,10 +35,13 @@
       badgeFile: null,
       badgeDataUrl: "",
       badgeLibraryId: "",
+      // Student photos are automatically optimized for card printing.
+      // This keeps faces readable on paper without altering the original
+      // uploaded files.
       photoEnhancement: {
-        enabled: false,
+        enabled: true,
         whiteBackground: false,
-        strength: "balanced"
+        strength: "strong"
       },
       enhancedPhotoCache: new Map(),
     },
