@@ -2999,7 +2999,8 @@
               if (!fontMetadata) return null;
             }
 
-            const rawBlob = await fontMetadata.blob();            const arrayBuffer = await rawBlob.arrayBuffer();
+            const rawBlob = await fontMetadata.blob();
+            const arrayBuffer = await rawBlob.arrayBuffer();
             let finalBlob = rawBlob;
             const view = new DataView(arrayBuffer);
             const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
@@ -5998,7 +5999,8 @@
                 ...comm,
                 width: w,
                 height: h,
-                fill: comm.fill,              });
+                fill: comm.fill,
+              });
             } else if (type === "star") {
               const pts = [];
               for (let i = 0; i < 10; i++) {
@@ -8997,7 +8999,8 @@
             const id = "print-iframe-sandbox";
             let f = document.getElementById(id);
             if (f) f.remove();
-            f = document.createElement("iframe");            f.id = id;
+            f = document.createElement("iframe");
+            f.id = id;
             f.style.cssText = "position:fixed;top:0;opacity:0;pointer-events:none;";
             document.body.appendChild(f);
             const doc = f.contentWindow.document;
