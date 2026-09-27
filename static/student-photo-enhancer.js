@@ -23,7 +23,11 @@
         const shadow=Math.max(0,(.68-lum)/.68);
         const deepShadow=Math.max(0,(.42-lum)/.42);
         const highlight=Math.max(0,(lum-.72)/.28);
-        const printLift=(v.exposure + shadow*v.shadows + deepShadow*v.deepShadows - highlight*v.highlights)*fg;
+        // Extra foreground illumination is intentional for dark/brown complexions and
+        // underexposed portraits. It raises facial midtones without simply whitening
+        // the whole photo or clipping the highlights.
+        const complexionLift = (v.complexionLift || 0) * Math.max(0, (0.62-lum)/0.62) * fg;
+        const printLift=(v.exposure + shadow*v.shadows + deepShadow*v.deepShadows + complexionLift - highlight*v.highlights)*fg;
         r+=255*printLift;g+=255*printLift;b+=255*printLift;
         // Gentle gamma compensation improves dark paper reproduction without
         // turning blacks into grey.
@@ -56,10 +60,11 @@
       const target=.52, gap=target-s.mean;
       return {
         brightness:gap,
-        exposure:Math.max(-.05,Math.min(.24,gap*.65+(s.darkFraction-.20)*.16))*(natural?.65:strong?1.15:1),
-        shadows:Math.max(0,Math.min(.34,(s.shadowMean<.46? .20: .10)+(s.darkFraction-.20)*.40))*(natural?.65:strong?1.18:1),
-        deepShadows:Math.max(0,Math.min(.16,(s.darkFraction>.28?.055:.025)))*(natural?.7:strong?1.15:1),
-        gamma:(natural?.985:strong?.94:.97),
+        exposure:Math.max(-.05,Math.min(.30,gap*.65+(s.darkFraction-.20)*.16))*(natural?.65:strong?1.15:1),
+        shadows:Math.max(0,Math.min(.48,(s.shadowMean<.46? .20: .10)+(s.darkFraction-.20)*.40))*(natural?.65:strong?1.18:1),
+        deepShadows:Math.max(0,Math.min(.24,(s.darkFraction>.28?.055:.025)))*(natural?.7:strong?1.15:1),
+        gamma:(natural?.985:strong?.89:.95),
+        complexionLift:(natural?.025:strong?.105:.055),
         highlights:Math.max(.04,Math.min(.24,(s.highlightFraction*.30)+.05))*(natural?.7:strong?1.1:1),
         contrast:Math.max(.98,Math.min(1.10,1+(target-s.mean)*.16+(s.std<.16?.025:0)))*(natural?.75:strong?1.08:1),
         saturation:Math.max(.94,Math.min(1.10,1+(s.saturation<.30?.045:.015)))*(natural?.8:strong?1.05:1),
