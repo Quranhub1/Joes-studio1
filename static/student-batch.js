@@ -33,6 +33,7 @@
       embeddedPhotos: new Map(),
       badgeFile: null,
       badgeDataUrl: "",
+      badgeLibraryId: "",
       photoEnhancement: {
         enabled: false,
         whiteBackground: false,
@@ -103,6 +104,7 @@
 
     open() {
       document.getElementById("studentBatchModal")?.classList.remove("hidden");
+      this.restoreSavedBadge();
       this.refresh();
     },
 
@@ -811,8 +813,16 @@
       try {
         this.state.badgeFile = file;
         this.state.badgeDataUrl = await this.fileToDataUrl(file);
+        this.state.badgeLibraryId = "";
         this.refresh();
         Utils.toast("Badge / logo loaded: " + file.name);
+
+        // Persist every uploaded badge into the reusable Template Badges library.
+        // The browser copy survives closing/reopening the application.
+        if (window.App?.templates?.saveBadgeToLibrary) {
+          const saved = await window.App.templates.saveBadgeToLibrary(file.name, this.state.badgeDataUrl, true);
+          if (saved?.id) this.state.badgeLibraryId = saved.id;
+        }
       } catch (e) {
         console.error(e);
         this.state.badgeFile = null;
@@ -824,8 +834,30 @@
     clearBadge() {
       this.state.badgeFile = null;
       this.state.badgeDataUrl = "";
+      this.state.badgeLibraryId = "";
       this.refresh();
       Utils.toast("Uploaded badge / logo removed. The template's original artwork will be used.");
+    },
+
+    useSavedBadge(name, dataUrl, id = "") {
+      if (!dataUrl) return;
+      this.state.badgeFile = { name: String(name || "Saved Template Badge"), type: "image/*" };
+      this.state.badgeDataUrl = String(dataUrl);
+      this.state.badgeLibraryId = String(id || "");
+      this.refresh();
+    },
+
+    async restoreSavedBadge() {
+      if (this.state.badgeDataUrl || !window.App?.templates?.getSavedBadges) return;
+      try {
+        const selectedId = localStorage.getItem(window.App.templates.selectedBadgeKey || "");
+        if (!selectedId) return;
+        const badges = await window.App.templates.getSavedBadges();
+        const badge = badges.find(item => item.id === selectedId);
+        if (badge) this.useSavedBadge(badge.name, badge.dataUrl, badge.id);
+      } catch (e) {
+        console.warn("Could not restore saved template badge.", e);
+      }
     },
 
     resolveValue(row, field) {
