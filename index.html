@@ -9921,22 +9921,67 @@
         
         templates: {
           data: [],
+          historyKey: "joesStudio.usedTemplates.v1",
+          history: [],
+
+          getHistory: function () {
+            try {
+              const raw = localStorage.getItem(this.historyKey);
+              const ids = raw ? JSON.parse(raw) : [];
+              return Array.isArray(ids) ? ids.filter((id) => typeof id === "string") : [];
+            } catch {
+              return [];
+            }
+          },
+
+          remember: function (id) {
+            if (!id || id === "blank_a4") return;
+            const current = this.getHistory().filter((item) => item !== id);
+            current.unshift(id);
+            this.history = current.slice(0, 30);
+            try {
+              localStorage.setItem(this.historyKey, JSON.stringify(this.history));
+            } catch (e) {
+              console.warn("Could not save template history.", e);
+            }
+          },
+
+          renderHistory: function () {
+            const grid = document.getElementById("templateGrid");
+            if (!grid) return;
+
+            const used = this.getHistory()
+              .map((id) => this.data.find((t) => t.id === id))
+              .filter(Boolean);
+
+            this.history = used.map((t) => t.id);
+            if (this.history.length === 0) {
+              grid.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center min-h-[360px] text-center px-8">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                  <i class="ph ph-clock-counter-clockwise text-2xl text-slate-400"></i>
+                </div>
+                <h3 class="font-semibold text-slate-600">No templates used yet</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-xs">Templates you open in this application will appear here automatically.</p>
+              </div>`;
+              return;
+            }
+
+            grid.innerHTML = "";
+            used.forEach((t) => {
+              const d = document.createElement("div");
+              d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
+              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${
+                t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'
+              }</div><div><h3 class="font-bold text-slate-700 text-sm">${t.name}</h3><p class="text-slate-400 text-xs">Used in this application</p></div>`;
+              d.onclick = () => this.load(t.id);
+              grid.appendChild(d);
+            });
+          },
+
           init: async function () {
             try {
               this.data = await (await fetch("./templates/templates.json")).json();
-              const grid = document.getElementById("templateGrid");
-              if (grid) {
-                grid.innerHTML = "";
-                this.data.forEach((t) => {
-                  const d = document.createElement("div");
-                  d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
-                  d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${
-                    t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'
-                  }</div><div><h3 class="font-bold text-slate-700 text-sm">${t.name}</h3><p class="text-slate-400 text-xs">${t.desc || "No description"}</p></div>`;
-                  d.onclick = () => this.load(t.id);
-                  grid.appendChild(d);
-                });
-              }
+              this.renderHistory();
             } catch {
               Utils.toast("Template loading failed", "error");
             }
@@ -9974,6 +10019,8 @@
 
             const t = this.data.find((i) => i.id === id);
             if (t?.url) {
+              // Remember the template as soon as the user opens it. The history is local to this browser.
+              this.remember(id);
               App.ui.showLoading("Downloading template...");
               try {
                 await App.dataSource.close();
