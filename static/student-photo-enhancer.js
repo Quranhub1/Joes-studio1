@@ -47,7 +47,7 @@
         highlights:Math.max(.04,Math.min(.24,(s.highlightFraction*.30)+.05))*(natural?.7:strong?1.1:1),
         contrast:Math.max(.98,Math.min(1.10,1+(target-s.mean)*.16+(s.std<.16?.025:0)))*(natural?.75:strong?1.08:1),
         saturation:Math.max(.94,Math.min(1.10,1+(s.saturation<.30?.045:.015)))*(natural?.8:strong?1.05:1),
-        temperature:Math.max(-5,Math.min(5,(s.warm-cool)*.08)),
+        temperature:Math.max(-5,Math.min(5,(s.warm-s.cool)*.08)),
         sharpness:Math.max(.10,Math.min(.42,.18+(s.std<.14?.12:0)+(s.darkFraction>.35?.05:0)))
       };
     },
