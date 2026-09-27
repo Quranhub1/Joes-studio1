@@ -7,6 +7,7 @@
     state: {
       templateFile: null,
       templateName: "",
+      templateLibraryId: "",
       templateMode: "",
       htmlText: "",
       htmlRoot: null,
@@ -145,7 +146,7 @@
       }
     },
 
-    async loadTemplate(file) {
+    async loadTemplate(file, options = {}) {
       if (!file) return;
       try {
         const text = await file.text();
@@ -155,6 +156,16 @@
 
         if (ext === "html" || ext === "htm") {
           await this.loadHtmlTemplate(text);
+
+          // A user-selected custom template is a reusable asset, not a
+          // one-time upload. Persist its actual HTML bytes in the local
+          // template library so it appears under Start from Template.
+          if (!options.fromLibrary && window.App?.templates?.saveTemplateToLibrary) {
+            const saved = await window.App.templates.saveTemplateToLibrary(file.name, text, "html");
+            if (saved?.id) this.state.templateLibraryId = saved.id;
+          } else {
+            this.state.templateLibraryId = String(options.libraryId || "");
+          }
         } else {
           const data = JSON.parse(text);
           if (!data || (!data.canvasData && !data.objects && !data.settings)) {
@@ -169,6 +180,14 @@
           this.state.cardHeightMm = this.getPaperHeightMm();
           this.state.mapping = this.autoMapPaper();
           this.refresh();
+
+          if (!options.fromLibrary && window.App?.templates?.saveTemplateToLibrary) {
+            const saved = await window.App.templates.saveTemplateToLibrary(file.name, text, "paper");
+            if (saved?.id) this.state.templateLibraryId = saved.id;
+          } else {
+            this.state.templateLibraryId = String(options.libraryId || "");
+          }
+
           this.notify("Paper template loaded: " + file.name);
         }
       } catch (e) {
