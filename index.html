@@ -10593,9 +10593,38 @@
             });
           },
 
+          discoverRepositoryHtmlTemplates: async function () {
+            try {
+              const api = "https://api.github.com/repos/Quranhub1/Joes-studio1/contents/templates?ref=main&ts=" + Date.now();
+              const response = await fetch(api, { cache: "no-store", headers: { "Accept": "application/vnd.github+json" } });
+              if (!response.ok) throw new Error("Template directory HTTP " + response.status);
+              const files = await response.json();
+              if (!Array.isArray(files)) return;
+              const existing = new Set((this.data || []).map(t => String(t.url || "").toLowerCase()));
+              files.filter(file => file && file.type === "file" && /\.html?$/i.test(file.name || "")).forEach(file => {
+                const path = "templates/" + file.name;
+                const url = "./templates/" + file.name.split("/").map(encodeURIComponent).join("/");
+                if (existing.has(url.toLowerCase())) return;
+                const id = "repo_html_" + path.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "").toLowerCase();
+                if ((this.data || []).some(t => t.id === id)) return;
+                this.data.push({
+                  id,
+                  name: file.name.replace(/\.html?$/i, "").replace(/[-_]+/g, " ").replace(/\b\w/g, m => m.toUpperCase()),
+                  desc: "HTML template • stored in templates/",
+                  type: "html",
+                  url,
+                  repoPath: path,
+                  source: "repository"
+                });
+              });
+            } catch (error) {
+              console.warn("Could not discover HTML templates in templates/:", error);
+            }
+          },
           init: async function () {
             try {
               this.data = await (await fetch("./templates/templates.json?ts=" + Date.now())).json();
+              await this.discoverRepositoryHtmlTemplates();
               this.syncGitHubStatus();
               await this.setStartTab("templates");
             } catch {
