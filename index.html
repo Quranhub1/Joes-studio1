@@ -588,7 +588,9 @@
                 <i class="ph ph-images mr-1"></i> Template Badges
               </button>
             </div>
+            <button id="githubTemplateConnectBtn" type="button" onclick="App.templates.connectGitHub()" class="ml-2 px-3 py-1.5 rounded-md bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition"><i class="ph ph-github-logo mr-1"></i> Connect GitHub</button>
           </div>
+          <div class="px-1 pb-2 -mt-2"><span id="githubTemplateStatus" class="text-[10px] text-slate-400">GitHub not connected</span></div>
           <div id="templateGrid" class="grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar"></div>
         </div>
       </div>
@@ -2997,8 +2999,7 @@
               if (!fontMetadata) return null;
             }
 
-            const rawBlob = await fontMetadata.blob();
-            const arrayBuffer = await rawBlob.arrayBuffer();
+            const rawBlob = await fontMetadata.blob();            const arrayBuffer = await rawBlob.arrayBuffer();
             let finalBlob = rawBlob;
             const view = new DataView(arrayBuffer);
             const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
@@ -5997,8 +5998,7 @@
                 ...comm,
                 width: w,
                 height: h,
-                fill: comm.fill,
-              });
+                fill: comm.fill,              });
             } else if (type === "star") {
               const pts = [];
               for (let i = 0; i < 10; i++) {
@@ -8997,8 +8997,7 @@
             const id = "print-iframe-sandbox";
             let f = document.getElementById(id);
             if (f) f.remove();
-            f = document.createElement("iframe");
-            f.id = id;
+            f = document.createElement("iframe");            f.id = id;
             f.style.cssText = "position:fixed;top:0;opacity:0;pointer-events:none;";
             document.body.appendChild(f);
             const doc = f.contentWindow.document;
@@ -9972,6 +9971,276 @@
           savedTemplates: [],
           activeStartTab: "templates",
 
+          githubConfig: {
+            owner: "Quranhub1",
+            repo: "Joes-studio1",
+            branch: "main",
+            repositoryId: "1355275775",
+            clientIdKey: "joesStudio.githubAppClientId.v1",
+            tokenKey: "joesStudio.githubAppToken.v1"
+          },
+
+          getGitHubToken: function () {
+            try { return sessionStorage.getItem(this.githubConfig.tokenKey) || ""; } catch (_) { return ""; }
+          },
+
+          setGitHubToken: function (token) {
+            try {
+              if (token) sessionStorage.setItem(this.githubConfig.tokenKey, token);
+              else sessionStorage.removeItem(this.githubConfig.tokenKey);
+            } catch (_) {}
+          },
+
+          setGitHubStatus: function (text, connected = false) {
+            const el = document.getElementById("githubTemplateStatus");
+            if (el) {
+              el.textContent = text;
+              el.className = connected
+                ? "text-[10px] text-emerald-600 font-semibold"
+                : "text-[10px] text-slate-400";
+            }
+          },
+
+          getGitHubClientId: function () {
+            try { return localStorage.getItem(this.githubConfig.clientIdKey) || ""; } catch (_) { return ""; }
+          },
+
+          githubHeaders: function (token = this.getGitHubToken()) {
+            const headers = {
+              "Accept": "application/vnd.github+json",
+              "Content-Type": "application/json",
+              "X-GitHub-Api-Version": "2026-03-10"
+            };
+            if (token) headers.Authorization = "Bearer " + token;
+            return headers;
+          },
+
+          githubApi: async function (path, options = {}) {
+            const response = await fetch("https://api.github.com" + path, {
+              ...options,
+              headers: { ...this.githubHeaders(), ...(options.headers || {}) }
+            });
+            let data = null;
+            try { data = await response.json(); } catch (_) {}
+            if (!response.ok) {
+              const err = new Error(data?.message || ("GitHub API error " + response.status));
+              err.status = response.status;
+              throw err;
+            }
+            return data;
+          },
+
+          githubBase64Encode: function (text) {
+            const bytes = new TextEncoder().encode(String(text ?? ""));
+            let binary = "";
+            for (let i = 0; i < bytes.length; i += 0x8000) {
+              binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+            }
+            return btoa(binary);
+          },
+
+          githubFileFromDataUrl: function (dataUrl) {
+            const raw = String(dataUrl || "");
+            const comma = raw.indexOf(",");
+            if (comma < 0) return this.githubBase64Encode(raw);
+            const meta = raw.slice(0, comma);
+            const body = raw.slice(comma + 1);
+            return /;base64/i.test(meta) ? body.replace(/\s/g, "") : this.githubBase64Encode(decodeURIComponent(body));
+          },
+
+          githubSafeName: function (name, fallback = "template") {
+            let base = String(name || fallback).trim().replace(/\.(html?|htm)$/i, "");
+            base = base.replace(/[^a-z0-9._-]+/gi, "_").replace(/^\.+|\.+$/g, "");
+            return (base || fallback).slice(0, 120);
+          },
+
+          githubGetFile: async function (path) {
+            const encoded = path.split("/").map(encodeURIComponent).join("/");
+            try {
+              return await this.githubApi("/repos/" + this.githubConfig.owner + "/" + this.githubConfig.repo + "/contents/" + encoded + "?ref=" + encodeURIComponent(this.githubConfig.branch));
+            } catch (e) {
+              if (e.status === 404) return null;
+              throw e;
+            }
+          },
+
+          githubPutFile: async function (path, base64Content, message) {
+            const current = await this.githubGetFile(path);
+            const body = {
+              message: message || ("Joes Studio: update " + path),
+              content: base64Content,
+              branch: this.githubConfig.branch
+            };
+            if (current?.sha) body.sha = current.sha;
+            return await this.githubApi(
+              "/repos/" + this.githubConfig.owner + "/" + this.githubConfig.repo + "/contents/" + path.split("/").map(encodeURIComponent).join("/"),
+              { method: "PUT", body: JSON.stringify(body) }
+            );
+          },
+
+          githubDeleteFile: async function (path, message) {
+            const current = await this.githubGetFile(path);
+            if (!current?.sha) return;
+            await this.githubApi(
+              "/repos/" + this.githubConfig.owner + "/" + this.githubConfig.repo + "/contents/" + path.split("/").map(encodeURIComponent).join("/"),
+              {
+                method: "DELETE",
+                body: JSON.stringify({
+                  message: message || ("Joes Studio: delete " + path),
+                  sha: current.sha,
+                  branch: this.githubConfig.branch
+                })
+              }
+            );
+          },
+
+          connectGitHub: async function () {
+            let clientId = this.getGitHubClientId();
+            if (!clientId) {
+              clientId = window.prompt(
+                "Enter your GitHub App Client ID. The App must have Device Flow enabled and Contents: Read and write permission, then be installed on Quranhub1/Joes-studio1."
+              );
+              if (!clientId) return;
+              clientId = clientId.trim();
+              if (!clientId) return;
+              try { localStorage.setItem(this.githubConfig.clientIdKey, clientId); } catch (_) {}
+            }
+
+            this.setGitHubStatus("Connecting to GitHub...");
+            App.ui.showLoading("Connecting Joes Studio to GitHub...");
+
+            try {
+              const codeResponse = await fetch(
+                "https://github.com/login/device/code?client_id=" + encodeURIComponent(clientId),
+                {
+                  method: "POST",
+                  headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+                  body: ""
+                }
+              );
+              const code = await codeResponse.json();
+              if (!codeResponse.ok || !code.device_code) {
+                throw new Error(code.error_description || code.error || "GitHub device authorization failed.");
+              }
+
+              const verifyUrl = code.verification_uri || "https://github.com/login/device";
+              try { await navigator.clipboard?.writeText(code.user_code || ""); } catch (_) {}
+              window.open(verifyUrl, "_blank", "noopener,noreferrer");
+              Utils.toast("GitHub opened. Enter code " + code.user_code + " to authorize Joes Studio.", "info");
+
+              let interval = Math.max(5, Number(code.interval) || 5);
+              const deadline = Date.now() + Math.max(60, Number(code.expires_in) || 900) * 1000;
+              let tokenData = null;
+
+              while (Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, interval * 1000));
+                const params = new URLSearchParams({
+                  client_id: clientId,
+                  device_code: code.device_code,
+                  grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+                  repository_id: this.githubConfig.repositoryId
+                });
+                const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+                  method: "POST",
+                  headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+                  body: params.toString()
+                });
+                tokenData = await tokenResponse.json();
+                if (tokenData.access_token) break;
+                if (tokenData.error === "slow_down") interval = Math.max(interval + 5, Number(tokenData.interval) || interval + 5);
+                else if (tokenData.error === "access_denied") throw new Error("GitHub authorization was cancelled.");
+                else if (tokenData.error === "expired_token") throw new Error("The GitHub authorization code expired.");
+                else if (tokenData.error !== "authorization_pending") throw new Error(tokenData.error_description || tokenData.error || "GitHub authorization failed.");
+              }
+
+              if (!tokenData?.access_token) throw new Error("GitHub authorization timed out.");
+
+              this.setGitHubToken(tokenData.access_token);
+              const user = await this.githubApi("/user");
+              if (String(user.login || "").toLowerCase() !== this.githubConfig.owner.toLowerCase()) {
+                this.setGitHubToken("");
+                throw new Error("Authorize with the GitHub account that owns " + this.githubConfig.owner + ".");
+              }
+
+              const repoInfo = await this.githubApi("/repos/" + this.githubConfig.owner + "/" + this.githubConfig.repo);
+              if (!repoInfo?.permissions?.push && !repoInfo?.permissions?.admin && !repoInfo?.permissions?.maintain) {
+                this.setGitHubToken("");
+                throw new Error("The connected GitHub App/user cannot write to this repository.");
+              }
+
+              this.setGitHubStatus("GitHub connected • templates sync automatically", true);
+              Utils.toast("GitHub connected. Templates and badges will now save into the repository.", "success");
+              await this.renderHistory();
+            } catch (e) {
+              console.error("GitHub connection failed", e);
+              this.setGitHubToken("");
+              this.setGitHubStatus("GitHub not connected");
+              Utils.toast("GitHub connection failed: " + (e.message || "Unknown error"), "error");
+            } finally {
+              App.ui.hideLoading();
+            }
+          },
+
+          disconnectGitHub: function () {
+            this.setGitHubToken("");
+            this.setGitHubStatus("GitHub not connected");
+            Utils.toast("GitHub connection removed from this browser.", "info");
+          },
+
+          syncGitHubStatus: function () {
+            const token = this.getGitHubToken();
+            this.setGitHubStatus(token ? "GitHub connected • templates sync automatically" : "GitHub not connected", !!token);
+          },
+
+          saveTemplateToGitHub: async function (name, content) {
+            if (!this.getGitHubToken()) return null;
+            const fileName = this.githubSafeName(name, "saved_template") + ".html";
+            const path = "templates/" + fileName;
+
+            await this.githubPutFile(path, this.githubBase64Encode(content), "Joes Studio: save HTML template " + fileName);
+
+            const entries = [...(Array.isArray(this.data) ? this.data : [])];
+            const id = "github-html-" + fileName.replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
+            const entry = { id, name: fileName, type: "html", url: "./templates/" + fileName, source: "github" };
+            const existingIndex = entries.findIndex(item => item.id === id || item.url === entry.url);
+            if (existingIndex >= 0) entries[existingIndex] = { ...entries[existingIndex], ...entry };
+            else entries.push(entry);
+
+            await this.githubPutFile(
+              "templates/templates.json",
+              this.githubBase64Encode(JSON.stringify(entries, null, 2)),
+              "Joes Studio: register HTML template " + fileName
+            );
+            this.data = entries;
+            return { path, name: fileName, id };
+          },
+
+          getRemoteBadges: async function () {
+            try {
+              const response = await fetch(
+                "https://api.github.com/repos/" + this.githubConfig.owner + "/" + this.githubConfig.repo + "/contents/templates/badges?ref=" + encodeURIComponent(this.githubConfig.branch),
+                { headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10" } }
+              );
+              if (!response.ok) return [];
+              const items = await response.json();
+              return Array.isArray(items) ? items.filter(item => item.type === "file" && /\.(?:png|jpe?g|webp|gif|svg)$/i.test(item.name || "")) : [];
+            } catch (_) {
+              return [];
+            }
+          },
+
+          saveBadgeToGitHub: async function (name, dataUrl) {
+            if (!this.getGitHubToken()) return null;
+            const extMatch = String(name || "").match(/\.(png|jpe?g|webp|gif|svg)$/i);
+            const ext = extMatch ? "." + extMatch[1].toLowerCase() : ".png";
+            const base = this.githubSafeName(String(name || "template_badge").replace(/\.[^.]+$/, ""), "template_badge");
+            const fileName = base + ext;
+            const path = "templates/badges/" + fileName;
+            await this.githubPutFile(path, this.githubFileFromDataUrl(dataUrl), "Joes Studio: save template badge " + fileName);
+            return { id: "github-badge-" + fileName, name: fileName, path, remote: true, remotePath: path };
+          },
+
+
           getHistory: function () {
             try {
               const raw = localStorage.getItem(this.historyKey);
@@ -10090,6 +10359,13 @@
               }
             }
 
+            try {
+              await this.saveTemplateToGitHub(cleanName, cleanContent);
+            } catch (e) {
+              console.error("GitHub template sync failed", e);
+              Utils.toast("Template saved locally, but GitHub sync failed: " + (e.message || "Unknown error"), "error");
+            }
+
             await this.renderHistory();
             return item;
           },
@@ -10163,29 +10439,38 @@
           },
 
           getSavedBadges: async function () {
+            let local = [];
             try {
               const db = await this.openBadgeDb();
-              return await new Promise((resolve, reject) => {
+              local = await new Promise((resolve, reject) => {
                 const tx = db.transaction(this.badgeStoreName, "readonly");
                 const request = tx.objectStore(this.badgeStoreName).getAll();
-                request.onsuccess = () => {
-                  db.close();
-                  resolve((request.result || []).sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0)));
-                };
-                request.onerror = () => {
-                  db.close();
-                  reject(request.error);
-                };
+                request.onsuccess = () => { db.close(); resolve(request.result || []); };
+                request.onerror = () => { db.close(); reject(request.error); };
               });
             } catch (_) {
               try {
                 const raw = localStorage.getItem(this.badgeFallbackKey);
                 const items = raw ? JSON.parse(raw) : [];
-                return Array.isArray(items) ? items : [];
-              } catch {
-                return [];
-              }
+                local = Array.isArray(items) ? items : [];
+              } catch (_) { local = []; }
             }
+
+            const remote = await this.getRemoteBadges();
+            const merged = [...local];
+            remote.forEach(file => {
+              if (!merged.some(item => item.remotePath === file.path)) {
+                merged.push({
+                  id: "github-badge-" + file.name,
+                  name: file.name,
+                  dataUrl: file.download_url || file.html_url,
+                  updatedAt: Date.now(),
+                  remote: true,
+                  remotePath: file.path
+                });
+              }
+            });
+            return merged.sort((a,b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0));
           },
 
           saveBadgeToLibrary: async function (name, dataUrl, selectAfterSave = true) {
@@ -10240,6 +10525,14 @@
               }
             }
 
+            try {
+              const remote = await this.saveBadgeToGitHub(cleanName, cleanData);
+              if (remote) item = { ...item, ...remote };
+            } catch (e) {
+              console.error("GitHub badge sync failed", e);
+              Utils.toast("Badge saved locally, but GitHub sync failed: " + (e.message || "Unknown error"), "error");
+            }
+
             if (selectAfterSave) {
               try { localStorage.setItem(this.selectedBadgeKey, item.id); } catch (_) {}
               if (window.JoesStudentBatch?.useSavedBadge) {
@@ -10263,6 +10556,16 @@
           },
 
           deleteBadge: async function (id) {
+            const current = (await this.getSavedBadges()).find(item => item.id === id);
+            if (current?.remote && current.remotePath && this.getGitHubToken()) {
+              try {
+                await this.githubDeleteFile(current.remotePath, "Joes Studio: delete template badge " + current.name);
+              } catch (e) {
+                console.error("GitHub badge delete failed", e);
+                Utils.toast("Could not delete the GitHub badge: " + (e.message || "Unknown error"), "error");
+                return;
+              }
+            }
             try {
               const db = await this.openBadgeDb();
               await new Promise((resolve, reject) => {
@@ -10472,7 +10775,8 @@
 
           init: async function () {
             try {
-              this.data = await (await fetch("./templates/templates.json")).json();
+              this.data = await (await fetch("./templates/templates.json?ts=" + Date.now())).json();
+              this.syncGitHubStatus();
               await this.setStartTab("templates");
             } catch {
               Utils.toast("Template loading failed", "error");
