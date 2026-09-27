@@ -588,9 +588,7 @@
                 <i class="ph ph-images mr-1"></i> Template Badges
               </button>
             </div>
-            <button id="githubTemplateConnectBtn" type="button" onclick="App.templates.connectGitHub()" class="ml-2 px-3 py-1.5 rounded-md bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition"><i class="ph ph-github-logo mr-1"></i> Connect GitHub</button>
           </div>
-          <div class="px-1 pb-2 -mt-2"><span id="githubTemplateStatus" class="text-[10px] text-slate-400">GitHub not connected</span></div>
           <div id="templateGrid" class="grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar"></div>
         </div>
       </div>
@@ -10191,31 +10189,36 @@
           },
 
           syncGitHubStatus: function () {
-            const token = this.getGitHubToken();
-            this.setGitHubStatus(token ? "GitHub connected • templates sync automatically" : "GitHub not connected", !!token);
+            // Central template storage is handled by the Vercel writer service.
+            // No GitHub account, client ID, or token is required in the browser.
           },
 
           saveTemplateToGitHub: async function (name, content) {
-            if (!this.getGitHubToken()) return null;
-            const fileName = this.githubSafeName(name, "saved_template") + ".html";
-            const path = "templates/" + fileName;
+            const apiBase = window.location.hostname.endsWith("vercel.app")
+              ? ""
+              : "https://joes-studio1.vercel.app";
+            const response = await fetch(apiBase + "/api/templates/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, content })
+            });
+            let result = null;
+            try { result = await response.json(); } catch (_) {}
+            if (!response.ok || !result?.ok) {
+              throw new Error(result?.error || ("Template writer returned HTTP " + response.status));
+            }
 
-            await this.githubPutFile(path, this.githubBase64Encode(content), "Joes Studio: save HTML template " + fileName);
-
-            const entries = [...(Array.isArray(this.data) ? this.data : [])];
-            const id = "github-html-" + fileName.replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
-            const entry = { id, name: fileName, type: "html", url: "./templates/" + fileName, source: "github" };
-            const existingIndex = entries.findIndex(item => item.id === id || item.url === entry.url);
-            if (existingIndex >= 0) entries[existingIndex] = { ...entries[existingIndex], ...entry };
-            else entries.push(entry);
-
-            await this.githubPutFile(
-              "templates/templates.json",
-              this.githubBase64Encode(JSON.stringify(entries, null, 2)),
-              "Joes Studio: register HTML template " + fileName
-            );
-            this.data = entries;
-            return { path, name: fileName, id };
+            const entry = result.entry || {
+              id: "github-html-" + result.fileName,
+              name: result.fileName,
+              type: "html",
+              url: "./templates/" + result.fileName,
+              source: "github"
+            };
+            const existingIndex = this.data.findIndex(item => item.id === entry.id || item.url === entry.url);
+            if (existingIndex >= 0) this.data[existingIndex] = { ...this.data[existingIndex], ...entry };
+            else this.data.push(entry);
+            return { path: result.path, name: result.fileName, id: entry.id };
           },
 
           getRemoteBadges: async function () {
@@ -10233,14 +10236,27 @@
           },
 
           saveBadgeToGitHub: async function (name, dataUrl) {
-            if (!this.getGitHubToken()) return null;
-            const extMatch = String(name || "").match(/\.(png|jpe?g|webp|gif|svg)$/i);
-            const ext = extMatch ? "." + extMatch[1].toLowerCase() : ".png";
-            const base = this.githubSafeName(String(name || "template_badge").replace(/\.[^.]+$/, ""), "template_badge");
-            const fileName = base + ext;
-            const path = "templates/badges/" + fileName;
-            await this.githubPutFile(path, this.githubFileFromDataUrl(dataUrl), "Joes Studio: save template badge " + fileName);
-            return { id: "github-badge-" + fileName, name: fileName, path, remote: true, remotePath: path };
+            const apiBase = window.location.hostname.endsWith("vercel.app")
+              ? ""
+              : "https://joes-studio1.vercel.app";
+            const response = await fetch(apiBase + "/api/badges/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, dataUrl })
+            });
+            let result = null;
+            try { result = await response.json(); } catch (_) {}
+            if (!response.ok || !result?.ok) {
+              throw new Error(result?.error || ("Badge writer returned HTTP " + response.status));
+            }
+            return {
+              id: result.id,
+              name: result.fileName,
+              path: result.path,
+              remote: true,
+              remotePath: result.path,
+              dataUrl: result.url
+            };
           },
 
 
