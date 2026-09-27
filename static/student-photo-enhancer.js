@@ -3,7 +3,9 @@
   const E={
     async process(src,opt={}){
       const im=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src;});
-      const max=Math.max(480,Math.min(1400,Number(opt.maxSide)||1200));
+      // Preserve enough pixels for card-sized 300 DPI output. Downscaling is only
+      // used for unusually huge source photos to keep browser memory reasonable.
+      const max=Math.max(1200,Math.min(2400,Number(opt.maxSide)||2400));
       const scale=Math.min(1,max/Math.max(im.naturalWidth||im.width,im.naturalHeight||im.height));
       const w=Math.max(1,Math.round((im.naturalWidth||im.width)*scale)),h=Math.max(1,Math.round((im.naturalHeight||im.height)*scale));
       const c=document.createElement("canvas");c.width=w;c.height=h;
@@ -16,9 +18,21 @@
         const i=p*4,fg=1-mask[p];
         let r=srcData.data[i],g=srcData.data[i+1],b=srcData.data[i+2];
         const lum=(.2126*r+.7152*g+.0722*b)/255;
-        const shadow=Math.max(0,(.62-lum)/.62), highlight=Math.max(0,(lum-.68)/.32);
-        const lift=(v.exposure+shadow*v.shadows-highlight*v.highlights)*fg;
-        r+=255*lift;g+=255*lift;b+=255*lift;
+        // Print media loses perceived brightness in the shadows. Lift dark
+        // midtones adaptively while protecting highlights and skin detail.
+        const shadow=Math.max(0,(.68-lum)/.68);
+        const deepShadow=Math.max(0,(.42-lum)/.42);
+        const highlight=Math.max(0,(lum-.72)/.28);
+        const printLift=(v.exposure + shadow*v.shadows + deepShadow*v.deepShadows - highlight*v.highlights)*fg;
+        r+=255*printLift;g+=255*printLift;b+=255*printLift;
+        // Gentle gamma compensation improves dark paper reproduction without
+        // turning blacks into grey.
+        if (fg > .5) {
+          const gamma = v.gamma;
+          r=255*Math.pow(Math.max(0,r/255),gamma);
+          g=255*Math.pow(Math.max(0,g/255),gamma);
+          b=255*Math.pow(Math.max(0,b/255),gamma);
+        }
         r=((r/255-.5)*v.contrast+.5)*255;g=((g/255-.5)*v.contrast+.5)*255;b=((b/255-.5)*v.contrast+.5)*255;
         const mx=Math.max(r,g,b),mn=Math.min(r,g,b),delta=mx-mn;
         if(delta>1){
@@ -35,7 +49,7 @@
       }
       ctx.putImageData(new ImageData(out,w,h),0,0);
       if(v.sharpness>0) this.sharpen(ctx,w,h,v.sharpness,mask);
-      return c.toDataURL("image/jpeg",.94);
+      return c.toDataURL("image/jpeg",.97);
     },
     calculate(s,mode){
       const natural=mode==="natural",strong=mode==="strong";
@@ -43,7 +57,9 @@
       return {
         brightness:gap,
         exposure:Math.max(-.05,Math.min(.24,gap*.65+(s.darkFraction-.20)*.16))*(natural?.65:strong?1.15:1),
-        shadows:Math.max(0,Math.min(.30,(s.shadowMean<.46? .18: .08)+(s.darkFraction-.20)*.35))*(natural?.65:strong?1.15:1),
+        shadows:Math.max(0,Math.min(.34,(s.shadowMean<.46? .20: .10)+(s.darkFraction-.20)*.40))*(natural?.65:strong?1.18:1),
+        deepShadows:Math.max(0,Math.min(.16,(s.darkFraction>.28?.055:.025)))*(natural?.7:strong?1.15:1),
+        gamma:(natural?.985:strong?.94:.97),
         highlights:Math.max(.04,Math.min(.24,(s.highlightFraction*.30)+.05))*(natural?.7:strong?1.1:1),
         contrast:Math.max(.98,Math.min(1.10,1+(target-s.mean)*.16+(s.std<.16?.025:0)))*(natural?.75:strong?1.08:1),
         saturation:Math.max(.94,Math.min(1.10,1+(s.saturation<.30?.045:.015)))*(natural?.8:strong?1.05:1),
