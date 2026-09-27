@@ -570,7 +570,25 @@
           <i class="ph ph-scroll absolute -bottom-5 -right-10 text-[200px] text-slate-800 opacity-50 rotate-12"></i>
         </div>
         <div class="w-2/3 p-8 bg-gray-50 flex flex-col">
-          <h2 class="text-lg font-bold text-slate-800 mb-4 flex justify-between items-center">Start from Template</h2>
+          <div class="flex items-center justify-between gap-4 mb-4">
+            <h2 id="startFromTemplateTitle" class="text-lg font-bold text-slate-800">Start from Template</h2>
+            <div class="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+              <button
+                id="templateStartTab"
+                type="button"
+                onclick="App.templates.setStartTab('templates')"
+                class="px-3 py-1.5 rounded-md bg-slate-800 text-white text-xs font-semibold transition">
+                <i class="ph ph-files mr-1"></i> Templates
+              </button>
+              <button
+                id="templateBadgeTab"
+                type="button"
+                onclick="App.templates.setStartTab('badges')"
+                class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold transition">
+                <i class="ph ph-images mr-1"></i> Template Badges
+              </button>
+            </div>
+          </div>
           <div id="templateGrid" class="grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar"></div>
         </div>
       </div>
