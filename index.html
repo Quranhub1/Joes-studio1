@@ -9965,7 +9965,11 @@
           badgeStoreName: "badges",
           badgeFallbackKey: "joesStudio.templateBadges.fallback.v1",
           selectedBadgeKey: "joesStudio.selectedTemplateBadge.v1",
+          templateDbName: "joesStudioTemplateLibrary.v1",
+          templateStoreName: "templates",
+          templateFallbackKey: "joesStudio.templateLibrary.fallback.v1",
           history: [],
+          savedTemplates: [],
           activeStartTab: "templates",
 
           getHistory: function () {
@@ -9987,6 +9991,159 @@
               localStorage.setItem(this.historyKey, JSON.stringify(this.history));
             } catch (e) {
               console.warn("Could not save template history.", e);
+            }
+          },
+
+          openTemplateDb: function () {
+            if (!window.indexedDB) return Promise.reject(new Error("IndexedDB unavailable"));
+            return new Promise((resolve, reject) => {
+              const request = indexedDB.open(this.templateDbName, 1);
+              request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(this.templateStoreName)) {
+                  db.createObjectStore(this.templateStoreName, { keyPath: "id" });
+                }
+              };
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error || new Error("Template database could not be opened"));
+            });
+          },
+
+          getSavedTemplates: async function () {
+            try {
+              const db = await this.openTemplateDb();
+              return await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.templateStoreName, "readonly");
+                const request = tx.objectStore(this.templateStoreName).getAll();
+                request.onsuccess = () => {
+                  db.close();
+                  resolve((request.result || []).sort((a, b) =>
+                    Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0)
+                  ));
+                };
+                request.onerror = () => {
+                  db.close();
+                  reject(request.error);
+                };
+              });
+            } catch (_) {
+              try {
+                const raw = localStorage.getItem(this.templateFallbackKey);
+                const items = raw ? JSON.parse(raw) : [];
+                return Array.isArray(items) ? items : [];
+              } catch {
+                return [];
+              }
+            }
+          },
+
+          saveTemplateToLibrary: async function (name, content, type = "html") {
+            const cleanName = String(name || "Saved Template").trim() || "Saved Template";
+            const cleanContent = String(content || "");
+            if (!cleanContent.trim()) return null;
+
+            const now = Date.now();
+            const current = await this.getSavedTemplates();
+            const existing = current.find(item =>
+              item.content === cleanContent && String(item.type || "html") === String(type || "html")
+            );
+
+            const item = existing
+              ? { ...existing, name: cleanName, updatedAt: now }
+              : {
+                  id: "template-" + now + "-" + Math.random().toString(36).slice(2, 9),
+                  name: cleanName,
+                  type: String(type || "html"),
+                  content: cleanContent,
+                  createdAt: now,
+                  updatedAt: now
+                };
+
+            try {
+              const db = await this.openTemplateDb();
+              await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.templateStoreName, "readwrite");
+                tx.objectStore(this.templateStoreName).put(item);
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => { db.close(); reject(tx.error); };
+              });
+
+              const after = await this.getSavedTemplates();
+              const remove = after.slice(50);
+              if (remove.length) {
+                const db2 = await this.openTemplateDb();
+                await new Promise((resolve, reject) => {
+                  const tx = db2.transaction(this.templateStoreName, "readwrite");
+                  const store = tx.objectStore(this.templateStoreName);
+                  remove.forEach(entry => store.delete(entry.id));
+                  tx.oncomplete = () => { db2.close(); resolve(); };
+                  tx.onerror = () => { db2.close(); reject(tx.error); };
+                });
+              }
+            } catch (_) {
+              try {
+                const fallback = (await this.getSavedTemplates()).filter(entry => entry.id !== item.id);
+                fallback.unshift(item);
+                localStorage.setItem(this.templateFallbackKey, JSON.stringify(fallback.slice(0, 20)));
+              } catch (e) {
+                console.warn("Could not persist saved template locally.", e);
+              }
+            }
+
+            await this.renderHistory();
+            return item;
+          },
+
+          deleteSavedTemplate: async function (id) {
+            try {
+              const db = await this.openTemplateDb();
+              await new Promise((resolve, reject) => {
+                const tx = db.transaction(this.templateStoreName, "readwrite");
+                tx.objectStore(this.templateStoreName).delete(id);
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => { db.close(); reject(tx.error); };
+              });
+            } catch (_) {
+              try {
+                const items = await this.getSavedTemplates();
+                localStorage.setItem(this.templateFallbackKey, JSON.stringify(items.filter(item => item.id !== id)));
+              } catch (e) {
+                console.warn("Could not delete saved template.", e);
+              }
+            }
+            await this.renderHistory();
+          },
+
+          loadSavedTemplate: async function (id) {
+            const templates = await this.getSavedTemplates();
+            const item = templates.find(entry => entry.id === id);
+            if (!item) return;
+
+            try { localStorage.setItem("joesStudio.selectedTemplate.v1", item.id); } catch (_) {}
+
+            if (String(item.type || "html") === "html") {
+              if (!window.JoesStudentBatch) {
+                Utils.toast("Student Batch is not available yet.", "error");
+                return;
+              }
+              App.ui.hideModal("welcomeModal");
+              JoesStudentBatch.open();
+              const file = new File(
+                [item.content],
+                item.name,
+                { type: "text/html", lastModified: Date.now() }
+              );
+              await JoesStudentBatch.loadTemplate(file, { fromLibrary: true, libraryId: item.id });
+            } else {
+              const data = JSON.parse(item.content);
+              App.ui.hideModal("welcomeModal");
+              App.dataSource.close();
+              App.ui.showLoading("Opening saved template...");
+              try {
+                await App.io.loadProjectData(data);
+              } finally {
+                App.ui.hideLoading();
+              }
             }
           },
 
@@ -10160,7 +10317,7 @@
             else this.renderHistory();
           },
 
-          renderHistory: function () {
+          renderHistory: async function () {
             const grid = document.getElementById("templateGrid");
             if (!grid) return;
 
@@ -10168,27 +10325,85 @@
               .map((id) => this.data.find((t) => t.id === id))
               .filter(Boolean);
 
+            const saved = await this.getSavedTemplates();
+            this.savedTemplates = saved;
             this.history = used.map((t) => t.id);
-            if (this.history.length === 0) {
+
+            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar";
+            grid.innerHTML = "";
+
+            if (!used.length && !saved.length) {
               grid.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center min-h-[360px] text-center px-8">
                 <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <i class="ph ph-clock-counter-clockwise text-2xl text-slate-400"></i>
+                  <i class="ph ph-files text-2xl text-slate-400"></i>
                 </div>
-                <h3 class="font-semibold text-slate-600">No templates used yet</h3>
-                <p class="text-xs text-slate-400 mt-1 max-w-xs">Templates you open in this application will appear here automatically.</p>
+                <h3 class="font-semibold text-slate-600">No saved templates yet</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-md">Open a template or upload one in Student Batch. Uploaded templates are saved on this device for reuse.</p>
               </div>`;
               return;
             }
 
-            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar";
-            grid.innerHTML = "";
-            used.forEach((t) => {
-              const d = document.createElement("div");
-              d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
-              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'}</div><div><h3 class="font-bold text-slate-700 text-sm">${escapeHtml(t.name)}</h3><p class="text-slate-400 text-xs">Used in this application</p></div>`;
-              d.onclick = () => this.load(t.id);
-              grid.appendChild(d);
-            });
+            if (used.length) {
+              const heading = document.createElement("div");
+              heading.className = "col-span-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-1";
+              heading.textContent = "Recently Used";
+              grid.appendChild(heading);
+
+              used.forEach((t) => {
+                const d = document.createElement("div");
+                d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
+                d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'}</div><div><h3 class="font-bold text-slate-700 text-sm">${escapeHtml(t.name)}</h3><p class="text-slate-400 text-xs">Built-in template</p></div>`;
+                d.onclick = () => this.load(t.id);
+                grid.appendChild(d);
+              });
+            }
+
+            if (saved.length) {
+              const heading = document.createElement("div");
+              heading.className = "col-span-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-3";
+              heading.textContent = "Saved on This Device";
+              grid.appendChild(heading);
+
+              saved.forEach((item) => {
+                const card = document.createElement("div");
+                card.className = "bg-white p-3 rounded-xl border border-gray-200 flex flex-col gap-3";
+
+                const preview = document.createElement("div");
+                preview.className = "h-36 rounded-lg overflow-hidden border border-gray-100 bg-slate-50 flex items-center justify-center";
+                preview.innerHTML = String(item.type || "html") === "html"
+                  ? '<div class="text-center text-slate-400"><i class="ph ph-file-html text-4xl"></i><div class="text-[10px] mt-2">HTML template</div></div>'
+                  : '<div class="text-center text-slate-400"><i class="ph ph-file-text text-4xl"></i><div class="text-[10px] mt-2">Paper template</div></div>';
+
+                const info = document.createElement("div");
+                info.className = "min-w-0";
+                info.innerHTML = '<h3 class="font-bold text-slate-700 text-sm truncate"></h3><p class="text-slate-400 text-xs">Saved template • reusable</p>';
+                info.querySelector("h3").textContent = item.name || "Saved Template";
+
+                const actions = document.createElement("div");
+                actions.className = "flex gap-2";
+
+                const use = document.createElement("button");
+                use.type = "button";
+                use.className = "flex-1 px-3 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-700";
+                use.innerHTML = String(item.type || "html") === "html"
+                  ? '<i class="ph ph-identification-card mr-1"></i> Use in Student Batch'
+                  : '<i class="ph ph-check-circle mr-1"></i> Open Template';
+                use.onclick = () => this.loadSavedTemplate(item.id);
+
+                const remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50";
+                remove.innerHTML = '<i class="ph ph-trash mr-1"></i> Delete';
+                remove.onclick = () => this.deleteSavedTemplate(item.id);
+
+                actions.appendChild(use);
+                actions.appendChild(remove);
+                card.appendChild(preview);
+                card.appendChild(info);
+                card.appendChild(actions);
+                grid.appendChild(card);
+              });
+            }
           },
 
           renderBadgeLibrary: async function () {
