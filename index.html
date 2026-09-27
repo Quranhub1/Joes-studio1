@@ -10326,48 +10326,44 @@
               .filter(Boolean);
 
             const saved = await this.getSavedTemplates();
+            const htmlLibrary = this.data.filter(t => String(t.type || "").toLowerCase() === "html");
             this.savedTemplates = saved;
             this.history = used.map((t) => t.id);
 
             grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar";
             grid.innerHTML = "";
 
-            if (!used.length && !saved.length) {
-              grid.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center min-h-[360px] text-center px-8">
-                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <i class="ph ph-files text-2xl text-slate-400"></i>
-                </div>
-                <h3 class="font-semibold text-slate-600">No saved templates yet</h3>
-                <p class="text-xs text-slate-400 mt-1 max-w-md">Open a template or upload one in Student Batch. Uploaded templates are saved on this device for reuse.</p>
-              </div>`;
-              return;
-            }
-
-            if (used.length) {
+            const appendHeading = (label) => {
               const heading = document.createElement("div");
               heading.className = "col-span-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-1";
-              heading.textContent = "Recently Used";
+              heading.textContent = label;
               grid.appendChild(heading);
+            };
 
-              used.forEach((t) => {
-                const d = document.createElement("div");
-                d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
-                d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : '<i class="ph ph-file-plus text-3xl text-gray-300"></i>'}</div><div><h3 class="font-bold text-slate-700 text-sm">${escapeHtml(t.name)}</h3><p class="text-slate-400 text-xs">Built-in template</p></div>`;
-                d.onclick = () => this.load(t.id);
-                grid.appendChild(d);
-              });
+            const appendBuiltIn = (t, label) => {
+              const d = document.createElement("div");
+              d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
+              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : `<div class="text-center text-slate-400"><i class="ph ${String(t.type || "").toLowerCase() === "html" ? "ph-file-html" : "ph-file-plus"} text-4xl"></i><div class="text-[10px] mt-2">${String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Paper template"}</div></div>`}</div><div><h3 class="font-bold text-slate-700 text-sm">${escapeHtml(t.name)}</h3><p class="text-slate-400 text-xs">${escapeHtml(label)}</p></div>`;
+              d.onclick = () => this.load(t.id);
+              grid.appendChild(d);
+            };
+
+            if (used.length) {
+              appendHeading("Recently Used");
+              used.forEach(t => appendBuiltIn(t, String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Built-in paper template"));
+            }
+
+            const available = htmlLibrary.filter(t => !used.some(u => u.id === t.id));
+            if (available.length) {
+              appendHeading("Available HTML Templates");
+              available.forEach(t => appendBuiltIn(t, "HTML template • stored in templates/"));
             }
 
             if (saved.length) {
-              const heading = document.createElement("div");
-              heading.className = "col-span-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-3";
-              heading.textContent = "Saved on This Device";
-              grid.appendChild(heading);
-
+              appendHeading("Saved on This Device");
               saved.forEach((item) => {
                 const card = document.createElement("div");
                 card.className = "bg-white p-3 rounded-xl border border-gray-200 flex flex-col gap-3";
-
                 const preview = document.createElement("div");
                 preview.className = "h-36 rounded-lg overflow-hidden border border-gray-100 bg-slate-50 flex items-center justify-center";
                 preview.innerHTML = String(item.type || "html") === "html"
@@ -10403,6 +10399,16 @@
                 card.appendChild(actions);
                 grid.appendChild(card);
               });
+            }
+
+            if (!used.length && !available.length && !saved.length) {
+              grid.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center min-h-[360px] text-center px-8">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                  <i class="ph ph-files text-2xl text-slate-400"></i>
+                </div>
+                <h3 class="font-semibold text-slate-600">No templates available</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-md">HTML templates stored in the templates folder and templates uploaded on this device will appear here.</p>
+              </div>`;
             }
           },
 
@@ -10506,6 +10512,35 @@
             const t = this.data.find((i) => i.id === id);
             if (t?.url) {
               this.remember(id);
+
+              if (String(t.type || "").toLowerCase() === "html") {
+                App.ui.hideModal("welcomeModal");
+                if (!window.JoesStudentBatch) {
+                  Utils.toast("Student Batch is not available yet.", "error");
+                  return;
+                }
+
+                App.ui.showLoading("Opening HTML template...");
+                try {
+                  const response = await fetch(t.url, { cache: "no-store" });
+                  if (!response.ok) throw new Error("Template HTTP " + response.status);
+                  const html = await response.text();
+                  const file = new File(
+                    [html],
+                    t.name.toLowerCase().endsWith(".html") ? t.name : t.name + ".html",
+                    { type: "text/html", lastModified: Date.now() }
+                  );
+                  await JoesStudentBatch.loadTemplate(file, { fromLibrary: true, libraryId: t.id });
+                  JoesStudentBatch.open();
+                } catch (error) {
+                  console.error(error);
+                  Utils.toast("HTML template loading failed: " + (error.message || "Unknown error"), "error");
+                } finally {
+                  App.ui.hideLoading();
+                }
+                return;
+              }
+
               App.ui.showLoading("Downloading template...");
               try {
                 await App.dataSource.close();
