@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kampala School of Health Sciences - Examination Card Studio</title>
+    <title>School Examination Card Studio - Examination Card Studio</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -128,7 +128,7 @@
                     <i class="fa-solid fa-id-card text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold text-white leading-tight">Kampala School of Health Sciences</h1>
+                    <h1 class="text-base font-bold text-white leading-tight">School Examination Card Studio</h1>
                     <p class="text-xs text-slate-400">Examination Card Template Studio (1:1 Exact Replica)</p>
                 </div>
             </div>
@@ -196,7 +196,7 @@
                             </button>
                         </div>
                         <div>
-                            <input type="text" id="in-badge-url" value="https://www.kshs.ac.ug/images/kampala%20logo.png" oninput="handleBadgeUrlInput(this.value)" placeholder="Image URL / Address" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-100 text-[11px] focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="in-badge-url" value="" oninput="handleBadgeUrlInput(this.value)" placeholder="Image URL / Address" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-slate-100 text-[11px] focus:outline-none focus:border-emerald-500">
                         </div>
                     </div>
                 </div>
@@ -226,7 +226,7 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-slate-300 mb-1 font-semibold">REG NO:</label>
-                            <input type="text" id="in-regno" value="KSHS/2026/0842" oninput="updateCard()" placeholder="e.g. KSHS/2026/0842" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase font-mono">
+                            <input type="text" id="in-regno" value="REG/2026/0001" oninput="updateCard()" placeholder="e.g. REG/2026/0001" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-100 focus:outline-none focus:border-emerald-500 uppercase font-mono">
                         </div>
                         <div>
                             <label class="block text-slate-300 mb-1 font-semibold">SEX:</label>
@@ -246,7 +246,7 @@
 
                     <div>
                         <label class="block text-slate-300 mb-1 font-semibold">ISSUED BY:</label>
-                        <input type="text" id="in-issuedby" value="EXAMINATIONS OFFICE / KSHS" oninput="updateCard()" placeholder="e.g. EXAMINATIONS OFFICE / KSHS" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-100 focus:outline-none focus:border-emerald-500">
+                        <input type="text" id="in-issuedby" value="EXAMINATIONS OFFICE" oninput="updateCard()" placeholder="e.g. EXAMINATIONS OFFICE" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-100 focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
 
@@ -267,7 +267,7 @@
             </div>
 
             <div class="pt-3 border-t border-slate-700 text-[11px] text-slate-400 leading-relaxed">
-                <p><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Exact 1:1 replica matching Kampala School of Health Sciences Examination Card (`exam card_2.pdf`).</p>
+                <p><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Reusable examination card template. School name, badge and examination details can be supplied by the school.</p>
             </div>
         </section>
 
@@ -318,7 +318,7 @@
                                         <text x="58" y="215" fill="#ffffff" font-family="'Tinos', 'Times New Roman', serif" font-weight="900" font-size="24" text-anchor="middle">KS</text>
                                         <text x="142" y="215" fill="#ffffff" font-family="'Tinos', 'Times New Roman', serif" font-weight="900" font-size="24" text-anchor="middle">HS</text>
                                     </svg>
-                                    <img id="badge-custom-img" src="https://www.kshs.ac.ug/images/kampala%20logo.png" alt="Badge" class="w-full h-full object-contain" onerror="this.classList.add('hidden'); document.getElementById('badge-svg').classList.remove('hidden');">
+                                    <img id="badge-custom-img" src="" alt="School Badge" class="w-full h-full object-contain hidden">
                                 </div>
 
                                 <!-- Institution Header Titles Centered -->
@@ -419,7 +419,7 @@
         let isBlankMode = false;
         let paperColor = 'teal';
         let currentPhotoUrl = '';
-        let customBadgeUrl = 'https://www.kshs.ac.ug/images/kampala%20logo.png';
+        let customBadgeUrl = '';
         let currentViewMode = 'single'; // 'single' or 'a4grid'
 
         // Handle Custom Badge Upload & URL
@@ -645,11 +645,11 @@
 
         function fillSampleData() {
             document.getElementById('in-name').value = "MUKASA SARAH AGNES";
-            document.getElementById('in-regno').value = "KSHS/2026/0842";
+            document.getElementById('in-regno').value = "REG/2026/0001";
             document.getElementById('in-sex').value = "FEMALE";
             document.getElementById('in-sitting').value = "FINAL EXAMINATIONS 2026";
             document.getElementById('in-course').value = "DIPLOMA IN NURSING EXTENSION";
-            document.getElementById('in-issuedby').value = "EXAMINATIONS OFFICE / KSHS";
+            document.getElementById('in-issuedby').value = "EXAMINATIONS OFFICE";
             setMode('filled');
         }
 
