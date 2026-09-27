@@ -34,8 +34,8 @@
       badgeFile: null,
       badgeDataUrl: "",
       photoEnhancement: {
-        enabled: true,
-        whiteBackground: true,
+        enabled: false,
+        whiteBackground: false,
         strength: "balanced"
       },
       enhancedPhotoCache: new Map(),
