@@ -194,81 +194,66 @@
       if (!shell || !grid) return;
 
       const sections = Array.from(grid.children).filter(el => el.tagName === "SECTION");
-      if (sections.length < 6) return;
-
-      const findSection = (needle) => sections.find(section =>
+      const findSection = needle => sections.find(section =>
         String(section.querySelector("h3")?.textContent || "").toLowerCase().includes(needle)
       );
-
       const template = findSection("html card template");
       const excel = findSection("student excel data");
       const mapping = findSection("template ↔ excel");
-      const photoBrand = sections.find(section =>
-        String(section.textContent || "").toLowerCase().includes("optional student photos") &&
-        String(section.textContent || "").toLowerCase().includes("template badge")
-      );
+      const photoBrand = sections.find(section => {
+        const t = String(section.textContent || "").toLowerCase();
+        return t.includes("optional student photos") && t.includes("template badge");
+      });
       const print = findSection("print sheet");
       if (!template || !excel || !mapping || !photoBrand || !print) return;
 
       const style = document.createElement("style");
       style.textContent = [
-        "#studentBatchWorkspace{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;min-height:0;flex:1;overflow:hidden}",
-        "#studentBatchSteps{display:flex;flex-direction:column;gap:7px;padding:4px 0}",
-        ".student-batch-step{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:11px 12px;border:1px solid #e2e8f0;border-radius:11px;background:#fff;color:#64748b;cursor:pointer;transition:.15s}",
-        ".student-batch-step:hover{background:#f8fafc;border-color:#cbd5e1}",
-        ".student-batch-step.active{background:#0f172a;color:#fff;border-color:#0f172a;box-shadow:0 5px 14px rgba(15,23,42,.12)}",
-        ".student-batch-step .num{width:25px;height:25px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#475569;font-size:11px;font-weight:800;flex:none}",
+        "#studentBatchWorkspace{display:block;min-height:0;overflow:visible;padding:0 20px 24px}",
+        "#studentBatchTopNav{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0;background:#fff;border-bottom:1px solid #e2e8f0;margin-bottom:16px}",
+        ".student-batch-step{display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer;font-size:11px;font-weight:800}",
+        ".student-batch-step.active{background:#0f172a;color:#fff;border-color:#0f172a}",
+        ".student-batch-step .num{width:23px;height:23px;border-radius:7px;display:grid;place-items:center;background:#f1f5f9;color:#475569}",
         ".student-batch-step.active .num{background:#fff;color:#0f172a}",
-        ".student-batch-step .step-copy{min-width:0}",
-        ".student-batch-step .step-title{font-size:11px;font-weight:800;display:block}",
-        ".student-batch-step .step-sub{font-size:9px;opacity:.7;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-        "#studentBatchPanelHost{min-width:0;min-height:0;overflow:auto;padding-right:3px}",
-        ".student-batch-panel{display:none;min-width:0}",
-        ".student-batch-panel.active{display:block}",
-        ".student-batch-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}",
-        ".student-batch-panel-title{font-size:15px;font-weight:800;color:#1e293b}",
-        ".student-batch-panel-desc{font-size:10px;color:#94a3b8;margin-top:3px}",
-        ".student-batch-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
-        ".student-batch-card{border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:14px;min-width:0}",
-        ".student-batch-card .legacy-title{font-size:11px;font-weight:800;color:#475569;margin-bottom:7px}",
-        "#studentBatchWorkspace .student-batch-print-section{background:#f8fafc}",
-        "#studentBatchProgress{margin-top:auto;padding:10px 8px;font-size:9px;color:#94a3b8;line-height:1.45}",
-        "#studentBatchNext{margin-top:12px;width:100%;padding:9px 12px;border-radius:9px;background:#e11d48;color:#fff;font-size:11px;font-weight:800;border:0;cursor:pointer}",
-        "#studentBatchNext:hover{background:#be123c}",
-        "#studentBatchBack{margin-top:12px;width:100%;padding:9px 12px;border-radius:9px;background:#fff;color:#475569;font-size:11px;font-weight:700;border:1px solid #e2e8f0;cursor:pointer}",
-        "@media(max-width:760px){#studentBatchWorkspace{grid-template-columns:1fr;overflow:auto}#studentBatchSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));order:0}.student-batch-step{padding:8px}.student-batch-step .step-sub{display:none}.student-batch-grid-2{grid-template-columns:1fr}#studentBatchPanelHost{overflow:visible}}"
+        "#studentBatchAllContent{display:grid;gap:16px}",
+        ".student-batch-section{border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:16px;scroll-margin-top:72px}",
+        ".student-batch-section-title{font-size:15px;font-weight:850;color:#1e293b;margin-bottom:12px}",
+        ".student-batch-section-sub{font-size:10px;color:#94a3b8;margin-top:-8px;margin-bottom:12px}",
+        ".student-batch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
+        "#studentBatchWorkspace .student-batch-actionbar{position:sticky;bottom:0;z-index:15;margin-top:16px;padding:12px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 -5px 18px rgba(15,23,42,.08);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}",
+        "@media(max-width:760px){.student-batch-two{grid-template-columns:1fr}.student-batch-step .label{display:none}#studentBatchTopNav{overflow-x:auto;flex-wrap:nowrap}.student-batch-step{flex:none}}"
       ].join("");
       shell.appendChild(style);
 
       grid.style.display = "none";
+
       const workspace = document.createElement("div");
       workspace.id = "studentBatchWorkspace";
-      workspace.className = "px-5 pb-4 min-h-0";
 
-      const steps = document.createElement("aside");
-      steps.id = "studentBatchSteps";
-      const stepData = [
-        ["1","Setup","Template, Excel & mapping"],
-        ["2","Photos & Branding","Photos, badge & school identity"],
-        ["3","Print & Export","Paper, layout & PDF"]
-      ];
-      const progress = document.createElement("div");
-      progress.id = "studentBatchProgress";
+      const nav = document.createElement("nav");
+      nav.id = "studentBatchTopNav";
+      [
+        ["1","Setup","studentBatchSectionSetup"],
+        ["2","Photos & Branding","studentBatchSectionVisual"],
+        ["3","Print & Export","studentBatchSectionOutput"]
+      ].forEach(([n,label,target],i) => {
+        const b=document.createElement("button");
+        b.type="button";
+        b.className="student-batch-step"+(i===0?" active":"");
+        b.innerHTML='<span class="num">'+n+'</span><span class="label">'+label+'</span>';
+        b.addEventListener("click",()=>document.getElementById(target)?.scrollIntoView({behavior:"smooth",block:"start"}));
+        nav.appendChild(b);
+      });
 
-      const panels = document.createElement("main");
-      panels.id = "studentBatchPanelHost";
+      const all=document.createElement("div");
+      all.id="studentBatchAllContent";
 
-      const makePanel = (id,title,desc) => {
-        const panel=document.createElement("section");
-        panel.className="student-batch-panel";
-        panel.id=id;
-        panel.innerHTML='<div class="student-batch-panel-head"><div><div class="student-batch-panel-title">'+title+'</div><div class="student-batch-panel-desc">'+desc+'</div></div></div>';
-        return panel;
+      const wrap=(id,title,desc,content)=>{
+        const s=document.createElement("section");
+        s.id=id;s.className="student-batch-section";
+        s.innerHTML='<div class="student-batch-section-title">'+title+'</div><div class="student-batch-section-sub">'+desc+'</div>';
+        s.appendChild(content);return s;
       };
-
-      const setup=makePanel("studentBatchPanelSetup","Build your batch","Choose the card template, load the student spreadsheet, then confirm field matching.");
-      const visual=makePanel("studentBatchPanelVisual","Photos & school identity","Prepare student photos and apply the school name and reusable badge without editing the HTML.");
-      const output=makePanel("studentBatchPanelOutput","Print & export","Choose the paper layout, review the batch, then print or generate the PDF.");
 
       template.className="student-batch-card";
       excel.className="student-batch-card";
@@ -277,73 +262,50 @@
       print.className="student-batch-card student-batch-print-section";
 
       const setupGrid=document.createElement("div");
-      setupGrid.className="student-batch-grid-2";
+      setupGrid.className="student-batch-two";
       setupGrid.append(template,excel);
-      setup.appendChild(setupGrid);
-      setup.appendChild(mapping);
+      const setup=document.createElement("div");
+      setup.append(setupGrid,mapping);
 
+      const visual=document.createElement("div");
       visual.appendChild(photoBrand);
+
+      const output=document.createElement("div");
       output.appendChild(print);
 
-      panels.append(setup,visual,output);
+      all.append(
+        wrap("studentBatchSectionSetup","1. Template & student data","Load everything needed to build the cards. Nothing is hidden behind another step.",setup),
+        wrap("studentBatchSectionVisual","2. Photos & school branding","Add student photos, badge and school identity. All controls remain visible on this page.",visual),
+        wrap("studentBatchSectionOutput","3. Print & export","Set paper, orientation, copies, resolution and layout, then preview and generate.",output)
+      );
 
-      stepData.forEach((data,index)=>{
-        const btn=document.createElement("button");
-        btn.type="button";
-        btn.className="student-batch-step"+(index===0?" active":"");
-        btn.dataset.step=String(index);
-        btn.innerHTML='<span class="num">'+data[0]+'</span><span class="step-copy"><span class="step-title">'+data[1]+'</span><span class="step-sub">'+data[2]+'</span></span>';
-        btn.addEventListener("click",()=>showStep(index));
-        steps.appendChild(btn);
-      });
+      const actions=document.createElement("div");
+      actions.className="student-batch-actionbar";
+      const preview=document.createElement("button");
+      preview.type="button";preview.className="student-batch-step";preview.textContent="Refresh preview";
+      preview.onclick=()=>Batch.previewBatch();
+      const top=document.createElement("button");
+      top.type="button";top.className="student-batch-step";top.textContent="Back to top";
+      top.onclick=()=>workspace.scrollIntoView({behavior:"smooth",block:"start"});
+      actions.append(preview,top);
 
-      steps.appendChild(progress);
-      workspace.append(steps,panels);
+      workspace.append(nav,all,actions);
       shell.insertBefore(workspace,grid);
 
-      const next=document.createElement("button");
-      next.id="studentBatchNext";
-      next.type="button";
-      next.textContent="Continue to Photos & Branding";
-      steps.appendChild(next);
+      const observer=new IntersectionObserver(entries=>{
+        const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+        if(!visible)return;
+        nav.querySelectorAll(".student-batch-step").forEach(b=>b.classList.toggle("active",b.querySelector(".label")?.textContent===(
+          visible.target.id==="studentBatchSectionSetup"?"Setup":visible.target.id==="studentBatchSectionVisual"?"Photos & Branding":"Print & Export"
+        )));
+      },{root:null,threshold:[0.2,0.5,0.8]});
+      [setup,visual,output].forEach((_,i)=>observer.observe(document.getElementById(["studentBatchSectionSetup","studentBatchSectionVisual","studentBatchSectionOutput"][i])));
 
-      const back=document.createElement("button");
-      back.id="studentBatchBack";
-      back.type="button";
-      back.textContent="Back";
-      back.style.display="none";
-      steps.appendChild(back);
-
-      let current=0;
-      const labels=["Continue to Photos & Branding","Continue to Print & Export","Ready to Generate"];
-      const showStep=(index)=>{
-        current=Math.max(0,Math.min(2,index));
-        [setup,visual,output].forEach((panel,i)=>panel.classList.toggle("active",i===current));
-        steps.querySelectorAll(".student-batch-step").forEach((btn,i)=>btn.classList.toggle("active",i===current));
-        next.textContent=labels[current];
-        next.style.display=current===2?"none":"block";
-        back.style.display=current===0?"none":"block";
-        progress.textContent=current===0
-          ?"Start here. Your HTML file stays the source of truth."
-          :current===1
-          ?"Photos are processed locally in the browser before they reach the card."
-          :"Review the sheet preview before creating the final PDF.";
-        if(current===2) Batch.previewBatch();
-      };
-      next.addEventListener("click",()=>showStep(current+1));
-      back.addEventListener("click",()=>showStep(current-1));
-      showStep(0);
-
-      // Keep the existing controls and IDs, but remove obsolete provider wording.
       shell.querySelectorAll("*").forEach(el=>{
-        if(el.children.length===0 && /fal\.ai/i.test(el.textContent||"")){
-          el.textContent=el.textContent.replace(/fal\.ai/gi,"browser-local AI");
-        }
+        if(el.children.length===0 && /fal\.ai/i.test(el.textContent||"")) el.textContent=el.textContent.replace(/fal\.ai/gi,"browser-local AI");
       });
-
       modal.dataset.organized="true";
     },
-
     open() {
       this.organizeUI();
       document.getElementById("studentBatchModal")?.classList.remove("hidden");
