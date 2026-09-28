@@ -11477,7 +11477,15 @@
     if(!r.ok) throw new Error(d.error||"Request failed");
     return d;
   }
-  function open(required=false){ authRequired=required||authRequired; $("joesAuthOverlay").classList.toggle("required",authRequired); $("joesAuthOverlay").classList.add("open"); $("joesAuthOverlay").setAttribute("aria-hidden","false"); render(); }
+  function open(required=false){
+    authRequired=required||authRequired;
+    if(authRequired&&!user) mode="signup";
+    $("joesAuthOverlay").classList.toggle("required",authRequired);
+    $("joesAuthOverlay").classList.add("open");
+    $("joesAuthOverlay").setAttribute("aria-hidden","false");
+    render();
+    if(!user) setTimeout(()=>$(mode==="signup"?"joesAuthName":"joesAuthEmail")?.focus(),50);
+  }
   function close(){ if(authRequired&&!user)return; $("joesAuthOverlay").classList.remove("open"); $("joesAuthOverlay").classList.remove("required"); $("joesAuthOverlay").setAttribute("aria-hidden","true"); }
   function render(){
     $("joesAuthButton").textContent=user?(user.name||user.email):"Sign in";
@@ -11535,7 +11543,7 @@
     }catch(e){alert(e.message)}
   };
   window.JoesAuth={getUser:()=>user,open,close,refresh,consumeBatch:async()=>{
-    if(!user){open();throw new Error("Please sign in before exporting a batch.");}
+    if(!user){open(true);throw new Error("Please create an account or sign in before exporting a batch.");}
     const d=await api("/api/usage",{method:"POST",body:"{}"});
     user=d.user;render();window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));return d;
   }};
@@ -11543,6 +11551,6 @@
   const params=new URLSearchParams(location.search);
   if(params.has("auth")||params.has("auth_error")){refresh().then(()=>{if(params.get("auth_error")){open();$("joesAuthError").textContent=params.get("auth_error").replace(/_/g," ")}history.replaceState({},document.title,location.pathname+location.hash)})}
 })();
-<\/script>
+</script>
 </body>
 </html>
