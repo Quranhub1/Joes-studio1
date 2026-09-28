@@ -89,6 +89,11 @@ export async function getFile(path) {
   }
 }
 
+export async function listDirectory(path) {
+  const result = await getFile(path);
+  return Array.isArray(result) ? result : [];
+}
+
 export async function putFile(path, contentBase64, message) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const current = await getFile(path);
