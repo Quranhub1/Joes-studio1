@@ -9220,7 +9220,7 @@
     }
   }
   async function loadPaymentDetails(){
-    try{const d=await api("/api/payments");const p=d.payment||{};$("joesPaymentDetails").textContent=(p.accountNumber&&p.accountName?"Send money to "+p.accountNumber+" ("+p.accountName+") for your Pro subscription. Please make the payment to "+p.accountNumber+" "+p.accountName+" and enter the transaction reference below."+(p.proPrice?" • "+p.currency+" "+p.proPrice:""):(p.method||"")+" • Payment details are not configured yet.")}
+    try{const d=await api("/api/payments");const p=d.payment||{};$("joesPaymentDetails").textContent=(p.accountNumber&&p.accountName?"You are sending money to "+p.accountNumber+" • "+p.accountName+". Send your Pro payment there, then enter the transaction reference below."+(p.proPrice?" • "+p.currency+" "+p.proPrice:""):(p.method||"")+" • Payment details are not configured yet.")}
     catch(e){$("joesPaymentDetails").textContent="Payment details unavailable."}
   }
   async function refresh(){
