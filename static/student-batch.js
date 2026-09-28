@@ -1036,14 +1036,18 @@
     },
 
     async enhanceStudentPhoto(dataUrl) {
-      if (!dataUrl || !window.JoesStudentPhotoEnhancer?.process) return dataUrl;
+      if (!dataUrl) return dataUrl;
+
       const m = this.state.photoEnhancement.manual || this.photoManualDefaults();
       const manualIsNeutral = m.brightness===0 && m.exposure===0 && m.shadows===0 && m.highlights===0 &&
         m.contrast===0 && m.saturation===0 && m.temperature===0 && m.sharpness===0 &&
         m.faceLighting===0 && m.cropScale===100 && m.positionX===0 && m.positionY===0 && m.opacity===100;
+
       const needsProcessing = this.state.photoEnhancement.enabled || this.state.photoEnhancement.whiteBackground || !manualIsNeutral;
       if (!needsProcessing) return dataUrl;
+
       const key = dataUrl + "|" + JSON.stringify({
+        ai:true,
         enabled:this.state.photoEnhancement.enabled,
         whiteBackground:this.state.photoEnhancement.whiteBackground,
         strength:this.state.photoEnhancement.strength,
@@ -1051,18 +1055,53 @@
       });
       const cached = this.state.enhancedPhotoCache.get(key);
       if (cached) return cached;
+
+      let working = dataUrl;
+
+      // AI enhancement is now the primary automatic path. The API key never
+      // reaches the browser; /api/fal-enhance keeps it server-side.
+      if (this.state.photoEnhancement.enabled) {
+        try {
+          const response = await fetch("./api/fal-enhance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image_url: dataUrl })
+          });
+
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.image_url) {
+            throw new Error(result.error || `AI enhancement failed (${response.status})`);
+          }
+
+          working = result.image_url;
+        } catch (error) {
+          console.warn("fal.ai enhancement unavailable; falling back to local enhancement.", error);
+          if (window.Utils?.toast) {
+            window.Utils.toast("AI enhancement unavailable, using local photo enhancement.", "warning");
+          }
+        }
+      }
+
       try {
-        const enhanced = await window.JoesStudentPhotoEnhancer.process(dataUrl, {
-          auto: this.state.photoEnhancement.enabled,
-          strength: this.state.photoEnhancement.strength,
-          whiteBackground: this.state.photoEnhancement.whiteBackground,
-          manual: m
-        });
-        this.state.enhancedPhotoCache.set(key, enhanced);
-        return enhanced;
+        // Keep the local processor as a print-safety finishing pass for manual
+        // controls, white-background cleanup and output consistency.
+        if (window.JoesStudentPhotoEnhancer?.process) {
+          const enhanced = await window.JoesStudentPhotoEnhancer.process(working, {
+            auto: !this.state.photoEnhancement.enabled,
+            strength: this.state.photoEnhancement.strength,
+            whiteBackground: this.state.photoEnhancement.whiteBackground,
+            manual: m
+          });
+          this.state.enhancedPhotoCache.set(key, enhanced);
+          return enhanced;
+        }
+
+        this.state.enhancedPhotoCache.set(key, working);
+        return working;
       } catch (error) {
-        console.warn("Student photo enhancement failed; using original photo.", error);
-        return dataUrl;
+        console.warn("Student photo finishing pass failed; using AI/original photo.", error);
+        this.state.enhancedPhotoCache.set(key, working);
+        return working;
       }
     },
 
