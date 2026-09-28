@@ -12,7 +12,7 @@ function cors(res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
 }
-function sign(value) {
+function safeEqual(a, b) { const aa = Buffer.from(String(a)); const bb = Buffer.from(String(b)); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }\nfunction sign(value) {
   return crypto.createHmac("sha256", process.env.ADMIN_SESSION_SECRET || "").update(value).digest("base64url");
 }
 function cookieValue(req) {
@@ -27,7 +27,7 @@ function authenticated(req) {
   const [u, exp, sig] = v.split(".");
   if (!u || !exp || !sig || Number(exp) < Date.now()) return false;
   const expected = sign(u + "." + exp);
-  return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+  return safeEqual(sig, expected);
 }
 async function redis(command, ...args) {
   if (!REDIS_URL || !REDIS_TOKEN) throw new Error("Redis storage is not configured");
@@ -71,7 +71,7 @@ function clean(input = {}) {
 export default async function handler(req, res) {
   cors(res);
   try {
-    if (req.method === "POST" && req.url === "/api/admin/login") {
+    if (req.method === "POST" && new URL(req.url, "https://admin.local").searchParams.get("action") === "login") {
       const body = req.body || {};
       const ok = crypto.timingSafeEqual(Buffer.from(String(body.username || "")), Buffer.from(String(process.env.ADMIN_USERNAME || ""))) &&
         crypto.timingSafeEqual(Buffer.from(String(body.password || "")), Buffer.from(String(process.env.ADMIN_PASSWORD || "")));
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=28800`);
       return json(res, 200, { ok: true });
     }
-    if (req.method === "POST" && req.url === "/api/admin/logout") {
+    if (req.method === "POST" && new URL(req.url, "https://admin.local").searchParams.get("action") === "logout") {
       res.setHeader("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
       return json(res, 200, { ok: true });
     }
