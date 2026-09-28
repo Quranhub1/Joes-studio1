@@ -9257,7 +9257,7 @@
   const params=new URLSearchParams(location.search);
   if(params.has("auth")||params.has("auth_error")){refresh().then(()=>{if(params.get("auth_error")){open();$("joesAuthError").textContent=params.get("auth_error").replace(/_/g," ")}history.replaceState({},document.title,location.pathname+location.hash)})}
 })();
-</script>
+<\/script>
 </body></html>`,
             );
             doc.close();
