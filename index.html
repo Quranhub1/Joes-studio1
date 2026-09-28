@@ -11406,7 +11406,7 @@
 </style>
 <style id="joes-auth-ui">
 #joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
-#joesAdminButton{position:fixed;right:112px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#0f172a;color:#fff;text-decoration:none;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+#joesAdminButton{display:none;position:fixed;right:112px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#0f172a;color:#fff;text-decoration:none;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
 #joesAdminButton:hover{transform:translateY(-1px);opacity:.92}@media(max-width:520px){#joesAdminButton{right:104px;padding:9px 10px}.joes-admin-label{display:none}}
 #joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}
 #joesAuthOverlay.required{z-index:99999;background:rgba(15,23,42,.82)}
@@ -11482,7 +11482,7 @@
 <script>
 (function(){
   const API=window.JOES_API_BASE||"";
-  let mode="login",user=null,authRequired=false;
+  let mode="login",user=null,authRequired=false,adminAuthenticated=false;
   const GUEST_GRACE_MINUTES=Math.max(1,Number(window.JOES_GUEST_GRACE_MINUTES)||30);
   const GUEST_STARTED_KEY="joes_guest_started_at_v1";
   function guestDeadline(){let v=Number(localStorage.getItem(GUEST_STARTED_KEY));if(!v){v=Date.now();localStorage.setItem(GUEST_STARTED_KEY,String(v));}return v+GUEST_GRACE_MINUTES*60000;}
@@ -11531,12 +11531,20 @@
     if(remaining<=0){if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}return;}
     setTimeout(()=>{if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}},remaining);
   }
+  async function refreshAdminAccess(){
+    adminAuthenticated=false;
+    const adminButton=$("joesAdminButton");
+    if(!adminButton)return;
+    adminButton.style.display="none";
+    try{await api("/api/admin");adminAuthenticated=true;adminButton.style.display="inline-flex";adminButton.style.alignItems="center";adminButton.style.gap="6px";}catch(_){}
+  }
   async function refresh(){
     try{user=(await api("/api/auth?action=me")).user}catch(_){user=null}
     if(user){authRequired=false;localStorage.removeItem(GUEST_STARTED_KEY);close();}
     else if(guestExpired()){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}
     else scheduleGuestExpiry();
     render();
+    refreshAdminAccess();
   }
   $("joesAuthButton").onclick=()=>{ if(!user) mode="signup"; open(false); };
   $("joesAuthClose").onclick=()=>{if(!authRequired||user)close()};
@@ -11551,7 +11559,7 @@
       user=d.user; authRequired=false; localStorage.removeItem(GUEST_STARTED_KEY); $("joesAuthPassword").value=""; render(); close(); window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));
     }catch(err){$("joesAuthError").textContent=err.message}
   };
-  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;authRequired=true;render();open(true);window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
+  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;authRequired=true;adminAuthenticated=false;$("joesAdminButton").style.display="none";render();open(true);window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
   $("joesPaymentSubmit").onclick=async()=>{
     try{
       const ref=$("joesPaymentReference").value.trim();if(!ref)throw new Error("Enter the payment reference.");
