@@ -2517,8 +2517,10 @@
       </aside>
     </div>
     <div id="loadingOverlay" class="hidden fixed inset-0 z-[60] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent"></div>
-      <p class="mt-4 text-slate-600 font-medium animate-pulse">Loading templates...</p>
+      <div class="loadingspinner" aria-hidden="true">
+        <div id="square1"></div><div id="square2"></div><div id="square3"></div><div id="square4"></div><div id="square5"></div>
+      </div>
+      <p class="mt-1 text-slate-600 font-medium">Loading templates...</p>
     </div>
     <script>
       const CONFIG = {
@@ -9289,7 +9291,7 @@
             const oldTxt = btn ? btn.innerHTML : "";
             if (btn) {
               btn.disabled = true;
-              btn.innerHTML = `<i class="ph ph-spinner animate-spin"></i> Processing...`;
+              btn.innerHTML = `<span class="joes-inline-loader" aria-hidden="true"><span class="loadingspinner"><span id="square1"></span><span id="square2"></span><span id="square3"></span><span id="square4"></span><span id="square5"></span></span></span> Processing...`;
             }
 
             const originalIndex = App.state.currentDataIndex;
@@ -11349,7 +11351,25 @@
         }
       };
     </script>
-  <style id="joes-get-started-ui">
+  <style id="joes-loading-ui">
+.loadingspinner{--square:26px;--offset:30px;--duration:2.4s;--delay:.2s;--timing-function:ease-in-out;--in-duration:.4s;--in-delay:.1s;--in-timing-function:ease-out;width:calc(3 * var(--offset) + var(--square));height:calc(2 * var(--offset) + var(--square));padding:0;margin:10px auto 30px;position:relative;flex:0 0 auto}
+.loadingspinner div{display:inline-block;background:darkorange;border:none;border-radius:2px;width:var(--square);height:var(--square);position:absolute;padding:0;margin:0;font-size:6pt;color:#000}
+.loadingspinner #square1{left:0;top:0;animation:square1 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(1 * var(--in-delay)) var(--in-timing-function) both}
+.loadingspinner #square2{left:0;top:var(--offset);animation:square2 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(1 * var(--in-delay)) var(--in-timing-function) both}
+.loadingspinner #square3{left:var(--offset);top:var(--offset);animation:square3 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(2 * var(--in-delay)) var(--in-timing-function) both}
+.loadingspinner #square4{left:calc(2 * var(--offset));top:var(--offset);animation:square4 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(3 * var(--in-delay)) var(--in-timing-function) both}
+.loadingspinner #square5{left:calc(3 * var(--offset));top:var(--offset);animation:square5 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(4 * var(--in-delay)) var(--in-timing-function) both}
+@keyframes square1{0%{left:0;top:0}8.333%{left:0;top:var(--offset)}100%{left:0;top:var(--offset)}}
+@keyframes square2{0%{left:0;top:var(--offset)}8.333%{left:0;top:calc(2 * var(--offset))}16.67%{left:var(--offset);top:calc(2 * var(--offset))}25%{left:var(--offset);top:var(--offset)}83.33%{left:var(--offset);top:var(--offset)}91.67%{left:var(--offset);top:0}100%{left:0;top:0}}
+@keyframes square3{0%,100%{left:var(--offset);top:var(--offset)}16.67%{left:var(--offset);top:var(--offset)}25%{left:var(--offset);top:0}33.33%{left:calc(2 * var(--offset));top:0}41.67%{left:calc(2 * var(--offset));top:var(--offset)}66.67%{left:calc(2 * var(--offset));top:var(--offset)}75%{left:calc(2 * var(--offset));top:calc(2 * var(--offset))}83.33%{left:var(--offset);top:calc(2 * var(--offset))}91.67%{left:var(--offset);top:var(--offset)}}
+@keyframes square4{0%{left:calc(2 * var(--offset));top:var(--offset)}33.33%{left:calc(2 * var(--offset));top:var(--offset)}41.67%{left:calc(2 * var(--offset));top:calc(2 * var(--offset))}50%{left:calc(3 * var(--offset));top:calc(2 * var(--offset))}58.33%{left:calc(3 * var(--offset));top:var(--offset)}100%{left:calc(3 * var(--offset));top:var(--offset)}}
+@keyframes square5{0%{left:calc(3 * var(--offset));top:var(--offset)}50%{left:calc(3 * var(--offset));top:var(--offset)}58.33%{left:calc(3 * var(--offset));top:0}66.67%{left:calc(2 * var(--offset));top:0}75%{left:calc(2 * var(--offset));top:var(--offset)}100%{left:calc(2 * var(--offset));top:var(--offset)}}
+@keyframes squarefadein{0%{transform:scale(.75);opacity:0}100%{transform:scale(1);opacity:1}}
+.joes-inline-loader{display:inline-block;vertical-align:middle;transform:scale(.34);transform-origin:left center;width:40px;height:30px;margin:-2px -20px -2px 0}
+.joes-inline-loader .loadingspinner{margin:0}
+@media(prefers-reduced-motion:reduce){.loadingspinner div{animation-play-state:paused}}
+</style>
+<style id="joes-get-started-ui">
 .joes-get-started-wrap{width:100%;display:flex;justify-content:stretch;filter:contrast(1.15)}
 .joes-get-started{--h:72px;--tr:15%;position:relative;z-index:1;width:100%;min-height:var(--h);display:flex;align-items:center;justify-content:center;gap:clamp(.7rem,2vw,1rem);padding:0 .9rem;border:1px double rgba(51,51,51,.08);border-radius:9999px;background:rgba(255,255,255,.08);box-shadow:inset 2px -2px 1px -1px rgba(255,255,255,.9),inset -2px 2px 1px -1px rgba(255,255,255,.9),inset 6px -6px 1px -6px rgba(255,255,255,.55),inset -6px 6px 1px -6px rgba(255,255,255,.55),inset 0 0 2px rgba(0,0,0,.8),0 4px 8px rgba(0,0,0,.2);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:pointer;user-select:none;overflow:hidden;transition:transform .25s ease,background .25s ease;appearance:none;-webkit-appearance:none}
 .joes-get-started::before{content:"";position:absolute;z-index:1;top:35%;left:50%;width:calc(100% - 16px);height:calc(var(--h) - 16px);transform:translateX(-50%);border-radius:inherit;border:1px solid rgba(0,0,0,.9);filter:blur(8px);pointer-events:none}
