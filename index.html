@@ -24,7 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@1.0.0/dist/umd/2x.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/browser/umd/upscaler.min.js"></script>
     <script src="./static/student-photo-enhancer.js?v=20260928-upscaler"></script>
-    <script src="./static/student-batch.js?v=20260928-template-print"></script>
+    <script src="./static/student-batch.js?v=20260928-template-print-2"></script>
     <script>var App;</script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
@@ -10675,13 +10675,20 @@
                   });
 
                   const parsed = new DOMParser().parseFromString(html, "text/html");
-                  // Gallery previews need template styling (including Tailwind), but
-                  // must never execute the template's own application logic. Keep only
-                  // the Tailwind CDN bootstrap; remove editor/export/custom scripts.
+                  // Gallery previews need template styling, but must not load
+                  // third-party Tailwind CDN code. Use the bundled local Tailwind
+                  // runtime so production previews stay self-contained.
                   parsed.querySelectorAll("script").forEach(script => {
                     const src = String(script.getAttribute("src") || "");
-                    if (!src.includes("cdn.tailwindcss.com")) script.remove();
-                    else script.replaceWith(script.cloneNode(true));
+                    if (!src) {
+                      script.remove();
+                      return;
+                    }
+                    if (src.includes("cdn.tailwindcss.com")) {
+                      script.setAttribute("src", new URL("/static/tailwindcss.js", window.location.origin).href);
+                    } else {
+                      script.remove();
+                    }
                   });
                   parsed.querySelectorAll("iframe, object, embed").forEach(el => el.remove());
 
