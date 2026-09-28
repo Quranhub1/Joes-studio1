@@ -2242,8 +2242,8 @@
     },
 
     renderTemplatePreview() {
-      const host = document.getElementById("studentBatchPrintPreview");
-      if (!host || this.state.templateMode !== "html") return;
+      const host = document.getElementById("studentBatchPreview");
+      if (!host || this.state.templateMode !== "html" || !this.state.htmlText) return;
 
       host.innerHTML = "";
       const parser = new DOMParser();
@@ -2251,7 +2251,6 @@
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
       const source = this.findHtmlCardRoot(doc);
 
-      const ratio = Math.max(0.05, Number(this.state.cardHeightMm) / Math.max(1, Number(this.state.cardWidthMm)));
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
       wrapper.style.cssText = [
@@ -2322,6 +2321,47 @@
       }
     },
 
+    renderSheetVisualizer() {
+      const host = document.getElementById("studentBatchSheetVisualizer");
+      if (!host) return;
+      const layout = this.layout();
+      const sheetW = Number(layout.sheet.w) || 210;
+      const sheetH = Number(layout.sheet.h) || 297;
+      const cardW = Number(layout.card.w) || Number(this.state.cardWidthMm) || 130;
+      const cardH = Number(layout.card.h) || Number(this.state.cardHeightMm) || 60;
+      const cols = Math.max(1, Number(layout.cols) || 1);
+      const rows = Math.max(1, Number(layout.rows) || 1);
+      const margin = Math.max(0, Number(this.state.margin) || 0);
+      const gapX = Math.max(0, Number(this.state.gapX) || 0);
+      const gapY = Math.max(0, Number(this.state.gapY) || 0);
+      const usableW = Math.max(1, sheetW - margin * 2);
+      const usableH = Math.max(1, sheetH - margin * 2);
+      const scale = Math.min(300 / sheetW, 300 / sheetH);
+      const pageW = sheetW * scale;
+      const pageH = sheetH * scale;
+      const cardWpx = cardW * scale;
+      const cardHpx = cardH * scale;
+      host.innerHTML = "";
+      host.style.overflow = "hidden";
+      host.style.display = "flex";
+      host.style.alignItems = "center";
+      host.style.justifyContent = "center";
+      const page = document.createElement("div");
+      page.style.cssText = "position:relative;flex:none;width:"+pageW+"px;height:"+pageH+"px;background:#fff;border:1px solid #cbd5e1;box-shadow:0 4px 14px rgba(15,23,42,.18);overflow:hidden;";
+      for (let r=0;r<rows;r++) {
+        for (let c=0;c<cols;c++) {
+          const x = (margin + c * (cardW + gapX)) * scale;
+          const y = (margin + r * (cardH + gapY)) * scale;
+          if (x + cardWpx > pageW + 1 || y + cardHpx > pageH + 1) continue;
+          const card = document.createElement("div");
+          card.style.cssText = "position:absolute;left:"+x+"px;top:"+y+"px;width:"+cardWpx+"px;height:"+cardHpx+"px;background:"+this.normalizeCardColor(this.state.cardBackground)+";border:1px solid #94a3b8;border-radius:2px;box-sizing:border-box;overflow:hidden;";
+          page.appendChild(card);
+        }
+      }
+      host.appendChild(page);
+      const format = document.getElementById("studentBatchSheetFormat");
+      if (format) format.textContent = this.state.sheetSize + " " + this.state.orientation + " • " + cols + " × " + rows;
+    },
     refresh() {
       const fileEl = document.getElementById("studentBatchTemplateName");
       const excelEl = document.getElementById("studentBatchExcelName");
@@ -2401,7 +2441,13 @@
           : "";
       }
 
-      if (this.state.templateMode === "html") this.previewBatch();
+      if (this.state.templateMode === "html") {
+        this.renderTemplatePreview();
+        this.renderSheetVisualizer();
+        this.previewBatch();
+      } else {
+        this.renderSheetVisualizer();
+      }
     },
 
     async print() {
