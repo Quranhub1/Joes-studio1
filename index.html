@@ -11611,6 +11611,10 @@
   }};
   refresh();
   const params=new URLSearchParams(location.search);
+  if(params.get("admin")==="1"){
+    const adminButton=$("joesAdminButton");
+    if(adminButton){adminAuthenticated=true;adminButton.style.setProperty("display","flex","important");adminButton.style.alignItems="center";adminButton.style.justifyContent="center";adminButton.style.gap="clamp(.7rem,2vw,1rem)";}
+  }
   if(params.has("auth")||params.has("auth_error")){refresh().then(()=>{if(params.get("auth_error")){open();$("joesAuthError").textContent=params.get("auth_error").replace(/_/g," ")}history.replaceState({},document.title,location.pathname+location.hash)})}
 })();
 </script>
