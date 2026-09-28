@@ -43,7 +43,22 @@
       photoEnhancement: {
         enabled: true,
         whiteBackground: false,
-        strength: "strong"
+        strength: "strong",
+        manual: {
+          brightness: 0,
+          exposure: 0,
+          shadows: 0,
+          highlights: 0,
+          contrast: 0,
+          saturation: 0,
+          temperature: 0,
+          sharpness: 0,
+          faceLighting: 0,
+          cropScale: 100,
+          positionX: 0,
+          positionY: 0,
+          opacity: 100
+        }
       },
       enhancedPhotoCache: new Map(),
     },
@@ -980,16 +995,67 @@
       return /(photo|studentphoto|studentimage|picture|avatar|passport)/i.test(key) &&
         !/(badge|logo|crest|emblem|seal)/i.test(key);
     },
+    photoManualDefaults() {
+      return {brightness:0,exposure:0,shadows:0,highlights:0,contrast:0,saturation:0,temperature:0,sharpness:0,faceLighting:0,cropScale:100,positionX:0,positionY:0,opacity:100};
+    },
+
+    setPhotoManual(name, value) {
+      const defaults = this.photoManualDefaults();
+      if (!Object.prototype.hasOwnProperty.call(defaults, name)) return;
+      let next = Number(value);
+      if (!Number.isFinite(next)) next = defaults[name];
+      const ranges = {
+        brightness:[-100,100], exposure:[-100,100], shadows:[-100,100],
+        highlights:[-100,100], contrast:[-100,100], saturation:[-100,100],
+        temperature:[-100,100], sharpness:[0,100], faceLighting:[0,100],
+        cropScale:[100,250], positionX:[-50,50], positionY:[-50,50], opacity:[0,100]
+      };
+      const range = ranges[name] || [-100,100];
+      this.state.photoEnhancement.manual[name] = Math.max(range[0],Math.min(range[1],next));
+      this.state.enhancedPhotoCache.clear();
+      this.syncPhotoEditorControls();
+      this.previewBatch();
+    },
+
+    resetPhotoManual() {
+      this.state.photoEnhancement.manual = this.photoManualDefaults();
+      this.state.enhancedPhotoCache.clear();
+      this.syncPhotoEditorControls();
+      this.previewBatch();
+      this.notify("Manual photo adjustments reset.");
+    },
+
+    syncPhotoEditorControls() {
+      const m = this.state.photoEnhancement.manual || this.photoManualDefaults();
+      Object.keys(m).forEach(key => {
+        const el = document.getElementById("studentBatchPhotoManual_" + key);
+        const value = document.getElementById("studentBatchPhotoManualValue_" + key);
+        if (el && String(el.value) !== String(m[key])) el.value = m[key];
+        if (value) value.textContent = key === "cropScale" ? m[key] + "%" : key === "opacity" ? m[key] + "%" : String(m[key]);
+      });
+    },
+
     async enhanceStudentPhoto(dataUrl) {
-      if (!dataUrl || !this.state.photoEnhancement.enabled) return dataUrl;
-      const key = dataUrl;
+      if (!dataUrl || !window.JoesStudentPhotoEnhancer?.process) return dataUrl;
+      const m = this.state.photoEnhancement.manual || this.photoManualDefaults();
+      const manualIsNeutral = m.brightness===0 && m.exposure===0 && m.shadows===0 && m.highlights===0 &&
+        m.contrast===0 && m.saturation===0 && m.temperature===0 && m.sharpness===0 &&
+        m.faceLighting===0 && m.cropScale===100 && m.positionX===0 && m.positionY===0 && m.opacity===100;
+      const needsProcessing = this.state.photoEnhancement.enabled || this.state.photoEnhancement.whiteBackground || !manualIsNeutral;
+      if (!needsProcessing) return dataUrl;
+      const key = dataUrl + "|" + JSON.stringify({
+        enabled:this.state.photoEnhancement.enabled,
+        whiteBackground:this.state.photoEnhancement.whiteBackground,
+        strength:this.state.photoEnhancement.strength,
+        manual:m
+      });
       const cached = this.state.enhancedPhotoCache.get(key);
       if (cached) return cached;
-      if (!window.JoesStudentPhotoEnhancer?.process) return dataUrl;
       try {
         const enhanced = await window.JoesStudentPhotoEnhancer.process(dataUrl, {
-          strength: this.state.photoEnhancement.strength,
-          whiteBackground: this.state.photoEnhancement.whiteBackground
+          strength: this.state.photoEnhancement.enabled ? this.state.photoEnhancement.strength : "natural",
+          whiteBackground: this.state.photoEnhancement.whiteBackground,
+          manual: m
         });
         this.state.enhancedPhotoCache.set(key, enhanced);
         return enhanced;
@@ -1973,7 +2039,9 @@
       if (Object.prototype.hasOwnProperty.call(options, "whiteBackground")) this.state.photoEnhancement.whiteBackground = !!options.whiteBackground;
       if (options.strength) this.state.photoEnhancement.strength = String(options.strength);
       this.state.enhancedPhotoCache.clear();
+      this.syncPhotoEditorControls();
       this.refresh();
+      this.previewBatch();
     },
 
     cleanupPreview() {
@@ -2027,6 +2095,13 @@
     document.getElementById("studentBatchPhotoEnhance")?.addEventListener("change", e => Batch.setPhotoEnhancement({enabled:e.target.checked}));
     document.getElementById("studentBatchPhotoWhiteBg")?.addEventListener("change", e => Batch.setPhotoEnhancement({whiteBackground:e.target.checked}));
     document.getElementById("studentBatchPhotoStrength")?.addEventListener("change", e => Batch.setPhotoEnhancement({strength:e.target.value}));
+    [
+      "brightness","exposure","shadows","highlights","contrast","saturation","temperature",
+      "sharpness","faceLighting","cropScale","positionX","positionY","opacity"
+    ].forEach(key => {
+      document.getElementById("studentBatchPhotoManual_" + key)?.addEventListener("input", e => Batch.setPhotoManual(key,e.target.value));
+    });
+    document.getElementById("studentBatchPhotoManualReset")?.addEventListener("click", () => Batch.resetPhotoManual());
     document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
     document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
     document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
@@ -2050,6 +2125,7 @@
       });
     });
     Batch.refresh();
+    Batch.syncPhotoEditorControls();
     Batch.previewBatch();
   });
 })();
