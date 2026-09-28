@@ -10556,12 +10556,55 @@
 
             const appendBuiltIn = (t, label) => {
               const d = document.createElement("div");
-              d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
-              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : `<div class="text-center text-slate-400"><i class="ph ${String(t.type || "").toLowerCase() === "html" ? "ph-file-html" : "ph-file-plus"} text-4xl"></i><div class="text-[10px] mt-2">${String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Paper template"}</div></div>`}</div><div><h3 class="font-bold text-slate-700 text-sm"></h3><p class="text-slate-400 text-xs"></p></div>`;
-              const info = d.querySelector("h3");
-              const desc = d.querySelector("p");
-              if (info) info.textContent = t.name || "Untitled Template";
-              if (desc) desc.textContent = label || "Template";
+              d.className = "template-card group bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-lg cursor-pointer transition overflow-hidden flex flex-col";
+              const preview = document.createElement("div");
+              preview.className = "relative h-52 bg-slate-100 overflow-hidden flex items-center justify-center";
+              if (String(t.type || "").toLowerCase() === "html" && t.url) {
+                const frame = document.createElement("iframe");
+                frame.src = t.url + (t.url.includes("?") ? "&" : "?") + "preview=1";
+                frame.title = t.name || "Template preview";
+                frame.setAttribute("sandbox", "allow-same-origin");
+                frame.style.cssText = "width:130mm;height:60mm;min-width:130mm;min-height:60mm;border:0;transform:scale(.86);transform-origin:center;pointer-events:none;background:#fff;";
+                preview.appendChild(frame);
+                const badge = document.createElement("span");
+                badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm";
+                badge.textContent = "Live preview";
+                preview.appendChild(badge);
+              } else if (t.thumbnail) {
+                const img = document.createElement("img");
+                img.src = t.thumbnail;
+                img.className = "w-full h-full object-contain";
+                preview.appendChild(img);
+              } else {
+                preview.innerHTML = '<div class="text-center text-slate-400"><i class="ph ph-file-plus text-4xl"></i><div class="text-[10px] mt-2">Paper design</div></div>';
+              }
+
+              const body = document.createElement("div");
+              body.className = "p-3 flex items-center gap-3";
+              const info = document.createElement("div");
+              info.className = "min-w-0 flex-1";
+              const title = document.createElement("h3");
+              title.className = "font-bold text-slate-700 text-sm truncate";
+              title.textContent = t.name || "Untitled Design";
+              const desc = document.createElement("p");
+              desc.className = "text-slate-400 text-[11px] mt-0.5 truncate";
+              desc.textContent = label || t.desc || "Printable design";
+              info.appendChild(title);
+              info.appendChild(desc);
+
+              const use = document.createElement("button");
+              use.type = "button";
+              use.className = "shrink-0 px-3 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700";
+              use.innerHTML = '<i class="ph ph-check-circle mr-1"></i> Use design';
+              use.onclick = (event) => {
+                event.stopPropagation();
+                this.load(t.id);
+              };
+
+              body.appendChild(info);
+              body.appendChild(use);
+              d.appendChild(preview);
+              d.appendChild(body);
               d.onclick = () => this.load(t.id);
               grid.appendChild(d);
             };
@@ -10573,8 +10616,8 @@
 
             const available = htmlLibrary.filter(t => !used.some(u => u.id === t.id));
             if (available.length) {
-              appendHeading("Available HTML Templates");
-              available.forEach(t => appendBuiltIn(t, "HTML template • stored in templates/"));
+              appendHeading("Examination Card Designs");
+              available.forEach(t => appendBuiltIn(t, "Printable examination card"));
             }
 
             if (saved.length) {
