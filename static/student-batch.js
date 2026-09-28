@@ -368,6 +368,114 @@
       }
     },
 
+    async chooseSavedBadge() {
+      if (!window.App?.templates?.getSavedBadges) {
+        this.notify("Badge library is not available yet.", "error");
+        return;
+      }
+
+      let badges = [];
+      try {
+        badges = await window.App.templates.getSavedBadges();
+      } catch (error) {
+        console.error("Could not load saved badges.", error);
+        this.notify("Could not load the badge library.", "error");
+        return;
+      }
+
+      const existing = document.getElementById("studentBatchSavedBadgeModal");
+      if (existing) existing.remove();
+
+      const modal = document.createElement("div");
+      modal.id = "studentBatchSavedBadgeModal";
+      modal.className = "fixed inset-0 z-[160] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4";
+      modal.innerHTML = `
+        <div class="w-full max-w-3xl max-h-[82vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+          <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-white">Choose Existing Badge</h3>
+              <p class="text-[10px] text-slate-400 mt-1">Badges saved in your library and the templates/badges folder appear here.</p>
+            </div>
+            <button type="button" data-close class="w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800">
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+          <div class="p-5 overflow-y-auto max-h-[68vh]">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="relative flex-1">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input data-search type="search" placeholder="Search badges..." class="w-full rounded-lg border border-slate-700 bg-slate-950 text-white text-xs pl-9 pr-3 py-2.5 outline-none focus:border-blue-500">
+              </div>
+              <button type="button" data-refresh class="px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 text-[10px] font-semibold hover:bg-slate-700">
+                <i class="ph ph-arrows-clockwise mr-1"></i> Refresh
+              </button>
+            </div>
+            <div data-grid class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      const close = () => modal.remove();
+      modal.querySelector("[data-close]")?.addEventListener("click", close);
+      modal.addEventListener("click", event => {
+        if (event.target === modal) close();
+      });
+
+      const grid = modal.querySelector("[data-grid]");
+      const search = modal.querySelector("[data-search]");
+
+      const render = () => {
+        const query = String(search?.value || "").trim().toLowerCase();
+        const filtered = badges.filter(badge => !query || String(badge.name || "").toLowerCase().includes(query));
+        if (!filtered.length) {
+          grid.innerHTML = `
+            <div class="col-span-full rounded-xl border border-dashed border-slate-700 p-8 text-center">
+              <i class="ph ph-images text-3xl text-slate-600"></i>
+              <p class="text-xs text-slate-400 mt-2">${badges.length ? "No badges match your search." : "No saved badges found yet."}</p>
+              <p class="text-[10px] text-slate-600 mt-1">${badges.length ? "Try another name." : "Upload a badge once and it will be saved here automatically."}</p>
+            </div>`;
+          return;
+        }
+
+        grid.innerHTML = filtered.map((badge, index) => `
+          <button type="button" data-badge-index="${badges.indexOf(badge)}" class="text-left rounded-xl border ${String(this.state.badgeLibraryId || "") === String(badge.id || "") ? "border-blue-500 ring-1 ring-blue-500/40" : "border-slate-700"} bg-slate-950 p-2.5 hover:border-blue-500/70 hover:bg-slate-800 transition">
+            <div class="h-28 rounded-lg bg-white border border-slate-700 flex items-center justify-center overflow-hidden p-2">
+              <img src="${escapeHtml(this.imageSourceForTemplate(badge.dataUrl || badge.download_url || badge.html_url || ""))}" alt="" class="max-w-full max-h-full object-contain" loading="lazy">
+            </div>
+            <div class="mt-2 min-w-0">
+              <div class="text-[10px] font-semibold text-white truncate" title="${escapeHtml(badge.name || "Badge")}">${escapeHtml(badge.name || "Badge")}</div>
+              <div class="text-[9px] text-slate-500 mt-0.5">${badge.remote ? "templates/badges" : "Saved locally"}</div>
+            </div>
+          </button>`).join("");
+
+        grid.querySelectorAll("[data-badge-index]").forEach(button => {
+          button.addEventListener("click", () => {
+            const badge = badges[Number(button.getAttribute("data-badge-index"))];
+            if (!badge?.dataUrl && !badge?.download_url && !badge?.html_url) return;
+            const dataUrl = badge.dataUrl || badge.download_url || badge.html_url;
+            this.useSavedBadge(badge.name, dataUrl, badge.id);
+            try { localStorage.setItem(window.App.templates.selectedBadgeKey, badge.id); } catch (_) {}
+            this.notify("Badge selected: " + badge.name, "success");
+            close();
+          });
+        });
+      };
+
+      search?.addEventListener("input", render);
+      modal.querySelector("[data-refresh]")?.addEventListener("click", async () => {
+        try {
+          badges = await window.App.templates.getSavedBadges();
+          render();
+        } catch (error) {
+          console.error(error);
+          this.notify("Could not refresh the badge library.", "error");
+        }
+      });
+
+      render();
+      setTimeout(() => search?.focus(), 0);
+    },
+
     async loadTemplate(file, options = {}) {
       if (!file) return;
       try {
