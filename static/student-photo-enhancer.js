@@ -10,7 +10,7 @@
       const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(im,0,0,w,h);
       const srcData=ctx.getImageData(0,0,w,h),mask=this.mask(srcData.data,w,h);
       const stats=this.stats(srcData.data,w,h,mask);
-      const auto=this.calculate(stats,String(opt.strength||"balanced"));
+      const auto=opt.auto===false ? {exposure:0,shadows:0,deepShadows:0,gamma:1,complexionLift:0,highlights:0,contrast:1,saturation:1,temperature:0,sharpness:0} : this.calculate(stats,String(opt.strength||"balanced"));
       const m=opt.manual||{};
       const n=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
       const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
