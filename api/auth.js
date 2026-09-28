@@ -1,308 +1,148 @@
 import crypto from "node:crypto";
+import {cors,json,requireOrigin,redis,safeEqual,createUser,findUserByEmail,getUser,saveUser,hashPassword,verifyPassword,createSession,destroySession,USER_COOKIE,cookieHeader,clearCookie,publicUser,requireConfig} from "./_auth.mjs";
 
-const COOKIE = "joes_user_session";
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const SESSION_SECRET = process.env.USER_SESSION_SECRET || "change-me-in-production";
+const GOOGLE_CLIENT_ID=process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET=process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI=process.env.GOOGLE_REDIRECT_URI || ((process.env.API_ORIGIN||"").replace(/\/$/,"")+"/api/auth?action=google-callback");
+const APP_URL=(process.env.APP_URL||process.env.APP_ORIGIN||"https://quranhub1.github.io").replace(/\/$/,"");
 
-function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
-  res.end(JSON.stringify(body));
+function emailOk(email){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
+function sessionCookie(token){return cookieHeader(USER_COOKIE,token)}
+function redirect(res,url){res.status(302).setHeader("Location",url).end()}
+
+async function issueUserSession(res,user){
+  const token=await createSession(user.id,"user");
+  res.setHeader("Set-Cookie",sessionCookie(token));
 }
 
-function cors(res) {
-  res.setHeader("Cache-Control", "no-store");
-  res.setHeader("X-Content-Type-Options", "nosniff");
-}
-
-function safeEqual(a, b) {
-  const aa = Buffer.from(String(a));
-  const bb = Buffer.from(String(b));
-  return aa.length === bb.length && crypto.timingSafeEqual(aa, bb);
-}
-
-function sign(value) {
-  return crypto.createHmac("sha256", SESSION_SECRET).update(value).digest("base64url");
-}
-
-function cookieValue(req) {
-  const raw = req.headers.cookie || "";
-  const hit = raw.split(";").map(x => x.trim()).find(x => x.startsWith(COOKIE + "="));
-  return hit ? decodeURIComponent(hit.slice(COOKIE.length + 1)) : "";
-}
-
-function authenticated(req) {
-  if (!SESSION_SECRET) return false;
-  const v = cookieValue(req);
-  if (!v) return false;
-  const [id, exp, sig] = v.split(".");
-  if (!id || !exp || !sig || Number(exp) < Date.now()) return false;
-  const expected = sign(id + "." + exp);
-  return safeEqual(sig, expected);
-}
-
-function getCurrentUserId(req) {
-  if (!SESSION_SECRET) return null;
-  const v = cookieValue(req);
-  if (!v) return null;
-  const [id, exp, sig] = v.split(".");
-  if (!id || !exp || !sig || Number(exp) < Date.now()) return null;
-  const expected = sign(id + "." + exp);
-  return safeEqual(sig, expected) ? id : null;
-}
-
-async function redis(command, ...args) {
-  if (!REDIS_URL || !REDIS_TOKEN) throw new Error("Redis storage is not configured");
-  const r = await fetch(REDIS_URL, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + REDIS_TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify([command, ...args])
+async function googleStart(req,res){
+  if(!GOOGLE_CLIENT_ID||!GOOGLE_CLIENT_SECRET) return json(res,503,{error:"Google authentication is not configured"});
+  const state=crypto.randomBytes(32).toString("base64url");
+  const target=String(new URL(req.url,"https://auth.local").searchParams.get("returnTo")||APP_URL);
+  let safeTarget=APP_URL;
+  try{const u=new URL(target); const base=new URL(APP_URL); if(u.origin===base.origin) safeTarget=u.href;}catch(_){}
+  await redis("set","joes:oauth:google:"+crypto.createHash("sha256").update(state).digest("hex"),safeTarget,"EX",600);
+  const params=new URLSearchParams({
+    client_id:GOOGLE_CLIENT_ID,response_type:"code",redirect_uri:GOOGLE_REDIRECT_URI,
+    scope:"openid email profile",state,access_type:"online",prompt:"select_account"
   });
-  if (!r.ok) throw new Error("Redis request failed");
-  const data = await r.json();
-  return data.result;
+  return redirect(res,"https://accounts.google.com/o/oauth2/v2/auth?"+params.toString());
 }
 
-async function getUser(userId) {
-  const v = await redis("get", "joes:user:" + userId);
-  return v ? (typeof v === "string" ? JSON.parse(v) : v) : null;
+async function googleCallback(req,res,url){
+  if(!GOOGLE_CLIENT_ID||!GOOGLE_CLIENT_SECRET) return redirect(res,APP_URL+"?auth_error=google_not_configured");
+  const code=url.searchParams.get("code");
+  const state=url.searchParams.get("state");
+  if(!code||!state) return redirect(res,APP_URL+"?auth_error=missing_google_response");
+  const stateKey="joes:oauth:google:"+crypto.createHash("sha256").update(state).digest("hex");
+  const returnTo=await redis("get",stateKey);
+  await redis("del",stateKey);
+  if(!returnTo) return redirect(res,APP_URL+"?auth_error=invalid_google_state");
+  try{
+    const tokenResponse=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:GOOGLE_CLIENT_ID,client_secret:GOOGLE_CLIENT_SECRET,redirect_uri:GOOGLE_REDIRECT_URI,grant_type:"authorization_code"})});
+    if(!tokenResponse.ok) throw new Error("Google token exchange failed");
+    const tokens=await tokenResponse.json();
+    const userResponse=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{Authorization:"Bearer "+tokens.access_token}});
+    if(!userResponse.ok) throw new Error("Google userinfo failed");
+    const google=await userResponse.json();
+    const email=String(google.email||"").trim().toLowerCase();
+    if(!email||google.email_verified!==true) throw new Error("Google account email is not verified");
+    let user=await findUserByEmail(email);
+    if(user){
+      if(user.banned) return redirect(res,returnTo+"?auth_error=account_banned");
+      user.auth={...(user.auth||{}),googleSub:String(google.sub||"")};
+      if(!user.name) user.name=String(google.name||"").slice(0,120);
+      if(!user.avatar&&google.picture) user.avatar=google.picture;
+      user.updatedAt=new Date().toISOString();
+      user=await saveUser(user);
+    }else{
+      user=await createUser({email,name:google.name,avatar:google.picture,googleSub:google.sub});
+    }
+    await issueUserSession(res,user);
+    return redirect(res,returnTo+"?auth=google");
+  }catch(error){
+    console.error("Google OAuth error:",error);
+    return redirect(res,returnTo+"?auth_error=google_failed");
+  }
 }
 
-async function saveUser(user) {
-  await redis("set", "joes:user:" + user.id, JSON.stringify(user));
-  await redis("sadd", "joes:users", user.id);
-}
+export default async function handler(req,res){
+  cors(req,res);
+  if(req.method==="OPTIONS") return res.status(204).end();
+  if(!requireOrigin(req)) return json(res,403,{error:"Origin not allowed"});
+  try{
+    requireConfig();
+    const url=new URL(req.url,"https://auth.local");
+    const action=url.searchParams.get("action")||"";
 
-async function createUser(userData) {
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const user = {
-    id,
-    email: String(userData.email || "").trim().toLowerCase(),
-    name: String(userData.name || "").trim().slice(0, 120),
-    googleId: userData.googleId || null,
-    avatar: userData.avatar || null,
-    subscription: {
-      tier: "free",
-      status: "active",
-      batchesUsed: 0,
-      batchLimit: 3,
-      startDate: now,
-      endDate: null,
-      renewalDate: null
-    },
-    banned: false,
-    bannedAt: null,
-    bannedReason: null,
-    createdAt: now,
-    updatedAt: now
-  };
-  await saveUser(user);
-  return user;
-}
+    if(req.method==="GET"&&action==="google-start") return googleStart(req,res);
+    if(req.method==="GET"&&action==="google-callback") return googleCallback(req,res,url);
 
-export default async function handler(req, res) {
-  cors(res);
-
-  try {
-    // Sign up with email/password
-    if (req.method === "POST" && new URL(req.url, "https://auth.local").searchParams.get("action") === "signup") {
-      const body = req.body || {};
-      const email = String(body.email || "").trim().toLowerCase();
-      const name = String(body.name || "").trim();
-      const password = String(body.password || "");
-
-      if (!email || !name || !password) {
-        return json(res, 400, { error: "Email, name, and password are required" });
-      }
-
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return json(res, 400, { error: "Invalid email format" });
-      }
-
-      if (password.length < 6) {
-        return json(res, 400, { error: "Password must be at least 6 characters" });
-      }
-
-      // Check if user exists
-      const existing = await redis("get", "joes:user:email:" + email);
-      if (existing) {
-        return json(res, 400, { error: "Email already registered" });
-      }
-
-      const user = await createUser({ email, name });
-      const hashedPassword = crypto.createHash("sha256").update(password).digest("hex");
-      await redis("set", "joes:user:password:" + email, hashedPassword);
-      await redis("set", "joes:user:email:" + email, user.id);
-
-      const exp = Date.now() + 30 * 24 * 60 * 60 * 1000;
-      const value = user.id + "." + exp;
-      const token = value + "." + sign(value);
-      res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000`);
-
-      return json(res, 201, { 
-        ok: true, 
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          subscription: user.subscription
-        }
-      });
+    if(req.method==="POST"&&action==="signup"){
+      const body=req.body||{};
+      const email=String(body.email||"").trim().toLowerCase();
+      const name=String(body.name||"").trim();
+      const password=String(body.password||"");
+      if(!emailOk(email)||!name||password.length<8) return json(res,400,{error:"Enter a valid email, name, and password of at least 8 characters"});
+      const emailKey="joes:user:email:"+email;
+      const existing=await redis("get",emailKey);
+      if(existing) return json(res,409,{error:"Email already registered"});
+      const user=await createUser({email,name});
+      try{
+        const passwordRecord=await hashPassword(password);
+        user.auth.password=passwordRecord;
+        await saveUser(user);
+        const reserved=await redis("set",emailKey,user.id,"NX","EX",60);
+        if(reserved!==null&&reserved!==true&&reserved!=="OK"){await redis("del","joes:user:"+user.id);return json(res,409,{error:"Email already registered"});}
+        await redis("set",emailKey,user.id);
+      }catch(e){await redis("del","joes:user:"+user.id);throw e}
+      await issueUserSession(res,user);
+      return json(res,201,{ok:true,user:publicUser(user)});
     }
 
-    // Login with email/password
-    if (req.method === "POST" && new URL(req.url, "https://auth.local").searchParams.get("action") === "login") {
-      const body = req.body || {};
-      const email = String(body.email || "").trim().toLowerCase();
-      const password = String(body.password || "");
-
-      if (!email || !password) {
-        return json(res, 400, { error: "Email and password are required" });
-      }
-
-      const userId = await redis("get", "joes:user:email:" + email);
-      if (!userId) {
-        return json(res, 401, { error: "Invalid email or password" });
-      }
-
-      const storedHash = await redis("get", "joes:user:password:" + email);
-      const inputHash = crypto.createHash("sha256").update(password).digest("hex");
-      
-      if (!storedHash || storedHash !== inputHash) {
-        return json(res, 401, { error: "Invalid email or password" });
-      }
-
-      const user = await getUser(userId);
-      if (!user || user.banned) {
-        return json(res, 403, { error: "Account is unavailable" });
-      }
-
-      const exp = Date.now() + 30 * 24 * 60 * 60 * 1000;
-      const value = user.id + "." + exp;
-      const token = value + "." + sign(value);
-      res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000`);
-
-      return json(res, 200, { 
-        ok: true, 
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          subscription: user.subscription
-        }
-      });
-    }
-
-    // Google OAuth callback
-    if (req.method === "POST" && new URL(req.url, "https://auth.local").searchParams.get("action") === "google") {
-      if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-        return json(res, 500, { error: "Google authentication not configured" });
-      }
-
-      const body = req.body || {};
-      const token = body.token;
-
-      if (!token) {
-        return json(res, 400, { error: "Google token required" });
-      }
-
-      try {
-        const response = await fetch("https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=" + token);
-        if (!response.ok) {
-          return json(res, 401, { error: "Invalid Google token" });
-        }
-
-        const tokenInfo = await response.json();
-        if (tokenInfo.issued_to !== GOOGLE_CLIENT_ID) {
-          return json(res, 401, { error: "Token mismatch" });
-        }
-
-        const userResponse = await fetch("https://www.googleapis.com/oauth2/v1/userinfo?access_token=" + token);
-        const googleUser = await userResponse.json();
-
-        const email = String(googleUser.email || "").trim().toLowerCase();
-        let userId = await redis("get", "joes:user:email:" + email);
-        let user;
-
-        if (userId) {
-          user = await getUser(userId);
-          if (!user) {
-            return json(res, 500, { error: "User data corrupted" });
-          }
-          if (user.banned) {
-            return json(res, 403, { error: "Account is banned" });
-          }
-          if (!user.googleId) {
-            user.googleId = googleUser.id;
-            user.updatedAt = new Date().toISOString();
+    if(req.method==="POST"&&action==="login"){
+      const body=req.body||{};
+      const email=String(body.email||"").trim().toLowerCase();
+      const password=String(body.password||"");
+      if(!email||!password) return json(res,400,{error:"Email and password are required"});
+      const user=await findUserByEmail(email);
+      if(!user) return json(res,401,{error:"Invalid email or password"});
+      if(user.banned) return json(res,403,{error:"Account is unavailable"});
+      let valid=await verifyPassword(password,user.auth?.password);
+      if(!valid){
+        const legacy=await redis("get","joes:user:password:"+email);
+        if(legacy){
+          const legacyHash=crypto.createHash("sha256").update(password).digest("hex");
+          valid=safeEqual(legacy,legacyHash);
+          if(valid){
+            user.auth.password=await hashPassword(password);
             await saveUser(user);
+            await redis("del","joes:user:password:"+email);
           }
-        } else {
-          user = await createUser({
-            email,
-            name: googleUser.name,
-            googleId: googleUser.id,
-            avatar: googleUser.picture
-          });
-          await redis("set", "joes:user:email:" + email, user.id);
         }
-
-        const exp = Date.now() + 30 * 24 * 60 * 60 * 1000;
-        const value = user.id + "." + exp;
-        const sessionToken = value + "." + sign(value);
-        res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(sessionToken)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000`);
-
-        return json(res, 200, { 
-          ok: true, 
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            avatar: user.avatar,
-            subscription: user.subscription
-          }
-        });
-      } catch (error) {
-        console.error("Google auth error:", error);
-        return json(res, 500, { error: "Google authentication failed" });
       }
+      if(!valid) return json(res,401,{error:"Invalid email or password"});
+      await issueUserSession(res,user);
+      return json(res,200,{ok:true,user:publicUser(user)});
     }
 
-    // Get current user
-    if (req.method === "GET" && new URL(req.url, "https://auth.local").searchParams.get("action") === "me") {
-      const userId = getCurrentUserId(req);
-      if (!userId) {
-        return json(res, 401, { error: "Not authenticated" });
-      }
-
-      const user = await getUser(userId);
-      if (!user || user.banned) {
-        return json(res, 403, { error: "Account unavailable" });
-      }
-
-      return json(res, 200, { 
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          avatar: user.avatar,
-          subscription: user.subscription
-        }
-      });
+    if(req.method==="GET"&&action==="me"){
+      const {getSession}=await import("./_auth.mjs");
+      const session=await getSession(req,"user");
+      if(!session) return json(res,401,{error:"Not authenticated"});
+      const user=await getUser(session.userId);
+      if(!user||user.banned) return json(res,403,{error:"Account unavailable"});
+      return json(res,200,{user:publicUser(user)});
     }
 
-    // Logout
-    if (req.method === "POST" && new URL(req.url, "https://auth.local").searchParams.get("action") === "logout") {
-      res.setHeader("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
-      return json(res, 200, { ok: true });
+    if(req.method==="POST"&&action==="logout"){
+      await destroySession(req,"user");
+      res.setHeader("Set-Cookie",clearCookie(USER_COOKIE));
+      return json(res,200,{ok:true});
     }
-
-    return json(res, 405, { error: "Method not allowed" });
-  } catch (e) {
-    console.error("Auth error:", e);
-    return json(res, 500, { error: e.message || "Server error" });
+    return json(res,405,{error:"Method not allowed"});
+  }catch(e){
+    console.error("Auth error:",e);
+    return json(res,500,{error:e.message||"Server error"});
   }
 }
