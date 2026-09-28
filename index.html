@@ -10526,7 +10526,7 @@
             badgeBtn?.classList.toggle("text-slate-600", this.activeStartTab !== "badges");
 
             if (this.activeStartTab === "badges") await this.renderBadgeLibrary();
-            else this.renderHistory();
+            else await this.renderHistory();
           },
 
           renderHistory: async function () {
@@ -10550,7 +10550,7 @@
             this.savedTemplates = saved;
             this.history = used.map((t) => t.id);
 
-            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar items-start auto-rows-max";
+            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar items-start auto-rows-max flex-1 min-h-0";
             grid.replaceChildren();
 
             const appendHeading = (label) => {
