@@ -4,7 +4,7 @@ import {cors,json,requireOrigin,redis,safeEqual,createUser,findUserByEmail,findU
 const GOOGLE_CLIENT_ID=process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET=process.env.GOOGLE_CLIENT_SECRET;
 const ADMIN_USERNAME=process.env.ADMIN_USERNAME||"";
-const ADMIN_GOOGLE_EMAIL=String(process.env.ADMIN_GOOGLE_EMAIL||"").trim().toLowerCase();
+const ADMIN_EMAIL=String(process.env.ADMIN_EMAIL||"").trim().toLowerCase();
 const API_ORIGIN=(process.env.API_ORIGIN|| (process.env.VERCEL_URL ? "https://"+process.env.VERCEL_URL : "")).replace(/\/$/,"");
 const GOOGLE_REDIRECT_URI=process.env.GOOGLE_REDIRECT_URI || (API_ORIGIN ? API_ORIGIN+"/api/auth?action=google-callback" : "");
 const APP_URL=(process.env.APP_URL||process.env.APP_ORIGIN||"https://quranhub1.github.io").replace(/\/$/,"");
@@ -70,7 +70,7 @@ async function googleCallback(req,res,url){
       user=await createUser({email,name:google.name,avatar:google.picture,googleSub:google.sub});
     }
     await issueUserSession(res,user);
-    const googleIsAdmin = !!ADMIN_USERNAME && (email === ADMIN_GOOGLE_EMAIL || (ADMIN_USERNAME.includes("@") && email === ADMIN_USERNAME.toLowerCase()));
+    const googleIsAdmin = !!ADMIN_USERNAME && (email === ADMIN_EMAIL || (ADMIN_USERNAME.includes("@") && email === ADMIN_USERNAME.toLowerCase()));
     if(googleIsAdmin) await issueAdminSession(res);
     return redirect(res,returnTo+"?auth=google");
   }catch(error){
