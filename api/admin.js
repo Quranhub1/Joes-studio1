@@ -4,6 +4,7 @@ import {cors,json,requireOrigin,redis,safeEqual,createSession,getSession,destroy
 const ADMIN_USERNAME=process.env.ADMIN_USERNAME||"";
 const ADMIN_PASSWORD=process.env.ADMIN_PASSWORD||"";
 const ADMIN_EMAIL=String(process.env.ADMIN_EMAIL||"").trim().toLowerCase();
+const ADMIN_COOKIE_DOMAIN=String(process.env.ADMIN_COOKIE_DOMAIN||"").trim();
 
 function plans(){
   return {
