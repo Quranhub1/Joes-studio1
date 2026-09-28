@@ -11521,7 +11521,7 @@
     else scheduleGuestExpiry();
     render();
   }
-  $("joesAuthButton").onclick=open;
+  $("joesAuthButton").onclick=()=>{ if(!user) mode="signup"; open(false); };
   $("joesAuthClose").onclick=()=>{if(!authRequired||user)close()};
   $("joesAuthOverlay").addEventListener("click",e=>{if(e.target===$("joesAuthOverlay")&&!authRequired)close()});
   $("joesAuthMode").onclick=()=>{mode=mode==="login"?"signup":"login";render()};
