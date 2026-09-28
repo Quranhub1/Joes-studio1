@@ -35,7 +35,7 @@
         const shadow=Math.max(0,(.68-lum)/.68);
         const deepShadow=Math.max(0,(.42-lum)/.42);
         const highlight=Math.max(0,(lum-.72)/.28);
-        const complexionLift=(v.complexionLift||0)*Math.max(0,(.62-lum)/.62)*fg;
+        const centerX=(p%w)/(w-1||1), centerY=Math.floor(p/w)/(h-1||1);\n        const faceZone=Math.max(0,1-Math.sqrt(((centerX-.5)/.5)**2+((centerY-.43)/.62)**2))*fg;\n        const complexionLift=(v.complexionLift||0)*Math.max(0,(.68-lum)/.68)*(0.55+0.45*faceZone);
         const printLift=(v.exposure+shadow*v.shadows+deepShadow*v.deepShadows+complexionLift-highlight*v.highlights)*fg;
         r+=255*printLift;g+=255*printLift;b+=255*printLift;
         if(fg>.5){
@@ -67,11 +67,11 @@
       const natural=mode==="natural",strong=mode==="strong";
       const target=.52,gap=target-s.mean;
       return {
-        exposure:Math.max(-.05,Math.min(.30,gap*.65+(s.darkFraction-.20)*.16))*(natural?.65:strong?1.15:1),
-        shadows:Math.max(0,Math.min(.48,(s.shadowMean<.46?.20:.10)+(s.darkFraction-.20)*.40))*(natural?.65:strong?1.18:1),
-        deepShadows:Math.max(0,Math.min(.24,(s.darkFraction>.28?.055:.025)))*(natural?.7:strong?1.15:1),
+        exposure:Math.max(-.05,Math.min(.38,gap*.72+(s.darkFraction-.20)*.20))*(natural?.65:strong?1.2:1),
+        shadows:Math.max(0,Math.min(.62,(s.shadowMean<.46?.26:.12)+(s.darkFraction-.20)*.48))*(natural?.65:strong?1.2:1),
+        deepShadows:Math.max(0,Math.min(.32,(s.darkFraction>.28?.09:.035)))*(natural?.7:strong?1.18:1),
         gamma:natural?.985:strong?.89:.95,
-        complexionLift:natural?.025:strong?.105:.055,
+        complexionLift:natural?.035:strong?.16:.085,
         highlights:Math.max(.04,Math.min(.24,(s.highlightFraction*.30)+.05))*(natural?.7:strong?1.1:1),
         contrast:Math.max(.98,Math.min(1.10,1+(target-s.mean)*.16+(s.std<.16?.025:0)))*(natural?.75:strong?1.08:1),
         saturation:Math.max(.94,Math.min(1.10,1+(s.saturation<.30?.045:.015)))*(natural?.8:strong?1.05:1),
