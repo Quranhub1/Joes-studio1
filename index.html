@@ -10128,7 +10128,11 @@
             const response = await fetch(apiBase + "/api/templates/save", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name, content })
+              body: JSON.stringify({
+                name,
+                content,
+                existingPath: arguments[2] || ""
+              })
             });
             let result = null;
             try { result = await response.json(); } catch (_) {}
