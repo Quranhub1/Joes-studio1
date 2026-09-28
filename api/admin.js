@@ -12,7 +12,8 @@ function cors(res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
 }
-function safeEqual(a, b) { const aa = Buffer.from(String(a)); const bb = Buffer.from(String(b)); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }\nfunction sign(value) {
+function safeEqual(a, b) { const aa = Buffer.from(String(a)); const bb = Buffer.from(String(b)); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
+function sign(value) {
   return crypto.createHmac("sha256", process.env.ADMIN_SESSION_SECRET || "").update(value).digest("base64url");
 }
 function cookieValue(req) {
@@ -73,8 +74,9 @@ export default async function handler(req, res) {
   try {
     if (req.method === "POST" && new URL(req.url, "https://admin.local").searchParams.get("action") === "login") {
       const body = req.body || {};
-      const ok = crypto.timingSafeEqual(Buffer.from(String(body.username || "")), Buffer.from(String(process.env.ADMIN_USERNAME || ""))) &&
-        crypto.timingSafeEqual(Buffer.from(String(body.password || "")), Buffer.from(String(process.env.ADMIN_PASSWORD || "")));
+      const usernameOk = safeEqual(body.username || "", process.env.ADMIN_USERNAME || "");
+      const passwordOk = safeEqual(body.password || "", process.env.ADMIN_PASSWORD || "");
+      const ok = usernameOk && passwordOk;
       if (!ok) return json(res, 401, { error: "Invalid admin credentials" });
       const exp = Date.now() + 8 * 60 * 60 * 1000;
       const value = process.env.ADMIN_USERNAME + "." + exp;
