@@ -126,13 +126,13 @@ export async function findUserByEmail(email){
 }
 export async function hashPassword(password){
   const salt=crypto.randomBytes(16);
-  const derived=await new Promise((resolve,reject)=>crypto.scrypt(String(password),salt,64,{N:16384,r:8,p:1,maxmem:64*1024*1024},(e,d)=>e?reject(e):resolve(d)));
+  const derived=await new Promise((resolve,reject)=>crypto.scrypt(String(password),salt,64,{N:32768,r:8,p:3,maxmem:128*1024*1024},(e,d)=>e?reject(e):resolve(d)));
   return {algorithm:"scrypt","salt":salt.toString("base64url"),hash:Buffer.from(derived).toString("base64url"),version:1};
 }
 export async function verifyPassword(password,record){
   if(!record?.salt||!record?.hash) return false;
   const salt=Buffer.from(record.salt,"base64url");
-  const derived=await new Promise((resolve,reject)=>crypto.scrypt(String(password),salt,64,{N:16384,r:8,p:1,maxmem:64*1024*1024},(e,d)=>e?reject(e):resolve(d)));
+  const derived=await new Promise((resolve,reject)=>crypto.scrypt(String(password),salt,64,{N:32768,r:8,p:3,maxmem:128*1024*1024},(e,d)=>e?reject(e):resolve(d)));
   return safeEqual(Buffer.from(derived).toString("base64url"),record.hash);
 }
 function tokenHash(token){return crypto.createHash("sha256").update(token).digest("hex")}
@@ -154,7 +154,7 @@ export async function getSession(req,type="user"){
 }
 export async function destroySession(req,type="user"){
   const token=parseCookie(req,type==="admin"?ADMIN_COOKIE:USER_COOKIE);
-  if(token) await redis("del","joes:session:"+type+":"+tokenHash(token));
+  if(token){ const hash=tokenHash(token); await redis("del","joes:session:"+type+":"+hash); const sessionSet="joes:user:sessions:"+((await redis("get","joes:session:"+type+":"+hash))?.userId||""); if(sessionSet.endsWith(":")) return; await redis("srem",sessionSet,hash); }
 }
 export function requireConfig(){
   if(!process.env.USER_SESSION_SECRET) throw new Error("USER_SESSION_SECRET is not configured");
