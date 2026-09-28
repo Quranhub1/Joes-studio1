@@ -10532,6 +10532,9 @@
             const grid = document.getElementById("templateGrid");
             if (!grid) return;
 
+            // Refresh repository HTML templates whenever the gallery opens.
+            await this.discoverRepositoryHtmlTemplates();
+
             const used = this.getHistory()
               .map((id) => this.data.find((t) => t.id === id))
               .filter(Boolean);
