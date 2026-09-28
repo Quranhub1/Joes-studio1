@@ -9141,7 +9141,123 @@
             const doc = f.contentWindow.document;
             doc.open();
             doc.write(
-              `<html><head><style>@page{size:${App.state.currentPaper.w}mm ${App.state.currentPaper.h}mm;margin:0}body{margin:0;display:flex;justify-content:center}${css}</style></head><body>${content}</body></html>`,
+              `<html><head><style>@page{size:${App.state.currentPaper.w}mm ${App.state.currentPaper.h}mm;margin:0}body{margin:0;display:flex;justify-content:center}${css}</style></head><body>${content}
+<style id="joes-auth-ui">
+#joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}
+#joesAuthOverlay.open{display:flex}
+.joes-auth-card{width:min(430px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.joes-auth-card input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;margin-top:8px}
+.joes-auth-card button{border:0;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
+.joes-auth-primary{background:#0f172a;color:#fff;width:100%;margin-top:12px}
+.joes-auth-google{background:#fff;color:#0f172a;border:1px solid #cbd5e1!important;width:100%;margin-top:8px}
+.joes-auth-muted{font:12px system-ui;color:#64748b}
+.joes-auth-error{font:12px system-ui;color:#b91c1c;min-height:18px;margin-top:8px}
+.joes-auth-account{display:none;gap:8px;align-items:center}
+.joes-auth-account.open{display:flex}
+.joes-auth-plan{font-size:12px;color:#475569;margin-top:4px}
+.joes-auth-payment{margin-top:14px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
+</style>
+<button id="joesAuthButton" type="button">Sign in</button>
+<div id="joesAuthOverlay" aria-hidden="true">
+  <div class="joes-auth-card">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+      <div><strong id="joesAuthTitle">Sign in to Joes Studio</strong><div class="joes-auth-muted">Your account controls batch limits and Pro access.</div></div>
+      <button id="joesAuthClose" type="button" style="background:#f1f5f9">×</button>
+    </div>
+    <form id="joesAuthForm">
+      <label class="joes-auth-muted">Name<input id="joesAuthName" autocomplete="name" placeholder="Your name"></label>
+      <label class="joes-auth-muted">Email<input id="joesAuthEmail" type="email" autocomplete="email" required></label>
+      <label class="joes-auth-muted">Password<input id="joesAuthPassword" type="password" autocomplete="current-password" minlength="8" required></label>
+      <div id="joesAuthError" class="joes-auth-error"></div>
+      <button class="joes-auth-primary" type="submit" id="joesAuthSubmit">Sign in</button>
+    </form>
+    <button id="joesGoogleButton" class="joes-auth-google" type="button">Continue with Google</button>
+    <button id="joesAuthMode" type="button" style="background:transparent;color:#475569;width:100%;margin-top:8px">Create an account</button>
+    <div id="joesAccountPanel" style="display:none">
+      <div class="joes-auth-plan" id="joesAccountPlan"></div>
+      <div class="joes-auth-payment">
+        <strong>Upgrade to Pro</strong>
+        <div class="joes-auth-muted" id="joesPaymentDetails">Loading payment details…</div>
+        <input id="joesPaymentReference" placeholder="Payment / transaction reference">
+        <input id="joesPaymentAmount" placeholder="Amount paid">
+        <button id="joesPaymentSubmit" class="joes-auth-primary" type="button">Submit payment for approval</button>
+      </div>
+      <button id="joesLogoutButton" class="joes-auth-primary" type="button">Log out</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const API=window.JOES_API_BASE||"";
+  let mode="login",user=null;
+  const $=id=>document.getElementById(id);
+  async function api(path,opts={}){
+    const r=await fetch(API+path,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||"Request failed");
+    return d;
+  }
+  function open(){ $("joesAuthOverlay").classList.add("open"); $("joesAuthOverlay").setAttribute("aria-hidden","false"); render(); }
+  function close(){ $("joesAuthOverlay").classList.remove("open"); $("joesAuthOverlay").setAttribute("aria-hidden","true"); }
+  function render(){
+    $("joesAuthButton").textContent=user?(user.name||user.email):"Sign in";
+    $("joesAuthForm").style.display=user?"none":"block";
+    $("joesGoogleButton").style.display=user?"none":"block";
+    $("joesAuthMode").style.display=user?"none":"block";
+    $("joesAccountPanel").style.display=user?"block":"none";
+    $("joesAuthTitle").textContent=user?"Account":"Sign in to Joes Studio";
+    if(!user){
+      $("joesAuthMode").textContent=mode==="login"?"Create an account":"I already have an account";
+      $("joesAuthSubmit").textContent=mode==="login"?"Sign in":"Create account";
+      $("joesAuthName").style.display=mode==="login"?"none":"block";
+    }else{
+      const p=user.plan||{tier:"free"};
+      const u=user.usage||{};
+      $("joesAccountPlan").textContent=(p.tier||"free").toUpperCase()+" plan • "+(p.status||"active")+" • "+(p.tier==="pro"?"Unlimited":"Used "+(u.batchesUsed||0)+" of "+(u.batchLimit||3)+" free batches this month");
+      loadPaymentDetails();
+    }
+  }
+  async function loadPaymentDetails(){
+    try{const d=await api("/api/payments");const p=d.payment||{};$("joesPaymentDetails").textContent=[p.method,p.accountName,p.accountNumber,p.proPrice?(p.currency+" "+p.proPrice):""].filter(Boolean).join(" • ")||"Payment details are not configured yet."}
+    catch(e){$("joesPaymentDetails").textContent="Payment details unavailable."}
+  }
+  async function refresh(){
+    try{user=(await api("/api/auth?action=me")).user}catch(_){user=null}
+    render();
+  }
+  $("joesAuthButton").onclick=open;
+  $("joesAuthClose").onclick=close;
+  $("joesAuthOverlay").addEventListener("click",e=>{if(e.target===$("joesAuthOverlay"))close()});
+  $("joesAuthMode").onclick=()=>{mode=mode==="login"?"signup":"login";render()};
+  $("joesGoogleButton").onclick=()=>{location.href=API+"/api/auth?action=google-start&returnTo="+encodeURIComponent(location.href.split("?")[0])};
+  $("joesAuthForm").onsubmit=async e=>{
+    e.preventDefault();$("joesAuthError").textContent="";
+    try{
+      const action=mode==="login"?"login":"signup";
+      const d=await api("/api/auth?action="+action,{method:"POST",body:JSON.stringify({name:$("joesAuthName").value,email:$("joesAuthEmail").value,password:$("joesAuthPassword").value})});
+      user=d.user; $("joesAuthPassword").value=""; render(); close(); window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));
+    }catch(err){$("joesAuthError").textContent=err.message}
+  };
+  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;render();close();window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
+  $("joesPaymentSubmit").onclick=async()=>{
+    try{
+      const ref=$("joesPaymentReference").value.trim();if(!ref)throw new Error("Enter the payment reference.");
+      await api("/api/payments",{method:"POST",body:JSON.stringify({reference:ref,amount:$("joesPaymentAmount").value.trim()})});
+      $("joesPaymentReference").value="";$("joesPaymentAmount").value="";alert("Payment request submitted for admin approval.");
+    }catch(e){alert(e.message)}
+  };
+  window.JoesAuth={getUser:()=>user,open,close,refresh,consumeBatch:async()=>{
+    if(!user){open();throw new Error("Please sign in before exporting a batch.");}
+    const d=await api("/api/usage",{method:"POST",body:"{}"});
+    user=d.user;render();window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));return d;
+  }};
+  refresh();
+  const params=new URLSearchParams(location.search);
+  if(params.has("auth")||params.has("auth_error")){refresh().then(()=>{if(params.get("auth_error")){open();$("joesAuthError").textContent=params.get("auth_error").replace(/_/g," ")}history.replaceState({},document.title,location.pathname+location.hash)})}
+})();
+</script>
+</body></html>`,
             );
             doc.close();
             setTimeout(() => { try { f.contentWindow.print(); } catch (e) { console.error("Print dialog failed", e); } }, 500);
