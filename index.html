@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23111827%22/%3E%3Ctext x=%2232%22 y=%2243%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2234%22 font-weight=%22700%22 fill=%22%23fff%22%3EJ%3C/text%3E%3C/svg%3E">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>window.JOES_GUEST_GRACE_MINUTES=30;</script>
     <title>joes studio - Paper Printing Design Tool</title>
     <link href="./static/icons.min.css" rel="stylesheet" />
     <link href="./static/coloris.min.css" rel="stylesheet" />
@@ -9143,9 +9144,10 @@
             doc.open();
             doc.write(
               `<html><head><style>@page{size:${App.state.currentPaper.w}mm ${App.state.currentPaper.h}mm;margin:0}body{margin:0;display:flex;justify-content:center}${css}</style></head><body>${content}
+
 <style id="joes-auth-ui">
 #joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
-#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}
+#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}\n#joesAuthOverlay.required{z-index:99999;background:rgba(15,23,42,.82)}
 #joesAuthOverlay.open{display:flex}
 .joes-auth-card{width:min(430px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
 .joes-auth-card input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;margin-top:8px}
@@ -9191,7 +9193,7 @@
 <script>
 (function(){
   const API=window.JOES_API_BASE||"";
-  let mode="login",user=null;
+  let mode="login",user=null,authRequired=false;\n  const GUEST_GRACE_MINUTES=Math.max(1,Number(window.JOES_GUEST_GRACE_MINUTES)||30);\n  const GUEST_STARTED_KEY="joes_guest_started_at_v1";\n  function guestDeadline(){let v=Number(localStorage.getItem(GUEST_STARTED_KEY));if(!v){v=Date.now();localStorage.setItem(GUEST_STARTED_KEY,String(v));}return v+GUEST_GRACE_MINUTES*60000;}\n  function guestExpired(){return Date.now()>=guestDeadline();}
   const $=id=>document.getElementById(id);
   async function api(path,opts={}){
     const r=await fetch(API+path,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
@@ -9199,8 +9201,8 @@
     if(!r.ok) throw new Error(d.error||"Request failed");
     return d;
   }
-  function open(){ $("joesAuthOverlay").classList.add("open"); $("joesAuthOverlay").setAttribute("aria-hidden","false"); render(); }
-  function close(){ $("joesAuthOverlay").classList.remove("open"); $("joesAuthOverlay").setAttribute("aria-hidden","true"); }
+  function open(required=false){ authRequired=required||authRequired; $("joesAuthOverlay").classList.toggle("required",authRequired); $("joesAuthOverlay").classList.add("open"); $("joesAuthOverlay").setAttribute("aria-hidden","false"); render(); }
+  function close(){ if(authRequired&&!user)return; $("joesAuthOverlay").classList.remove("open"); $("joesAuthOverlay").classList.remove("required"); $("joesAuthOverlay").setAttribute("aria-hidden","true"); }
   function render(){
     $("joesAuthButton").textContent=user?(user.name||user.email):"Sign in";
     $("joesAuthForm").style.display=user?"none":"block";
@@ -9228,8 +9230,8 @@
     render();
   }
   $("joesAuthButton").onclick=open;
-  $("joesAuthClose").onclick=close;
-  $("joesAuthOverlay").addEventListener("click",e=>{if(e.target===$("joesAuthOverlay"))close()});
+  $("joesAuthClose").onclick=()=>{if(!authRequired||user)close()};
+  $("joesAuthOverlay").addEventListener("click",e=>{if(e.target===$("joesAuthOverlay")&&!authRequired)close()});
   $("joesAuthMode").onclick=()=>{mode=mode==="login"?"signup":"login";render()};
   $("joesGoogleButton").onclick=()=>{location.href=API+"/api/auth?action=google-start&returnTo="+encodeURIComponent(location.href.split("?")[0])};
   $("joesAuthForm").onsubmit=async e=>{
@@ -9237,10 +9239,10 @@
     try{
       const action=mode==="login"?"login":"signup";
       const d=await api("/api/auth?action="+action,{method:"POST",body:JSON.stringify({name:$("joesAuthName").value,email:$("joesAuthEmail").value,password:$("joesAuthPassword").value})});
-      user=d.user; $("joesAuthPassword").value=""; render(); close(); window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));
+      user=d.user; authRequired=false; localStorage.removeItem(GUEST_STARTED_KEY); $("joesAuthPassword").value=""; render(); close(); window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));
     }catch(err){$("joesAuthError").textContent=err.message}
   };
-  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;render();close();window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
+  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;authRequired=true;render();open(true);window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
   $("joesPaymentSubmit").onclick=async()=>{
     try{
       const ref=$("joesPaymentReference").value.trim();if(!ref)throw new Error("Enter the payment reference.");
