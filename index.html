@@ -10121,7 +10121,7 @@
             // No GitHub account, Client ID, or token is stored in the browser.
           },
 
-          saveTemplateToGitHub: async function (name, content) {
+          saveTemplateToGitHub: async function (name, content, existingPath = "") {
             const apiBase = window.location.hostname.endsWith("vercel.app")
               ? ""
               : "https://joes-studio1.vercel.app";
@@ -10131,7 +10131,7 @@
               body: JSON.stringify({
                 name,
                 content,
-                existingPath: arguments[2] || ""
+                existingPath: existingPath || ""
               })
             });
             let result = null;
