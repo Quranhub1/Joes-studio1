@@ -154,7 +154,12 @@ export async function getSession(req,type="user"){
 }
 export async function destroySession(req,type="user"){
   const token=parseCookie(req,type==="admin"?ADMIN_COOKIE:USER_COOKIE);
-  if(token){ const hash=tokenHash(token); await redis("del","joes:session:"+type+":"+hash); const sessionSet="joes:user:sessions:"+((await redis("get","joes:session:"+type+":"+hash))?.userId||""); if(sessionSet.endsWith(":")) return; await redis("srem",sessionSet,hash); }
+  if(!token) return;
+  const hash=tokenHash(token);
+  const key="joes:session:"+type+":"+hash;
+  const value=await redis("get",key);
+  await redis("del",key);
+  try{const session=typeof value==="string"?JSON.parse(value):value;if(session?.userId) await redis("srem","joes:user:sessions:"+session.userId,hash);}catch(_){}
 }
 export function requireConfig(){
   if(!process.env.USER_SESSION_SECRET) throw new Error("USER_SESSION_SECRET is not configured");
