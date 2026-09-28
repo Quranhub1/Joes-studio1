@@ -344,6 +344,150 @@
       }
     },
 
+    async chooseSavedTemplate() {
+      const library = window.App?.templates;
+      if (!library) {
+        this.notify("Template library is not available yet.", "error");
+        return;
+      }
+
+      let templates = [];
+      try {
+        if (typeof library.getSavedTemplates === "function") {
+          templates = await library.getSavedTemplates();
+        } else if (Array.isArray(library.data)) {
+          templates = library.data;
+        }
+      } catch (error) {
+        console.error("Could not load saved templates.", error);
+      }
+
+      // Always include the actual templates/ folder so repository templates
+      // are available even when the local library has not seen them yet.
+      try {
+        const response = await fetch(
+          "https://api.github.com/repos/Quranhub1/Joes-studio1/contents/templates?ref=main",
+          { headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10" } }
+        );
+        if (response.ok) {
+          const remote = await response.json();
+          if (Array.isArray(remote)) {
+            remote
+              .filter(item => item.type === "file" && /\.(?:html|htm)$/i.test(item.name || ""))
+              .forEach(item => {
+                if (!templates.some(t => t.url === item.download_url || t.name === item.name)) {
+                  templates.push({
+                    id: "github-template-" + item.name,
+                    name: item.name,
+                    type: "html",
+                    url: item.download_url,
+                    source: "templates"
+                  });
+                }
+              });
+          }
+        }
+      } catch (error) {
+        console.warn("Could not read templates folder.", error);
+      }
+
+      const existing = document.getElementById("studentBatchSavedTemplateModal");
+      if (existing) existing.remove();
+
+      const modal = document.createElement("div");
+      modal.id = "studentBatchSavedTemplateModal";
+      modal.className = "fixed inset-0 z-[160] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4";
+      modal.innerHTML = `
+        <div class="w-full max-w-4xl max-h-[84vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+          <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-white">Choose Existing Template</h3>
+              <p class="text-[10px] text-slate-400 mt-1">Templates stored in the templates folder are available here. Import Custom remains available for your own HTML files.</p>
+            </div>
+            <button type="button" data-close class="w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800"><i class="ph ph-x"></i></button>
+          </div>
+          <div class="p-5 overflow-y-auto max-h-[70vh]">
+            <div class="relative mb-4">
+              <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+              <input data-search type="search" placeholder="Search templates..." class="w-full rounded-lg border border-slate-700 bg-slate-950 text-white text-xs pl-9 pr-3 py-2.5 outline-none focus:border-blue-500">
+            </div>
+            <div data-grid class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      const close = () => modal.remove();
+      modal.querySelector("[data-close]")?.addEventListener("click", close);
+      modal.addEventListener("click", event => { if (event.target === modal) close(); });
+
+      const grid = modal.querySelector("[data-grid]");
+      const search = modal.querySelector("[data-search]");
+
+      const safeText = value => String(value || "").replace(/[&<>"']/g, char => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[char]));
+
+      const render = () => {
+        const query = String(search?.value || "").trim().toLowerCase();
+        const filtered = templates.filter(item => String(item.name || "").toLowerCase().includes(query));
+        if (!filtered.length) {
+          grid.innerHTML = `
+            <div class="col-span-full rounded-xl border border-dashed border-slate-700 p-8 text-center">
+              <i class="ph ph-file-html text-3xl text-slate-600"></i>
+              <p class="text-xs text-slate-400 mt-2">No HTML templates found.</p>
+              <p class="text-[10px] text-slate-600 mt-1">Use Import Custom to load your own template.</p>
+            </div>`;
+          return;
+        }
+
+        grid.innerHTML = filtered.map((item, index) => `
+          <button type="button" data-index="${templates.indexOf(item)}" class="text-left rounded-xl border border-slate-700 bg-slate-950 p-3 hover:border-blue-500/70 hover:bg-slate-800 transition">
+            <div class="h-36 rounded-lg bg-white border border-slate-700 overflow-hidden flex items-center justify-center">
+              <iframe src="${safeText(item.url || "")}" title="${safeText(item.name)}" class="w-full h-full pointer-events-none bg-white" loading="lazy" sandbox=""></iframe>
+            </div>
+            <div class="mt-2 flex items-center justify-between gap-2">
+              <span class="text-[10px] font-semibold text-white truncate" title="${safeText(item.name)}">${safeText(item.name || "Template")}</span>
+              <span class="text-[8px] text-slate-500 shrink-0">${item.source === "templates" ? "templates/" : "Saved"}</span>
+            </div>
+          </button>`).join("");
+
+        grid.querySelectorAll("[data-index]").forEach(button => {
+          button.addEventListener("click", async () => {
+            const item = templates[Number(button.getAttribute("data-index"))];
+            if (!item) return;
+
+            try {
+              let html = item.content || "";
+              if (!html && item.url) {
+                const response = await fetch(item.url);
+                if (!response.ok) throw new Error("Template returned HTTP " + response.status);
+                html = await response.text();
+              }
+              if (!html) throw new Error("Template content is empty.");
+
+              const file = new File([html], item.name || "template.html", {
+                type: "text/html",
+                lastModified: Date.now()
+              });
+              await this.loadTemplate(file, {
+                fromLibrary: true,
+                libraryId: item.id || ""
+              });
+              this.notify("Template loaded: " + (item.name || "Template"), "success");
+              close();
+            } catch (error) {
+              console.error("Could not load saved template.", error);
+              this.notify("Template could not be loaded: " + error.message, "error");
+            }
+          });
+        });
+      };
+
+      search?.addEventListener("input", render);
+      render();
+      setTimeout(() => search?.focus(), 0);
+    },
+
     chooseExcel() {
       const input = document.getElementById("studentBatchExcelInput");
       if (input) {
