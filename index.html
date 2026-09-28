@@ -921,7 +921,14 @@
                       <div class="flex items-center gap-3">
                         <div id="studentBatchBadgePreviewInline" class="w-14 h-14 rounded-xl border border-slate-700 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0"><i class="ph ph-seal text-slate-500 text-xl"></i></div>
                         <div class="min-w-0 flex-1">
-                          <button type="button" onclick="JoesStudentBatch.chooseBadge()" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-[10px] font-semibold hover:bg-slate-700"><i class="ph ph-upload-simple mr-1"></i> Upload badge</button>
+                          <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="JoesStudentBatch.chooseBadge()" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-[10px] font-semibold hover:bg-slate-700">
+                              <i class="ph ph-upload-simple mr-1"></i> Upload badge
+                            </button>
+                            <button type="button" onclick="JoesStudentBatch.chooseSavedBadge()" class="px-3 py-2 rounded-lg bg-blue-600/15 border border-blue-500/30 text-blue-300 text-[10px] font-semibold hover:bg-blue-600/25">
+                              <i class="ph ph-images mr-1"></i> Existing badge
+                            </button>
+                          </div>
                           <p id="studentBatchBadgeNameInline" class="text-[9px] text-slate-500 mt-1.5 truncate">Using template artwork</p>
                         </div>
                       </div>
