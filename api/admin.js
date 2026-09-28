@@ -119,6 +119,10 @@ export default async function handler(req,res){
       const user=await getUser(id);if(!user)return json(res,404,{error:"User not found"});
       const sessions=await redis("smembers","joes:user:sessions:"+id)||[];
       await Promise.all(sessions.map(hash=>redis("del","joes:session:user:"+hash).catch(()=>null)));
+      const paymentIds=await redis("smembers","joes:payments")||[];
+      const userPayments=await Promise.all(paymentIds.map(async pid=>{const raw=await redis("get","joes:payment:"+pid).catch(()=>null);if(!raw)return null;const p=typeof raw==="string"?JSON.parse(raw):raw;return p?.userId===id?pid:null;}));
+      await Promise.all(userPayments.filter(Boolean).map(pid=>redis("del","joes:payment:"+pid)));
+      if(userPayments.some(Boolean)) await redis("srem","joes:payments",...userPayments.filter(Boolean));
       await redis("del","joes:user:"+id,"joes:user:email:"+user.email,"joes:user:sessions:"+id);
       await redis("srem","joes:users",id);
       return json(res,200,{ok:true});
