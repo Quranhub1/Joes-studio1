@@ -10059,6 +10059,7 @@
           history: [],
           savedTemplates: [],
           activeStartTab: "templates",
+          galleryRenderToken: 0,
 
           githubConfig: {
             owner: "Quranhub1",
@@ -10532,8 +10533,13 @@
             const grid = document.getElementById("templateGrid");
             if (!grid) return;
 
+            // Each gallery refresh gets a unique token. Async HTML previews can finish
+            // out of order, so an older render must never append cards into a newer one.
+            const renderToken = ++this.galleryRenderToken;
+
             // Refresh repository HTML templates whenever the gallery opens.
             await this.discoverRepositoryHtmlTemplates();
+            if (renderToken !== this.galleryRenderToken) return;
 
             const used = this.getHistory()
               .map((id) => this.data.find((t) => t.id === id))
@@ -10544,8 +10550,8 @@
             this.savedTemplates = saved;
             this.history = used.map((t) => t.id);
 
-            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar";
-            grid.innerHTML = "";
+            grid.className = "grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar items-start auto-rows-max";
+            grid.replaceChildren();
 
             const appendHeading = (label) => {
               const heading = document.createElement("div");
@@ -10555,8 +10561,9 @@
             };
 
             const appendBuiltIn = async (t, label) => {
+              if (renderToken !== this.galleryRenderToken) return;
               const d = document.createElement("div");
-              d.className = "template-card group bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-lg cursor-pointer transition overflow-hidden flex flex-col";
+              d.className = "template-card group bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-lg cursor-pointer transition overflow-hidden flex flex-col min-w-0 relative";
               const preview = document.createElement("div");
               preview.className = "relative h-52 bg-slate-100 overflow-hidden flex items-center justify-center";
 
@@ -10597,7 +10604,10 @@
                   const shadow = stage.attachShadow({ mode: "closed" });
                   const styleText = Array.from(parsed.querySelectorAll("style")).map(el => el.textContent || "").join("\\n");
                   const style = document.createElement("style");
-                  style.textContent = styleText;
+                  style.textContent = styleText + "\n" +
+                    ".card{position:relative!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;margin:0!important;}" +
+                    "html,body{position:relative!important;overflow:hidden!important;margin:0!important;padding:0!important;}" +
+                    "*{box-sizing:border-box;}";
                   shadow.appendChild(style);
 
                   const cardSource = parsed.querySelector(".card") || parsed.body.firstElementChild || parsed.body;
@@ -10619,8 +10629,9 @@
                     const scale = Math.min(.95, preview.clientWidth / cardWidth, preview.clientHeight / cardHeight);
                     cardEl.style.transform = "scale(" + Math.max(.1, scale) + ")";
                   };
-                  requestAnimationFrame(fitPreview);
-                  window.addEventListener("resize", fitPreview, { passive: true });
+                  requestAnimationFrame(() => {
+                    if (renderToken === this.galleryRenderToken && document.contains(d)) fitPreview();
+                  });
 
                   const badge = document.createElement("span");
                   badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm";
@@ -10666,18 +10677,26 @@
               d.appendChild(preview);
               d.appendChild(body);
               d.onclick = () => this.load(t.id);
+              if (renderToken !== this.galleryRenderToken) return;
               grid.appendChild(d);
             };
 
             if (used.length) {
               appendHeading("Recently Used");
-              used.forEach(t => appendBuiltIn(t, String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Built-in paper template"));
+              for (const t of used) {
+                await appendBuiltIn(t, String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Built-in paper template");
+                if (renderToken !== this.galleryRenderToken) return;
+              }
             }
 
             const available = htmlLibrary.filter(t => !used.some(u => u.id === t.id));
             if (available.length) {
               appendHeading("Examination Card Designs");
-              available.forEach(t => appendBuiltIn(t, "Printable examination card"));
+              for (const t of available) {
+                await appendBuiltIn(t, "Printable examination card");
+                if (renderToken !== this.galleryRenderToken) return;
+              }
+            }
             }
 
             if (saved.length) {
