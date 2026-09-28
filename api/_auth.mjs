@@ -59,7 +59,8 @@ export function cookieHeader(name,value,maxAge=SESSION_TTL){
   return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=${sameSite}; Max-Age=${maxAge}`;
 }
 export function clearCookie(name){
-  return `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+  const sameSite=process.env.APP_ORIGIN&&process.env.APP_ORIGIN!==process.env.API_ORIGIN?"None":"Lax";
+  return name+"=; Path=/; HttpOnly; Secure; SameSite="+sameSite+"; Max-Age=0";
 }
 export function publicUser(user){
   if(!user) return null;
@@ -114,6 +115,7 @@ export async function saveUser(user){
   await redis("set","joes:user:"+normalized.id,JSON.stringify(normalized));
   await redis("sadd","joes:users",normalized.id);
   await redis("set","joes:user:email:"+normalized.email,normalized.id);
+  if(normalized.auth?.googleSub) await redis("set","joes:user:google:"+String(normalized.auth.googleSub),normalized.id);
   return normalized;
 }
 export async function createUser(data={}){
@@ -122,6 +124,12 @@ export async function createUser(data={}){
 }
 export async function findUserByEmail(email){
   const id=await redis("get","joes:user:email:"+String(email||"").trim().toLowerCase());
+  return id?getUser(id):null;
+}
+export async function findUserByGoogleSub(googleSub){
+  const sub=String(googleSub||"").trim();
+  if(!sub) return null;
+  const id=await redis("get","joes:user:google:"+sub);
   return id?getUser(id):null;
 }
 export async function hashPassword(password){
@@ -139,7 +147,9 @@ function tokenHash(token){return crypto.createHmac("sha256",String(process.env.U
 export async function createSession(userId,type="user"){
   const token=crypto.randomBytes(32).toString("base64url");
   const key="joes:session:"+type+":"+tokenHash(token);
+  const hash=tokenHash(token);
   await redis("set",key,JSON.stringify({userId,createdAt:new Date().toISOString()}),"EX",SESSION_TTL);
+  await redis("sadd","joes:user:sessions:"+userId,hash);
   return token;
 }
 export async function getSession(req,type="user"){
