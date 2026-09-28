@@ -2354,13 +2354,7 @@
         return;
       }
 
-      try {
-        const usage = await window.JoesAuth?.consumeBatch?.();
-        if (!usage?.allowed) throw new Error("Your free batch limit has been reached. Upgrade to Pro to continue.");
-      } catch (e) {
-        this.notify(e.message || "Please sign in before printing.", "error");
-        return;
-      }
+
       const button = document.getElementById("studentBatchPrint");
       const oldHtml = button ? button.innerHTML : "";
       if (button) {
