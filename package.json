@@ -5,6 +5,9 @@
   "engines": {
     "node": "22.x"
   },
+  "scripts": {
+    "vercel-build": "node -e \"console.log('Joes Studio: static frontend, Vercel Functions under /api')\""
+  },
   "dependencies": {
     "@fal-ai/client": "^1.10.1"
   }
