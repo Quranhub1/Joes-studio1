@@ -35,6 +35,8 @@
       badgeFile: null,
       badgeDataUrl: "",
       badgeLibraryId: "",
+      schoolName: "Kampala School of Health Sciences",
+      schoolNameCustomized: false,
       // Student photos are automatically optimized for card printing.
       // This keeps faces readable on paper without altering the original
       // uploaded files.
@@ -88,6 +90,69 @@
       root.setAttribute("data-student-batch-background", color);
     },
 
+    getDefaultSchoolName() { return "Kampala School of Health Sciences"; },
+
+    setSchoolName(value, options = {}) {
+      const next = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+      this.state.schoolName = next || this.getDefaultSchoolName();
+      if (options.customized !== false) this.state.schoolNameCustomized = true;
+      try { localStorage.setItem("joesStudio.studentBatchSchoolName.v1", this.state.schoolName); } catch (_) {}
+      this.refresh();
+    },
+
+    restoreSchoolName() {
+      try {
+        const saved = localStorage.getItem("joesStudio.studentBatchSchoolName.v1");
+        if (saved) {
+          this.state.schoolName = String(saved).trim().slice(0, 80) || this.getDefaultSchoolName();
+          this.state.schoolNameCustomized = this.state.schoolName !== this.getDefaultSchoolName();
+        }
+      } catch (_) {}
+    },
+
+    resetBranding() {
+      this.state.schoolName = this.getDefaultSchoolName();
+      this.state.schoolNameCustomized = false;
+      try { localStorage.removeItem("joesStudio.studentBatchSchoolName.v1"); } catch (_) {}
+      this.clearBadge(true);
+      this.refresh();
+      this.notify("Template branding reset.");
+    },
+
+    applyBranding(root) {
+      if (!root) return;
+      const school = this.state.schoolName || this.getDefaultSchoolName();
+      const schoolSelectors = ["[data-school-name]", ".school-name", "#school-name", "#schoolName", ".school", ".school-title", ".institution-name", ".institution"];
+      let schoolNode = null;
+      for (const selector of schoolSelectors) {
+        const candidate = root.querySelector(selector);
+        if (candidate) { schoolNode = candidate; break; }
+      }
+      if (schoolNode) schoolNode.textContent = school;
+
+      let badgeImg = root.querySelector("[data-badge] img,[data-logo] img,.badge-img,.badge-image,.school-badge,.school-logo,.logo-img,#badge,#school-badge,#school-logo");
+      if (!badgeImg) badgeImg = Array.from(root.querySelectorAll("img")).find(img => /badge|logo|crest|emblem|seal/i.test(String(img.className || "") + " " + String(img.id || "") + " " + String(img.alt || ""))) || null;
+
+      if (this.state.badgeDataUrl) {
+        if (!badgeImg) {
+          const mark = root.querySelector(".mark, .card-badge, .badge, .brand-mark");
+          if (mark) {
+            badgeImg = document.createElement("img");
+            badgeImg.className = "student-batch-brand-badge";
+            badgeImg.alt = "School badge";
+            badgeImg.style.cssText = "width:100%;height:100%;object-fit:contain;display:block;";
+            mark.textContent = "";
+            mark.appendChild(badgeImg);
+          }
+        }
+        if (badgeImg) {
+          badgeImg.setAttribute("src", this.imageSourceForTemplate(this.state.badgeDataUrl));
+          badgeImg.style.display = "block";
+          badgeImg.style.objectFit = "contain";
+        }
+      }
+    },
+
     normalize(value) {
       return String(value ?? "")
         .toLowerCase()
@@ -109,6 +174,7 @@
     open() {
       document.getElementById("studentBatchModal")?.classList.remove("hidden");
       this.restoreSavedBadge();
+      this.restoreSchoolName();
       this.refresh();
     },
 
@@ -853,12 +919,12 @@
       }
     },
 
-    clearBadge() {
+    clearBadge(silent = false) {
       this.state.badgeFile = null;
       this.state.badgeDataUrl = "";
       this.state.badgeLibraryId = "";
       this.refresh();
-      Utils.toast("Uploaded badge / logo removed. The template's original artwork will be used.");
+      if (!silent) Utils.toast("Uploaded badge / logo removed. The template's original artwork will be used.");
     },
 
     useSavedBadge(name, dataUrl, id = "") {
@@ -1089,6 +1155,7 @@
 
       const body = this.findHtmlCardRoot(doc);
       this.applyCardBackground(body);
+      this.applyBranding(body);
 
       for (const img of Array.from(body.querySelectorAll("img"))) {
         const srcAttr = String(img.getAttribute("src") || "");
@@ -1135,6 +1202,7 @@
 
       const html = this.replacePlaceholders(body.innerHTML, row);
       body.innerHTML = html;
+      this.applyBranding(body);
 
       const all = body.querySelectorAll("*");
 
@@ -1567,6 +1635,7 @@
       // browser requests like /{{photo}}. They are intentionally blank until
       // Excel/photo data is available.
       this.sanitizePlaceholderImages(body);
+      this.applyBranding(body);
       this.proxyExternalPreviewImages(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
@@ -1585,6 +1654,11 @@
       const badgeNameEl = document.getElementById("studentBatchBadgeName");
       const badgePreviewEl = document.getElementById("studentBatchBadgePreview");
       const badgeClearEl = document.getElementById("studentBatchBadgeClear");
+      const badgeClearInlineEl = document.getElementById("studentBatchBadgeClearInline");
+      const badgePreviewInlineEl = document.getElementById("studentBatchBadgePreviewInline");
+      const badgeNameInlineEl = document.getElementById("studentBatchBadgeNameInline");
+      const schoolNameEl = document.getElementById("studentBatchSchoolName");
+      const brandingStatusEl = document.getElementById("studentBatchBrandingStatus");
 
       const bgInput = document.getElementById("studentBatchCardBackground");
       const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
@@ -1607,6 +1681,13 @@
           : '<i class="ph ph-image text-slate-300 text-lg"></i>';
       }
       if (badgeClearEl) badgeClearEl.classList.toggle("hidden", !this.state.badgeDataUrl);
+      if (schoolNameEl && schoolNameEl.value !== this.state.schoolName) schoolNameEl.value = this.state.schoolName;
+      if (brandingStatusEl) brandingStatusEl.textContent = this.state.schoolNameCustomized || this.state.badgeDataUrl ? "Customized" : "Template default";
+      if (badgeNameInlineEl) badgeNameInlineEl.textContent = this.state.badgeFile?.name ? "Uploaded: " + this.state.badgeFile.name : "Using template artwork";
+      if (badgePreviewInlineEl) badgePreviewInlineEl.innerHTML = this.state.badgeDataUrl
+        ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="w-full h-full object-contain p-1">'
+        : '<i class="ph ph-seal text-slate-300 text-xl"></i>';
+      if (badgeClearInlineEl) badgeClearInlineEl.classList.toggle("hidden", !this.state.badgeDataUrl);
       if (sizeEl) sizeEl.textContent = (Number(this.state.cardWidthMm).toFixed(1) + " × " + Number(this.state.cardHeightMm).toFixed(1) + " mm");
 
       const l = this.layout();
@@ -1940,6 +2021,9 @@
     document.getElementById("studentBatchPhotoInput")?.addEventListener("change", e => Batch.loadPhotos(e.target.files));
     document.getElementById("studentBatchBadgeInput")?.addEventListener("change", e => Batch.loadBadge(e.target.files[0]));
     document.getElementById("studentBatchBadgeClear")?.addEventListener("click", () => Batch.clearBadge());
+    document.getElementById("studentBatchBadgeClearInline")?.addEventListener("click", () => Batch.clearBadge());
+    document.getElementById("studentBatchSchoolName")?.addEventListener("input", e => Batch.setSchoolName(e.target.value));
+    document.getElementById("studentBatchBrandingReset")?.addEventListener("click", () => Batch.resetBranding());
     document.getElementById("studentBatchPhotoEnhance")?.addEventListener("change", e => Batch.setPhotoEnhancement({enabled:e.target.checked}));
     document.getElementById("studentBatchPhotoWhiteBg")?.addEventListener("change", e => Batch.setPhotoEnhancement({whiteBackground:e.target.checked}));
     document.getElementById("studentBatchPhotoStrength")?.addEventListener("change", e => Batch.setPhotoEnhancement({strength:e.target.value}));
