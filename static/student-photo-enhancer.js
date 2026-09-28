@@ -10,22 +10,22 @@
       const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(im,0,0,w,h);
       const srcData=ctx.getImageData(0,0,w,h),mask=this.mask(srcData.data,w,h);
       const stats=this.stats(srcData.data,w,h,mask);
-      const auto=opt.auto===false ? {exposure:0,shadows:0,deepShadows:0,gamma:1,complexionLift:0,highlights:0,contrast:1,saturation:1,temperature:0,sharpness:0} : this.calculate(stats,String(opt.strength||"strong").toLowerCase());
+      const auto=opt.auto===false ? {exposure:0,shadows:0,deepShadows:0,gamma:1,complexionLift:0,highlights:0,contrast:1,saturation:1,temperature:0,sharpness:0} : this.calculate(stats,String(opt.strength||"natural").toLowerCase());
       const m=opt.manual||{};
       const n=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
       const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
       const manualActive=Object.keys(m).some(k=>n(m[k],0)!==0 && k!=="cropScale");
       const v={
-        exposure:auto.exposure+(n(m.exposure)/100)*.65+(n(m.brightness)/100)*.75,
-        shadows:auto.shadows+(n(m.shadows)/100)*.55,
+        exposure:auto.exposure+(n(m.exposure)/100)*.45+(n(m.brightness)/100)*.55,
+        shadows:auto.shadows+(n(m.shadows)/100)*.45,
         deepShadows:auto.deepShadows,
-        highlights:auto.highlights-(n(m.highlights)/100)*.55,
+        highlights:auto.highlights-(n(m.highlights)/100)*.45,
         gamma:auto.gamma,
-        complexionLift:auto.complexionLift+(n(m.faceLighting)/100)*.22,
-        contrast:auto.contrast*(1+n(m.contrast)/100),
-        saturation:auto.saturation*(1+n(m.saturation)/100),
-        temperature:auto.temperature+(n(m.temperature)/100)*28,
-        sharpness:clamp(auto.sharpness+(n(m.sharpness)/100)*.42,0,.7)
+        complexionLift:auto.complexionLift+(n(m.faceLighting)/100)*.12,
+        contrast:auto.contrast*(1+n(m.contrast)/150),
+        saturation:auto.saturation*(1+n(m.saturation)/150),
+        temperature:auto.temperature+(n(m.temperature)/100)*18,
+        sharpness:clamp(auto.sharpness+(n(m.sharpness)/100)*.25,0,.18)
       };
       const out=new Uint8ClampedArray(srcData.data);
       for(let p=0;p<w*h;p++){
@@ -36,8 +36,8 @@
         const deepShadow=Math.max(0,(.42-lum)/.42);
         const highlight=Math.max(0,(lum-.72)/.28);
         const centerX=(p%w)/(w-1||1), centerY=Math.floor(p/w)/(h-1||1);
-        const faceZone=Math.max(0,1-Math.sqrt(((centerX-.5)/.5)**2+((centerY-.43)/.62)**2))*fg;
-        const complexionLift=(v.complexionLift||0)*Math.max(0,(.68-lum)/.68)*(0.55+0.45*faceZone);
+        const faceZone=Math.max(0,1-Math.sqrt(((centerX-.5)/.6)**2+((centerY-.45)/.7)**2))*fg;
+        const complexionLift=(v.complexionLift||0)*Math.max(0,(.68-lum)/.68)*(0.30+0.20*faceZone);
         const printLift=(v.exposure+shadow*v.shadows+deepShadow*v.deepShadows+complexionLift-highlight*v.highlights)*fg;
         r+=255*printLift;g+=255*printLift;b+=255*printLift;
         if(fg>.5){
@@ -51,34 +51,34 @@
         const avg=(r+g+b)/3,sat=v.saturation;
         r=avg+(r-avg)*sat;g=avg+(g-avg)*sat;b=avg+(b-avg)*sat;
         const temp=v.temperature*fg;r+=temp;b-=temp;
-        if(opt.whiteBackground!==false){
+        if(opt.whiteBackground===true){
           const a=mask[p];r=r*(1-a)+255*a;g=g*(1-a)+255*a;b=b*(1-a)+255*a;
         }
         out[i]=clamp(r,0,255);out[i+1]=clamp(g,0,255);out[i+2]=clamp(b,0,255);
         out[i+3]=clamp(srcData.data[i+3]*(n(m.opacity,100)/100),0,255);
       }
       ctx.putImageData(new ImageData(out,w,h),0,0);
-      if(v.sharpness>0) this.sharpen(ctx,w,h,v.sharpness,mask);
-      const cropScale=clamp(n(m.cropScale,100)/100,1,2.5);
-      const posX=clamp(n(m.positionX,0),-50,50)/100;
-      const posY=clamp(n(m.positionY,0),-50,50)/100;
+      if(v.sharpness>0 && (!manualActive || opt.auto!==false)) this.sharpen(ctx,w,h,v.sharpness,mask);
+      const cropScale=clamp(n(m.cropScale,100)/100,1,1.8);
+      const posX=clamp(n(m.positionX,0),-35,35)/100;
+      const posY=clamp(n(m.positionY,0),-35,35)/100;
       if(cropScale!==1||posX!==0||posY!==0) this.reframe(c,w,h,cropScale,posX,posY);
-      return c.toDataURL("image/jpeg",.97);
+      return c.toDataURL("image/jpeg",.85);
     },
     calculate(s,mode){
       const natural=mode==="natural",strong=mode==="strong";
       const target=.52,gap=target-s.mean;
       return {
-        exposure:Math.max(-.05,Math.min(.38,gap*.72+(s.darkFraction-.20)*.20))*(natural?.65:strong?1.2:1),
-        shadows:Math.max(0,Math.min(.62,(s.shadowMean<.46?.26:.12)+(s.darkFraction-.20)*.48))*(natural?.65:strong?1.2:1),
-        deepShadows:Math.max(0,Math.min(.32,(s.darkFraction>.28?.09:.035)))*(natural?.7:strong?1.18:1),
-        gamma:natural?.985:strong?.89:.95,
-        complexionLift:natural?.035:strong?.16:.085,
-        highlights:Math.max(.04,Math.min(.24,(s.highlightFraction*.30)+.05))*(natural?.7:strong?1.1:1),
-        contrast:Math.max(.98,Math.min(1.10,1+(target-s.mean)*.16+(s.std<.16?.025:0)))*(natural?.75:strong?1.08:1),
-        saturation:Math.max(.94,Math.min(1.10,1+(s.saturation<.30?.045:.015)))*(natural?.8:strong?1.05:1),
-        temperature:Math.max(-5,Math.min(5,(s.warm-s.cool)*.08)),
-        sharpness:Math.max(.10,Math.min(.42,.18+(s.std<.14?.12:0)+(s.darkFraction>.35?.05:0)))
+        exposure:Math.max(-.03,Math.min(.22,gap*.45+(s.darkFraction-.20)*.10))*(natural?.65:strong?1.12:1),
+        shadows:Math.max(0,Math.min(.28,(s.shadowMean<.46?.14:.06)+(s.darkFraction-.20)*.18))*(natural?.65:strong?1.12:1),
+        deepShadows:0,
+        gamma:1,
+        complexionLift:0,
+        highlights:Math.max(.04,Math.min(.12,(s.highlightFraction*.18)+.03))*(natural?.7:strong?1.1:1),
+        contrast:Math.max(.98,Math.min(1.04,1+(target-s.mean)*.10+(s.std<.16?.015:0)))*(natural?.75:strong?1.08:1),
+        saturation:Math.max(.96,Math.min(1.04,1+(s.saturation<.30?.02:.006)))*(natural?.82:strong?1.05:1),
+        temperature:0,
+        sharpness:Math.max(.04,Math.min(.18,.08+(s.std<.14?.04:0)))
       };
     },
     stats(data,w,h,mask){
@@ -88,8 +88,8 @@
       return {mean,std,darkFraction:n?dark/n:0,highlightFraction:n?high/n:0,shadowMean:dark?shadowSum/dark:mean,saturation:n?sat/n:.3,warm,cool};
     },
     sharpen(ctx,w,h,amount,mask){
-      const src=ctx.getImageData(0,0,w,h),d=src.data,o=new Uint8ClampedArray(d),a=Math.min(.42,amount);
-      for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const p=y*w+x,i=p*4;if(mask[p]>.35)continue;for(let c=0;c<3;c++){const center=d[i+c],avg=(d[i-4+c]+d[i+4+c]+d[i-4*w+c]+d[i+4*w+c])/4;o[i+c]=Math.max(0,Math.min(255,center+(center-avg)*a));}}
+      const src=ctx.getImageData(0,0,w,h),d=src.data,o=new Uint8ClampedArray(d),a=Math.min(.18,amount);
+      for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const p=y*w+x,i=p*4;if(mask[p]>.35)continue;for(let c=0;c<3;c++){const center=d[i+c],avg=(d[i-4+c]+d[i+4+c]+d[i-4*w+c]+d[i+4*w+c]+d[i-4-4*w+c]+d[i+4-4*w+c]+d[i-4+4*w+c]+d[i+4+4*w+c])/8;o[i+c]=Math.max(0,Math.min(255,center+(center-avg)*a));}}
       ctx.putImageData(new ImageData(o,w,h),0,0);
     },
     reframe(canvas,w,h,scale,posX,posY){
