@@ -19,7 +19,9 @@ async function issueUserSession(res,user){
 }
 
 async function issueAdminSession(res){
-  const token=await createSession("admin:"+ADMIN_USERNAME,"admin");
+  const adminIdentity=ADMIN_USERNAME||ADMIN_EMAIL;
+  if(!adminIdentity) throw new Error("Admin identity is not configured");
+  const token=await createSession("admin:"+adminIdentity,"admin");
   const current=res.getHeader("Set-Cookie");
   const adminCookie=cookieHeader(ADMIN_COOKIE,token,8*60*60);
   res.setHeader("Set-Cookie",Array.isArray(current)?current.concat(adminCookie):current?[current,adminCookie]:adminCookie);
@@ -70,7 +72,7 @@ async function googleCallback(req,res,url){
       user=await createUser({email,name:google.name,avatar:google.picture,googleSub:google.sub});
     }
     await issueUserSession(res,user);
-    const googleIsAdmin = !!ADMIN_USERNAME && (email === ADMIN_EMAIL || (ADMIN_USERNAME.includes("@") && email === ADMIN_USERNAME.toLowerCase()));
+    const googleIsAdmin = !!ADMIN_EMAIL && email === ADMIN_EMAIL;
     if(googleIsAdmin) await issueAdminSession(res);
     return redirect(res,returnTo+"?auth=google");
   }catch(error){
