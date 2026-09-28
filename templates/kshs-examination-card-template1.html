@@ -287,7 +287,7 @@
                                 
                                 <!-- Official KSHS Badge Emblem on Upper Left Corner (Concave Shield Replica) -->
                                 <div class="shrink-0 pt-0.5 w-8 h-11 flex items-center justify-center relative overflow-hidden" id="badge-container">
-                                    <svg viewBox="0 0 200 260" class="w-8 h-11 shrink-0 hidden" id="badge-svg" xmlns="http://www.w3.org/2000/svg">
+                                    <svg viewBox="0 0 200 260" class="w-8 h-11 shrink-0" id="badge-svg" xmlns="http://www.w3.org/2000/svg">
                                         <!-- Concave Flared Shield Background Path matching PDF -->
                                         <path d="M 20 15 Q 45 120 100 245 Q 155 120 180 15 Z" fill="#000000" stroke="#000000" stroke-width="2"/>
                                         <path d="M 25 20 Q 48 120 100 238 Q 152 120 175 20 Z" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.3"/>
@@ -334,7 +334,7 @@
                                 <!-- Student Photo Box Upper Right (24mm x 28mm) -->
                                 <div class="shrink-0 ml-1">
                                     <div class="w-[24mm] h-[28mm] border-1.5 border-black flex items-center justify-center bg-transparent overflow-hidden relative">
-                                        <img id="out-photo" src="" alt="Photo" class="w-full h-full object-cover hidden">
+                                        <img id="out-photo" src="{{photo}}" alt="Photo" class="w-full h-full object-cover hidden">
                                         <div id="out-photo-placeholder" class="text-[8px] font-bold text-black/60 uppercase tracking-wider text-center p-1 leading-tight flex flex-col items-center justify-center">
                                             <i class="fa-solid fa-user text-black/40 text-base mb-1"></i>
                                             <span>PHOTO</span>
@@ -349,31 +349,31 @@
                                 <!-- NAME Field -->
                                 <div class="flex items-end">
                                     <span class="shrink-0 font-bold text-[9px]">NAME:</span>
-                                    <div id="out-name" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]"></div>
+                                    <div id="out-name" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]">{{name}}</div>
                                 </div>
 
                                 <!-- REG NO & SEX Field Row -->
                                 <div class="grid grid-cols-12 gap-1 items-end">
                                     <div class="col-span-8 flex items-end">
                                         <span class="shrink-0 font-bold text-[9px]">REG NO:</span>
-                                        <div id="out-regno" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]"></div>
+                                        <div id="out-regno" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]">{{reg no}}</div>
                                     </div>
                                     <div class="col-span-4 flex items-end">
                                         <span class="shrink-0 font-bold text-[9px]">SEX:</span>
-                                        <div id="out-sex" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]"></div>
+                                        <div id="out-sex" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]">{{sex}}</div>
                                     </div>
                                 </div>
 
                                 <!-- SITTING Field -->
                                 <div class="flex items-end">
                                     <span class="shrink-0 font-bold text-[9px]">SITTING:</span>
-                                    <div id="out-sitting" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]"></div>
+                                    <div id="out-sitting" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]">{{sitting}}</div>
                                 </div>
 
                                 <!-- COURSE Field -->
                                 <div class="flex items-end">
                                     <span class="shrink-0 font-bold text-[9px]">COURSE:</span>
-                                    <div id="out-course" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]"></div>
+                                    <div id="out-course" class="flex-1 dots-underline ml-1 px-1 min-h-[0.9rem] font-bold tracking-wide uppercase text-[9px]">{{course}}</div>
                                 </div>
 
                             </div>

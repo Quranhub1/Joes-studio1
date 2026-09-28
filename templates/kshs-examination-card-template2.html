@@ -307,7 +307,7 @@
                                 <!-- Student Photo Box Upper Right (Enlarged for Visibility) -->
                                 <div class="shrink-0 ml-1">
                                     <div class="w-[24mm] h-[30mm] border-1.5 border-black flex items-center justify-center bg-transparent overflow-hidden relative shadow-xs">
-                                        <img id="out-photo" src="" alt="Photo" class="w-full h-full object-cover hidden">
+                                        <img id="out-photo" src="{{photo}}" alt="Photo" class="w-full h-full object-cover hidden">
                                         <div id="out-photo-placeholder" class="text-[8px] font-bold text-slate-400 uppercase tracking-wider text-center p-1 leading-tight flex flex-col items-center justify-center">
                                             <i class="fa-solid fa-user text-slate-300 text-sm mb-0.5"></i>
                                             <span>PHOTO</span>
@@ -322,31 +322,31 @@
                                 <!-- NAME Field -->
                                 <div class="flex items-end">
                                     <span class="shrink-0 font-black text-[8.5px]">NAME:</span>
-                                    <div id="out-name" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                     <div id="out-name" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]">{{name}}</div>
                                 </div>
 
                                 <!-- REG NO & SEX Field Row -->
                                 <div class="grid grid-cols-12 gap-1.5 items-end">
                                     <div class="col-span-8 flex items-end">
                                         <span class="shrink-0 font-black text-[8.5px]">REG NO:</span>
-                                        <div id="out-regno" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-mono font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                         <div id="out-regno" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-mono font-bold tracking-wide uppercase text-[8.5px]">{{reg no}}</div>
                                     </div>
                                     <div class="col-span-4 flex items-end">
                                         <span class="shrink-0 font-black text-[8.5px]">SEX:</span>
-                                        <div id="out-sex" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                         <div id="out-sex" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]">{{sex}}</div>
                                     </div>
                                 </div>
 
                                 <!-- SITTING Field -->
                                 <div class="flex items-end">
                                     <span class="shrink-0 font-black text-[8.5px]">SITTING:</span>
-                                    <div id="out-sitting" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                     <div id="out-sitting" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]">{{sitting}}</div>
                                 </div>
 
                                 <!-- COURSE Field -->
                                 <div class="flex items-end">
                                     <span class="shrink-0 font-black text-[8.5px]">COURSE:</span>
-                                    <div id="out-course" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
+                                     <div id="out-course" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]">{{course}}</div>
                                 </div>
 
                             </div>
