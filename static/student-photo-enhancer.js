@@ -35,7 +35,8 @@
         const shadow=Math.max(0,(.68-lum)/.68);
         const deepShadow=Math.max(0,(.42-lum)/.42);
         const highlight=Math.max(0,(lum-.72)/.28);
-        const centerX=(p%w)/(w-1||1), centerY=Math.floor(p/w)/(h-1||1);\n        const faceZone=Math.max(0,1-Math.sqrt(((centerX-.5)/.5)**2+((centerY-.43)/.62)**2))*fg;\n        const complexionLift=(v.complexionLift||0)*Math.max(0,(.68-lum)/.68)*(0.55+0.45*faceZone);
+        const centerX=(p%w)/(w-1||1), centerY=Math.floor(p/w)/(h-1||1);
+        const faceZone=Math.max(0,1-Math.sqrt(((centerX-.5)/.5)**2+((centerY-.43)/.62)**2))*fg;\n        const complexionLift=(v.complexionLift||0)*Math.max(0,(.68-lum)/.68)*(0.55+0.45*faceZone);
         const printLift=(v.exposure+shadow*v.shadows+deepShadow*v.deepShadows+complexionLift-highlight*v.highlights)*fg;
         r+=255*printLift;g+=255*printLift;b+=255*printLift;
         if(fg>.5){
