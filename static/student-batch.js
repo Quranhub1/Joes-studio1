@@ -35,7 +35,7 @@
       badgeFile: null,
       badgeDataUrl: "",
       badgeLibraryId: "",
-      schoolName: "Kampala School of Health Sciences",
+      schoolName: "",
       schoolNameCustomized: false,
       // Student photos are automatically optimized for card printing.
       // This keeps faces readable on paper without altering the original
@@ -105,11 +105,11 @@
       root.setAttribute("data-student-batch-background", color);
     },
 
-    getDefaultSchoolName() { return "Kampala School of Health Sciences"; },
+    getDefaultSchoolName() { return ""; },
 
     setSchoolName(value, options = {}) {
       const next = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
-      this.state.schoolName = next || this.getDefaultSchoolName();
+      this.state.schoolName = next;
       if (options.customized !== false) this.state.schoolNameCustomized = true;
       try { localStorage.setItem("joesStudio.studentBatchSchoolName.v1", this.state.schoolName); } catch (_) {}
       this.refresh();
@@ -136,7 +136,7 @@
 
     applyBranding(root) {
       if (!root) return;
-      const school = this.state.schoolName || this.getDefaultSchoolName();
+      const school = this.state.schoolName || "";
       const schoolSelectors = ["[data-school-name]", ".school-name", "#school-name", "#schoolName", ".school", ".school-title", ".institution-name", ".institution"];
       let schoolNode = null;
       for (const selector of schoolSelectors) {
