@@ -79,7 +79,9 @@ export function normalizeUser(input={}){
   const now=new Date().toISOString();
   const legacy=input.subscription||{};
   const tier=String(input.plan?.tier||legacy.tier||"free").toLowerCase()==="pro"?"pro":"free";
-  const status=String(input.plan?.status||legacy.status||"active").toLowerCase();
+  let status=String(input.plan?.status||legacy.status||"active").toLowerCase();
+  const endAt=input.plan?.endAt||legacy.endDate||null;
+  if(tier==="pro" && status==="active" && endAt && Number.isFinite(Date.parse(endAt)) && Date.parse(endAt)<=Date.now()) status="expired";
   const periodKey=String(input.usage?.periodKey||currentPeriodKey());
   const batchesUsed=Number.isFinite(Number(input.usage?.batchesUsed))?Math.max(0,Number(input.usage.batchesUsed)):Math.max(0,Number(legacy.batchesUsed)||0);
   return {
@@ -95,7 +97,7 @@ export function normalizeUser(input={}){
       tier,
       status:["active","pending","expired","cancelled"].includes(status)?status:"active",
       startAt:input.plan?.startAt||legacy.startDate||now,
-      endAt:input.plan?.endAt||legacy.endDate||null,
+      endAt,
       renewalAt:input.plan?.renewalAt||legacy.renewalDate||null
     },
     usage:{periodKey,batchesUsed,batchLimit:tier==="pro"?Number.MAX_SAFE_INTEGER:FREE_BATCH_LIMIT},
