@@ -1053,7 +1053,8 @@
       if (cached) return cached;
       try {
         const enhanced = await window.JoesStudentPhotoEnhancer.process(dataUrl, {
-          strength: this.state.photoEnhancement.enabled ? this.state.photoEnhancement.strength : "natural",
+          auto: this.state.photoEnhancement.enabled,
+          strength: this.state.photoEnhancement.strength,
           whiteBackground: this.state.photoEnhancement.whiteBackground,
           manual: m
         });
