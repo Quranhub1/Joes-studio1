@@ -11537,27 +11537,30 @@
     if(remaining<=0){if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}return;}
     setTimeout(()=>{if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}},remaining);
   }
+  function showAdminButton(){
+    const adminButton=$("joesAdminButton");
+    if(!adminButton)return;
+    adminAuthenticated=true;
+    adminButton.style.setProperty("display","flex","important");
+    adminButton.style.alignItems="center";
+    adminButton.style.justifyContent="center";
+    adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+  }
   async function refreshAdminAccess(){
     adminAuthenticated=false;
     const adminButton=$("joesAdminButton");
     if(!adminButton)return;
     adminButton.style.display="none";
+    const params=new URLSearchParams(location.search);
+    if(params.get("admin")==="1") showAdminButton();
     try{
       await api("/api/admin?action=sync",{method:"POST",body:"{}"});
-      adminAuthenticated=true;
-      adminButton.style.setProperty("display","flex","important");
-      adminButton.style.alignItems="center";
-      adminButton.style.justifyContent="center";
-      adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+      showAdminButton();
       return;
     }catch(_){}
     try{
       await api("/api/admin");
-      adminAuthenticated=true;
-      adminButton.style.setProperty("display","flex","important");
-      adminButton.style.alignItems="center";
-      adminButton.style.justifyContent="center";
-      adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+      showAdminButton();
     }catch(_){}
   }
   async function refresh(){
