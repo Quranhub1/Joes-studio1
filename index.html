@@ -10565,6 +10565,14 @@
                   });
 
                   const parsed = new DOMParser().parseFromString(html, "text/html");
+                  // Gallery previews need template styling (including Tailwind), but
+                  // must never execute the template's own application logic. Keep only
+                  // the Tailwind CDN bootstrap; remove editor/export/custom scripts.
+                  parsed.querySelectorAll("script").forEach(script => {
+                    const src = String(script.getAttribute("src") || "");
+                    if (!src.includes("cdn.tailwindcss.com")) script.remove();
+                    else script.replaceWith(script.cloneNode(true));
+                  });
                   parsed.querySelectorAll("iframe, object, embed").forEach(el => el.remove());
 
                   const cardSelectors = [
