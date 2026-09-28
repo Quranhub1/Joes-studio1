@@ -11544,7 +11544,7 @@
   };
   window.JoesAuth={getUser:()=>user,open,close,refresh,consumeBatch:async()=>{
     if(!user){open(true);throw new Error("Please create an account or sign in before exporting a batch.");}
-    const d=await api("/api/usage",{method:"POST",body:"{}"});
+    let d; try{ d=await api("/api/usage",{method:"POST",body:"{}"}); }catch(err){ if(err.message==="Free batch limit reached"){ mode="signup"; authRequired=true; open(true); $("joesAuthError").textContent="Your free batch limit has been reached. Create an account or sign in to continue."; } throw err; }
     user=d.user;render();window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));return d;
   }};
   refresh();
