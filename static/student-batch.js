@@ -2115,8 +2115,14 @@
             builtCards.push(result.body);
           }
 
-          const maxPageWidth = Math.min(900, Math.max(420, host.clientWidth - 24));
-          const pageScale = maxPageWidth / layout.sheet.w;
+          const availableW = Math.max(1, host.clientWidth - 24);
+          const availableH = Math.max(1, host.clientHeight - 24);
+          // Fit the complete print sheet inside the preview window. Never make
+          // the user scroll horizontally or vertically just to see a card.
+          const pageScale = Math.min(
+            availableW / layout.sheet.w,
+            availableH / layout.sheet.h
+          );
           const pageWidth = Math.round(layout.sheet.w * pageScale);
           const pageHeight = Math.round(layout.sheet.h * pageScale);
           const nativeCardWidth = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
