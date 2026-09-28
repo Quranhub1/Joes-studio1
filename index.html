@@ -10561,14 +10561,13 @@
               preview.className = "relative h-52 bg-slate-100 overflow-hidden flex items-center justify-center";
 
               if (String(t.type || "").toLowerCase() === "html" && t.url) {
-                const frame = document.createElement("iframe");
-                frame.title = t.name || "Template preview";
-                frame.style.cssText = "width:130mm;height:60mm;min-width:130mm;min-height:60mm;border:0;transform-origin:center;pointer-events:none;background:#fff;";
-                frame.setAttribute("aria-hidden", "true");
-                preview.appendChild(frame);
+                const stage = document.createElement("div");
+                stage.className = "w-full h-full flex items-center justify-center overflow-hidden";
+                stage.style.cssText = "contain:layout;position:relative;";
+                preview.appendChild(stage);
 
                 try {
-                  const response = await fetch(t.url, { cache: "no-store" });
+                  const response = await fetch(t.url + (String(t.url).includes("?") ? "&" : "?") + "galleryPreview=" + Date.now(), { cache: "no-store" });
                   if (!response.ok) throw new Error("HTTP " + response.status);
                   let html = await response.text();
 
@@ -10587,67 +10586,50 @@
                     html = html.split(key).join(value);
                   });
 
-                  // Gallery previews are static. Remove template scripts so the preview
-                  // cannot execute code or interfere with the editor page.
+                  // Gallery previews are static and isolated in a Shadow DOM.
+                  // Remove scripts and document-level wrappers so template code cannot
+                  // execute or leak styles/events into the editor page.
                   html = html.replace(/<script[\\s\\S]*?<\\/script>/gi, "");
-                  frame.srcdoc = html;
+                  const parsed = new DOMParser().parseFromString(html, "text/html");
+                  parsed.querySelectorAll("script").forEach(el => el.remove());
+                  parsed.querySelectorAll("meta, link, base").forEach(el => el.remove());
+
+                  const shadow = stage.attachShadow({ mode: "closed" });
+                  const styleText = Array.from(parsed.querySelectorAll("style")).map(el => el.textContent || "").join("\\n");
+                  const style = document.createElement("style");
+                  style.textContent = styleText;
+                  shadow.appendChild(style);
+
+                  const cardSource = parsed.querySelector(".card") || parsed.body.firstElementChild || parsed.body;
+                  const card = document.createElement("div");
+                  card.innerHTML = cardSource === parsed.body
+                    ? parsed.body.innerHTML
+                    : cardSource.outerHTML;
+                  shadow.appendChild(card);
+
+                  const cardEl = card.querySelector(".card") || card.firstElementChild || card;
+                  cardEl.style.margin = "0";
+                  cardEl.style.transformOrigin = "center center";
+                  cardEl.style.maxWidth = "none";
+                  cardEl.style.maxHeight = "none";
+
+                  const fitPreview = () => {
+                    const cardWidth = 130 * 3.779527559;
+                    const cardHeight = 60 * 3.779527559;
+                    const scale = Math.min(.95, preview.clientWidth / cardWidth, preview.clientHeight / cardHeight);
+                    cardEl.style.transform = "scale(" + Math.max(.1, scale) + ")";
+                  };
+                  requestAnimationFrame(fitPreview);
+                  window.addEventListener("resize", fitPreview, { passive: true });
+
+                  const badge = document.createElement("span");
+                  badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm";
+                  badge.textContent = "Live preview";
+                  preview.appendChild(badge);
                 } catch (error) {
-                  frame.srcdoc = '<html><body style="margin:0;font-family:Arial;display:grid;place-items:center;height:100%;color:#64748b"><div>Preview unavailable</div></body></html>';
+                  stage.innerHTML = '<div class="text-center text-slate-400 text-[11px] p-4"><i class="ph ph-warning-circle text-3xl"></i><div class="mt-2">Preview unavailable</div></div>';
                   console.warn("Template preview failed:", t.name, error);
                 }
-
-                const fitPreview = () => {
-                  const cardWidth = 130 * 3.779527559;
-                  const cardHeight = 60 * 3.779527559;
-                  const scale = Math.min(.95, preview.clientWidth / cardWidth, preview.clientHeight / cardHeight);
-                  frame.style.transform = "scale(" + Math.max(.1, scale) + ")";
-                };
-                requestAnimationFrame(fitPreview);
-                window.addEventListener("resize", fitPreview, { passive: true });
-              } else if (t.thumbnail) {
-                const img = document.createElement("img");
-                img.src = t.thumbnail;
-                img.className = "w-full h-full object-contain";
-                preview.appendChild(img);
-              } else {
-                preview.innerHTML = '<div class="text-center text-slate-400"><i class="ph ph-file-plus text-4xl"></i><div class="text-[10px] mt-2">Paper design</div></div>';
-              }
-
-              const body = document.createElement("div");
-              body.className = "p-3 flex items-center gap-3";
-              const info = document.createElement("div");
-              info.className = "min-w-0 flex-1";
-              const title = document.createElement("h3");
-              title.className = "font-bold text-slate-700 text-sm truncate";
-              title.textContent = t.name || "Untitled Design";
-              const desc = document.createElement("p");
-              desc.className = "text-slate-400 text-[11px] mt-0.5 truncate";
-              desc.textContent = label || t.desc || "Printable design";
-              info.appendChild(title);
-              info.appendChild(desc);
-
-              const use = document.createElement("button");
-              use.type = "button";
-              use.className = "shrink-0 px-3 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold hover:bg-slate-700";
-              use.innerHTML = '<i class="ph ph-check-circle mr-1"></i> Use design';
-              use.onclick = (event) => {
-                event.stopPropagation();
-                this.load(t.id);
-              };
-
-              body.appendChild(info);
-              body.appendChild(use);
-              d.appendChild(preview);
-              d.appendChild(body);
-              d.onclick = () => this.load(t.id);
-              grid.appendChild(d);
-            };                requestAnimationFrame(fitPreview);
-                window.addEventListener("resize", fitPreview, { passive: true });
-                preview.appendChild(frame);
-                const badge = document.createElement("span");
-                badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm";
-                badge.textContent = "Live preview";
-                preview.appendChild(badge);
               } else if (t.thumbnail) {
                 const img = document.createElement("img");
                 img.src = t.thumbnail;
