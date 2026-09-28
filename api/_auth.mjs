@@ -55,12 +55,10 @@ export function parseCookie(req,name){
   return hit?decodeURIComponent(hit.slice(name.length+1)):"";
 }
 export function cookieHeader(name,value,maxAge=SESSION_TTL){
-  const sameSite=process.env.APP_ORIGIN&&process.env.APP_ORIGIN!==process.env.API_ORIGIN?"None":"Lax";
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=${sameSite}; Max-Age=${maxAge}`;
+  return name+"="+encodeURIComponent(value)+"; Path=/; HttpOnly; Secure; SameSite=None; Max-Age="+maxAge;
 }
 export function clearCookie(name){
-  const sameSite=process.env.APP_ORIGIN&&process.env.APP_ORIGIN!==process.env.API_ORIGIN?"None":"Lax";
-  return name+"=; Path=/; HttpOnly; Secure; SameSite="+sameSite+"; Max-Age=0";
+  return name+"=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0";
 }
 export function publicUser(user){
   if(!user) return null;
