@@ -212,7 +212,7 @@
       const style = document.createElement("style");
       style.textContent = [
         "#studentBatchModal > div{max-height:none !important;height:100vh !important;overflow:hidden !important}",
-        "#studentBatchWorkspace{display:block;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;padding:0 20px 24px;box-sizing:border-box}",
+        "#studentBatchWorkspace{display:block;flex:1 1 auto;min-height:0;height:auto;overflow-y:auto;overflow-x:hidden;padding:0 20px 24px;box-sizing:border-box}",
         "#studentBatchTopNav{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0;background:#fff;border-bottom:1px solid #e2e8f0;margin-bottom:16px}",
         ".student-batch-step{display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer;font-size:11px;font-weight:800}",
         ".student-batch-step.active{background:#0f172a;color:#fff;border-color:#0f172a}",
@@ -224,6 +224,7 @@
         "#studentBatchWorkspace details{display:block !important}",
         "#studentBatchWorkspace details[open] > div{display:block !important}",
         "#studentBatchWorkspace .student-batch-card{width:100% !important;max-height:none !important;overflow:visible !important}",
+        "#studentBatchPrintPreview{max-height:none !important;overflow:visible !important}",
         ".student-batch-section-title{font-size:15px;font-weight:850;color:#1e293b;margin-bottom:12px}",
         ".student-batch-section-sub{font-size:10px;color:#94a3b8;margin-top:-8px;margin-bottom:12px}",
         ".student-batch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
@@ -276,6 +277,7 @@
 
       const visual=document.createElement("div");
       visual.append(photoBrand,branding);
+      visual.querySelectorAll("details").forEach(d => { d.open = true; });
 
       const output=document.createElement("div");
       output.appendChild(print);
