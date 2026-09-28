@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
-import {cors,json,requireOrigin,redis,safeEqual,createUser,findUserByEmail,getUser,saveUser,hashPassword,verifyPassword,createSession,destroySession,USER_COOKIE,cookieHeader,clearCookie,publicUser,requireConfig} from "./_auth.mjs";
+import {cors,json,requireOrigin,redis,safeEqual,createUser,findUserByEmail,findUserByGoogleSub,getUser,saveUser,hashPassword,verifyPassword,createSession,destroySession,USER_COOKIE,cookieHeader,clearCookie,publicUser,requireConfig} from "./_auth.mjs";
 
 const GOOGLE_CLIENT_ID=process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET=process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI=process.env.GOOGLE_REDIRECT_URI || ((process.env.API_ORIGIN||"").replace(/\/$/,"")+"/api/auth?action=google-callback");
+const API_ORIGIN=(process.env.API_ORIGIN|| (process.env.VERCEL_URL ? "https://"+process.env.VERCEL_URL : "")).replace(/\/$/,"");\nconst GOOGLE_REDIRECT_URI=process.env.GOOGLE_REDIRECT_URI || (API_ORIGIN ? API_ORIGIN+"/api/auth?action=google-callback" : "");
 const APP_URL=(process.env.APP_URL||process.env.APP_ORIGIN||"https://quranhub1.github.io").replace(/\/$/,"");
 
 function emailOk(email){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
@@ -47,7 +47,7 @@ async function googleCallback(req,res,url){
     const google=await userResponse.json();
     const email=String(google.email||"").trim().toLowerCase();
     if(!email||google.email_verified!==true) throw new Error("Google account email is not verified");
-    let user=await findUserByEmail(email);
+    let user=await findUserByGoogleSub(String(google.sub||""));\n    if(!user) user=await findUserByEmail(email);
     if(user){
       if(user.banned) return redirect(res,returnTo+"?auth_error=account_banned");
       user.auth={...(user.auth||{}),googleSub:String(google.sub||"")};
