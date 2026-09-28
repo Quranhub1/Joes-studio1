@@ -15,7 +15,7 @@ export default async function handler(req,res){
   if(!requireOrigin(req)) return json(res,403,{error:"Origin not allowed"});
   try{
     if(req.method==="GET"){
-      return json(res,200,{payment:paymentConfig()});
+      return json(res,200,{payment:await paymentConfig()});
     }
     const session=await getSession(req,"user");
     if(!session) return json(res,401,{error:"Not authenticated"});
@@ -24,11 +24,11 @@ export default async function handler(req,res){
     if(req.method==="POST"){
       const body=req.body||{};
       const reference=String(body.reference||"").trim().slice(0,120);
-      const amount=String(body.amount||process.env.PRO_PRICE||"").trim().slice(0,40);
+      const config=await paymentConfig();\n      const amount=String(body.amount||config.proPrice||"").trim().slice(0,40);
       if(!reference) return json(res,400,{error:"Payment reference is required"});
       const id=crypto.randomUUID();
       const now=new Date().toISOString();
-      const item={id,userId:user.id,email:user.email,name:user.name,plan:"pro",amount,currency:paymentConfig().currency,reference,status:"pending",notes:String(body.notes||"").slice(0,500),createdAt:now,updatedAt:now};
+      const item={id,userId:user.id,email:user.email,name:user.name,plan:"pro",amount,currency:config.currency,reference,status:"pending",notes:String(body.notes||"").slice(0,500),createdAt:now,updatedAt:now};
       await redis("set","joes:payment:"+id,JSON.stringify(item));
       await redis("sadd","joes:payments",id);
       return json(res,201,{ok:true,payment:item});
