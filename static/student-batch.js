@@ -211,9 +211,10 @@
 
       const style = document.createElement("style");
       style.textContent = [
-        "#studentBatchModal > div{max-height:none !important;height:100vh !important;overflow:hidden !important}",
-        "#studentBatchWorkspace{display:block;flex:1 1 auto;min-height:0;height:auto;overflow-y:auto;overflow-x:hidden;padding:0 20px 24px;box-sizing:border-box}",
-        "#studentBatchTopNav{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0;background:#fff;border-bottom:1px solid #e2e8f0;margin-bottom:16px}",
+        "#studentBatchModal{overflow-y:auto !important;overflow-x:hidden !important;align-items:flex-start !important;padding:20px 0 !important;box-sizing:border-box}",
+        "#studentBatchModal > div{max-height:none !important;height:auto !important;min-height:0 !important;overflow:visible !important;margin:auto !important}",
+        "#studentBatchWorkspace{display:block;min-height:0;height:auto;overflow:visible;padding:0 20px 24px;box-sizing:border-box}",
+        "#studentBatchTopNav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0;background:#fff;border-bottom:1px solid #e2e8f0;margin-bottom:16px}",
         ".student-batch-step{display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer;font-size:11px;font-weight:800}",
         ".student-batch-step.active{background:#0f172a;color:#fff;border-color:#0f172a}",
         ".student-batch-step .num{width:23px;height:23px;border-radius:7px;display:grid;place-items:center;background:#f1f5f9;color:#475569}",
@@ -228,7 +229,7 @@
         ".student-batch-section-title{font-size:15px;font-weight:850;color:#1e293b;margin-bottom:12px}",
         ".student-batch-section-sub{font-size:10px;color:#94a3b8;margin-top:-8px;margin-bottom:12px}",
         ".student-batch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
-        "#studentBatchWorkspace .student-batch-actionbar{position:sticky;bottom:0;z-index:15;margin-top:16px;padding:12px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 -5px 18px rgba(15,23,42,.08);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}",
+        "#studentBatchWorkspace .student-batch-actionbar{position:static;margin-top:16px;padding:12px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 -5px 18px rgba(15,23,42,.08);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}",
         "@media(max-width:760px){.student-batch-two{grid-template-columns:1fr}.student-batch-step .label{display:none}#studentBatchTopNav{overflow-x:auto;flex-wrap:nowrap}.student-batch-step{flex:none}}"
       ].join("");
       shell.appendChild(style);
@@ -295,7 +296,7 @@
       preview.onclick=()=>Batch.previewBatch();
       const top=document.createElement("button");
       top.type="button";top.className="student-batch-step";top.textContent="Back to top";
-      top.onclick=()=>workspace.scrollTo({top:0,behavior:"smooth"});
+      top.onclick=()=>modal.scrollTo({top:0,behavior:"smooth"});
       actions.append(preview,top);
 
       workspace.append(nav,all,actions);
