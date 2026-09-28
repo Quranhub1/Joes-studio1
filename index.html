@@ -23,6 +23,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@1.0.0/dist/umd/2x.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/browser/umd/upscaler.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./static/student-photo-enhancer.js?v=20260928-upscaler"></script>
     <script src="./static/student-batch.js?v=20260928-template-print"></script>
     <script>var App;</script>
@@ -1110,6 +1111,94 @@
     <input type="file" id="imgUpload" hidden accept="image/*" />
     <input type="file" id="imgReplaceInput" hidden accept="image/*" />
 
+    <div id="authModal" class="hidden fixed inset-0 z-[90] flex items-center justify-center modal-backdrop">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="flex border-b border-gray-200">
+          <button id="authTabLogin" class="flex-1 py-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Sign in</button>
+          <button id="authTabSignup" class="flex-1 py-3 text-sm font-bold text-gray-500 hover:text-gray-700">Sign up</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div id="authLoginForm">
+            <input id="loginEmail" type="email" placeholder="Email" class="w-full border border-gray-300 rounded-lg p-3 text-sm mb-3">
+            <input id="loginPassword" type="password" placeholder="Password" class="w-full border border-gray-300 rounded-lg p-3 text-sm mb-3">
+            <button id="loginSubmit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-500">Sign in</button>
+            <div class="relative my-4"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Or continue with</span></div></div>
+            <button id="googleSignIn" class="w-full border border-gray-300 rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-50 flex items-center justify-center gap-2"><svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</button>
+            <p id="loginError" class="text-red-500 text-xs mt-3 hidden"></p>
+          </div>
+          <div id="authSignupForm" class="hidden">
+            <input id="signupName" type="text" placeholder="Full name" class="w-full border border-gray-300 rounded-lg p-3 text-sm mb-3">
+            <input id="signupEmail" type="email" placeholder="Email" class="w-full border border-gray-300 rounded-lg p-3 text-sm mb-3">
+            <input id="signupPassword" type="password" placeholder="Password (min 6 characters)" class="w-full border border-gray-300 rounded-lg p-3 text-sm mb-3">
+            <button id="signupSubmit" class="w-full bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-500">Create account</button>
+            <p id="signupError" class="text-red-500 text-xs mt-3 hidden"></p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('authModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+      </div>
+    </div>
+
+    <div id="userDashboardModal" class="hidden fixed inset-0 z-[85] flex items-center justify-center modal-backdrop">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+        <div class="bg-slate-900 text-white p-5 flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-bold">My Account</h3>
+            <p id="userDashboardEmail" class="text-xs text-slate-300 mt-1"></p>
+          </div>
+          <button onclick="document.getElementById('userDashboardModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <div class="p-5 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plan</p>
+              <p id="userDashboardTier" class="text-xl font-extrabold text-slate-900 mt-1">Free</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Batches used</p>
+              <p id="userDashboardUsage" class="text-xl font-extrabold text-slate-900 mt-1">0 / 3</p>
+            </div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Status</p>
+            <p id="userDashboardStatus" class="text-sm font-semibold text-emerald-600">Active</p>
+          </div>
+          <button id="userDashboardUpgrade" class="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-500">Upgrade to Pro</button>
+          <button id="userDashboardLogout" class="w-full border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="paymentModal" class="hidden fixed inset-0 z-[95] flex items-center justify-center modal-backdrop">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-amber-500 text-white p-5">
+          <h3 class="text-lg font-bold">Upgrade to continue</h3>
+          <p class="text-xs text-amber-100 mt-1">You have reached your free batch limit.</p>
+        </div>
+        <div class="p-5 space-y-3">
+          <p class="text-xs text-gray-500">Send payment to activate your Pro account. You will receive access within 24 hours after payment confirmation.</p>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between border border-gray-200 rounded-xl p-3">
+              <div><p class="text-sm font-bold text-gray-900">Weekly</p><p class="text-[10px] text-gray-500">7 days</p></div>
+              <p class="text-sm font-extrabold text-gray-900">UGX 5,000</p>
+            </div>
+            <div class="flex items-center justify-between border border-gray-200 rounded-xl p-3">
+              <div><p class="text-sm font-bold text-gray-900">Monthly</p><p class="text-[10px] text-gray-500">30 days</p></div>
+              <p class="text-sm font-extrabold text-gray-900">UGX 15,000</p>
+            </div>
+            <div class="flex items-center justify-between border border-gray-200 rounded-xl p-3">
+              <div><p class="text-sm font-bold text-gray-900">Yearly</p><p class="text-[10px] text-gray-500">365 days</p></div>
+              <p class="text-sm font-extrabold text-gray-900">UGX 360,000</p>
+            </div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment instructions</p>
+            <p class="text-xs text-gray-600 whitespace-pre-line" id="paymentInstructions">Send payment to:\nMTN Mobile Money: +256 (your number)\nAirtel Money: +256 (your number)\nInclude your email and plan type in the message.\nYou will be activated within 24 hours.</p>
+          </div>
+          <button onclick="document.getElementById('paymentModal').classList.add('hidden')" class="w-full border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50">Close</button>
+        </div>
+      </div>
+    </div>
+
     <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm z-30 shrink-0 text-sm whitespace-nowrap">
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2 text-slate-800 cursor-pointer" onclick="App.ui.showModal('welcomeModal')">
@@ -1201,6 +1290,9 @@
       </div>
 
       <div class="w-80 flex justify-end gap-2">
+        <button id="authMenuBtn" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="Account">
+          <i class="ph ph-user text-lg"></i> <span id="authMenuLabel">Sign in</span>
+        </button>
         <button onclick="App.ui.showModal('contactModal')" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="Contact Author">
           <i class="ph ph-wechat-logo text-lg"></i>
         </button>
@@ -11276,19 +11368,342 @@
       };
       window.onload = function () {
         App.init();
-        const propFontSelect = document.getElementById('propFont');
-        const propFontContainer = document.getElementById('propFontPicker');
+        const propFontSelect = document.getElementById("propFont");
+        const propFontContainer = document.getElementById("propFontPicker");
         if (propFontSelect && propFontContainer) {
           FontPicker.create(propFontContainer, propFontSelect, (val) => {
-            App.ui.setProp('fontFamily', val);
+            App.ui.setProp("fontFamily", val);
           });
         }
 
-        const floatFontSelect = document.getElementById('floatFontFamily');
-        const floatFontContainer = document.getElementById('floatFontFamilyPicker');
+        const floatFontSelect = document.getElementById("floatFontFamily");
+        const floatFontContainer = document.getElementById("floatFontFamilyPicker");
         if (floatFontSelect && floatFontContainer) {
           FontPicker.create(floatFontContainer, floatFontSelect, null);
         }
+
+        JoesAuth.init();
+        JoesStudentBatch.initAuth();
+      };
+
+      window.JoesAuth = {
+        user: null,
+        async api(url, opts = {}) {
+          const r = await fetch(url, { credentials: "same-origin", headers: { "Content-Type": "application/json" }, ...opts });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.error || "Request failed");
+          return d;
+        },
+        async me() {
+          try {
+            const d = await this.api("/api/auth?action=me");
+            this.user = d.user || null;
+          } catch (_) {
+            this.user = null;
+          }
+          this.updateUI();
+        },
+        updateUI() {
+          const label = document.getElementById("authMenuLabel");
+          if (!label) return;
+          if (this.user) {
+            label.textContent = this.user.name || this.user.email || "Account";
+          } else {
+            label.textContent = "Sign in";
+          }
+        },
+        showLogin() {
+          document.getElementById("authTabLogin")?.click();
+          document.getElementById("authModal").classList.remove("hidden");
+        },
+        showSignup() {
+          document.getElementById("authTabSignup")?.click();
+          document.getElementById("authModal").classList.remove("hidden");
+        },
+        async logout() {
+          try { await this.api("/api/auth?action=logout", { method: "POST" }); } catch (_) {}
+          this.user = null;
+          this.updateUI();
+          document.getElementById("userDashboardModal")?.classList.add("hidden");
+          location.reload();
+        },
+        async openDashboard() {
+          await this.me();
+          if (!this.user) { this.showLogin(); return; }
+          const user = this.user;
+          document.getElementById("userDashboardEmail").textContent = user.email || "";
+          document.getElementById("userDashboardTier").textContent = (user.subscription?.tier || "free").toUpperCase();
+          document.getElementById("userDashboardUsage").textContent = (user.subscription?.batchesUsed || 0) + " / " + (user.subscription?.batchLimit || 3);
+          document.getElementById("userDashboardStatus").textContent = user.subscription?.status === "active" ? "Active" : (user.subscription?.status || "active");
+          document.getElementById("userDashboardModal").classList.remove("hidden");
+        },
+        init() {
+          document.getElementById("authMenuBtn")?.addEventListener("click", () => {
+            if (this.user) {
+              this.openDashboard();
+            } else {
+              this.showLogin();
+            }
+          });
+
+          document.getElementById("authTabLogin")?.addEventListener("click", () => {
+            document.getElementById("authLoginForm").classList.remove("hidden");
+            document.getElementById("authSignupForm").classList.add("hidden");
+            document.getElementById("authTabLogin").className = "flex-1 py-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600";
+            document.getElementById("authTabSignup").className = "flex-1 py-3 text-sm font-bold text-gray-500 hover:text-gray-700";
+          });
+          document.getElementById("authTabSignup")?.addEventListener("click", () => {
+            document.getElementById("authSignupForm").classList.remove("hidden");
+            document.getElementById("authLoginForm").classList.add("hidden");
+            document.getElementById("authTabSignup").className = "flex-1 py-3 text-sm font-bold text-emerald-600 border-b-2 border-emerald-600";
+            document.getElementById("authTabLogin").className = "flex-1 py-3 text-sm font-bold text-gray-500 hover:text-gray-700";
+          });
+
+          document.getElementById("loginSubmit")?.addEventListener("click", async () => {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            const err = document.getElementById("loginError");
+            err.classList.add("hidden");
+            try {
+              const d = await this.api("/api/auth?action=login", { method: "POST", body: JSON.stringify({ email, password }) });
+              this.user = d.user || null;
+              this.updateUI();
+              document.getElementById("authModal").classList.add("hidden");
+              document.getElementById("loginEmail").value = "";
+              document.getElementById("loginPassword").value = "";
+            } catch (e) {
+              err.textContent = e.message;
+              err.classList.remove("hidden");
+            }
+          });
+
+          document.getElementById("signupSubmit")?.addEventListener("click", async () => {
+            const name = document.getElementById("signupName").value.trim();
+            const email = document.getElementById("signupEmail").value.trim();
+            const password = document.getElementById("signupPassword").value;
+            const err = document.getElementById("signupError");
+            err.classList.add("hidden");
+            try {
+              const d = await this.api("/api/auth?action=signup", { method: "POST", body: JSON.stringify({ name, email, password }) });
+              this.user = d.user || null;
+              this.updateUI();
+              document.getElementById("authModal").classList.add("hidden");
+              document.getElementById("signupName").value = "";
+              document.getElementById("signupEmail").value = "";
+              document.getElementById("signupPassword").value = "";
+            } catch (e) {
+              err.textContent = e.message;
+              err.classList.remove("hidden");
+            }
+          });
+
+          document.getElementById("googleSignIn")?.addEventListener("click", async () => {
+            if (!window.google?.accounts?.id) {
+              alert("Google Sign-In is not loaded yet. Please try again.");
+              return;
+            }
+            try {
+              const response = await window.google.accounts.id.initialize({
+                client_id: "",
+                callback: async (resp) => {
+                  const credential = resp.credential;
+                  if (!credential) return;
+                  const err = document.getElementById("loginError");
+                  err.classList.add("hidden");
+                  try {
+                    const d = await this.api("/api/auth?action=google", { method: "POST", body: JSON.stringify({ token: credential }) });
+                    this.user = d.user || null;
+                    this.updateUI();
+                    document.getElementById("authModal").classList.add("hidden");
+                  } catch (e) {
+                    err.textContent = e.message;
+                    err.classList.remove("hidden");
+                  }
+                }
+              });
+              window.google.accounts.id.prompt();
+            } catch (e) {
+              console.error("Google sign-in init failed", e);
+            }
+          });
+
+          document.getElementById("userDashboardLogout")?.addEventListener("click", () => this.logout());
+          document.getElementById("userDashboardUpgrade")?.addEventListener("click", () => {
+            document.getElementById("userDashboardModal").classList.add("hidden");
+            document.getElementById("paymentModal").classList.remove("hidden");
+          });
+
+          this.me();
+        }
+      };
+
+      window.JoesStudentBatch = window.JoesStudentBatch || {};
+      JoesStudentBatch.initAuth = function () {
+        const self = this;
+        self._authReady = false;
+
+        async function ensureAuth() {
+          if (self._authReady) return self._authReady;
+          try {
+            const r = await fetch("/api/auth?action=me", { credentials: "same-origin" });
+            const d = await r.json().catch(() => ({}));
+            if (r.ok && d.user) {
+              self._currentUser = d.user;
+            } else {
+              self._currentUser = null;
+            }
+          } catch (_) {
+            self._currentUser = null;
+          }
+          self._authReady = true;
+          return self._authReady;
+        }
+
+        async function requireAuthOrPayment() {
+          await ensureAuth();
+          const user = self._currentUser;
+          if (!user) {
+            JoesAuth.showLogin();
+            return false;
+          }
+          if (user.banned) {
+            Utils.toast("Your account is unavailable.", "error");
+            return false;
+          }
+          return true;
+        }
+
+        async function checkBatchLimit() {
+          await ensureAuth();
+          const user = self._currentUser;
+          if (!user) return false;
+          const remaining = (user.subscription?.batchLimit || 3) - (user.subscription?.batchesUsed || 0);
+          if (remaining <= 0 && (user.subscription?.tier || "free") === "free") {
+            document.getElementById("paymentModal")?.classList.remove("hidden");
+            return false;
+          }
+          return true;
+        }
+
+        async function incrementBatchUsage() {
+          await ensureAuth();
+          const user = self._currentUser;
+          if (!user) return null;
+          try {
+            const r = await fetch("/api/usage?action=incrementBatch", { method: "POST", credentials: "same-origin" });
+            const d = await r.json().catch(() => ({}));
+            if (r.ok && d.batchesUsed !== undefined) {
+              self._currentUser.subscription = self._currentUser.subscription || {};
+              self._currentUser.subscription.batchesUsed = d.batchesUsed;
+              self._currentUser.subscription.batchLimit = d.batchLimit;
+              return d;
+            }
+          } catch (_) {}
+          return null;
+        }
+
+        async function fetchPaymentInfo() {
+          try {
+            const r = await fetch("/api/usage?action=paymentInfo", { credentials: "same-origin" });
+            const d = await r.json().catch(() => ({}));
+            if (r.ok) return d;
+          } catch (_) {}
+          return null;
+        }
+
+        async function showPaymentPrompt() {
+          const info = await fetchPaymentInfo();
+          const instructions = document.getElementById("paymentInstructions");
+          if (instructions && info?.instructions) instructions.textContent = info.instructions;
+          document.getElementById("paymentModal")?.classList.remove("hidden");
+        }
+
+        const originalGenerate = self.generate.bind(self);
+        self.generate = async function () {
+          const allowed = await requireAuthOrPayment();
+          if (!allowed) return;
+          const withinLimit = await checkBatchLimit();
+          if (!withinLimit) {
+            await showPaymentPrompt();
+            return;
+          }
+          await incrementBatchUsage();
+          await originalGenerate();
+        };
+
+        const originalPrint = self.print.bind(self);
+        self.print = async function () {
+          const allowed = await requireAuthOrPayment();
+          if (!allowed) return;
+          const withinLimit = await checkBatchLimit();
+          if (!withinLimit) {
+            await showPaymentPrompt();
+            return;
+          }
+          await incrementBatchUsage();
+          await originalPrint();
+        };
+
+        const originalPreviewBatch = self.previewBatch.bind(self);
+        self.previewBatch = async function () {
+          await originalPreviewBatch();
+        };
+
+        const originalBuildHtmlCard = self.buildHtmlCard.bind(self);
+        self.buildHtmlCard = async function (row) {
+          const result = await originalBuildHtmlCard(row);
+          await ensureAuth();
+          const user = self._currentUser;
+          if (!user) return result;
+          const body = result.body;
+          const existing = body.querySelector(".joes-studio-watermark");
+          if ((user.subscription?.tier || "free") === "pro") {
+            if (existing) existing.remove();
+          } else {
+            if (!existing) {
+              const watermark = body.ownerDocument.createElement("div");
+              watermark.className = "joes-studio-watermark";
+              watermark.textContent = "JOES STUDIO";
+              watermark.setAttribute("aria-hidden", "true");
+              watermark.style.cssText = [
+                "position:absolute",
+                "left:50%",
+                "top:53%",
+                "transform:translate(-50%,-50%) rotate(-16deg)",
+                "z-index:0",
+                "pointer-events:none",
+                "user-select:none",
+                "white-space:nowrap",
+                "font-family:Georgia, 'Times New Roman', serif",
+                "font-size:20px",
+                "font-weight:700",
+                "font-style:italic",
+                "letter-spacing:2.8px",
+                "line-height:1",
+                "color:rgba(29,53,87,.11)",
+                "text-shadow:0 1px 0 rgba(255,255,255,.28)",
+                "mix-blend-mode:multiply"
+              ].join(";");
+              body.style.position = body.style.position || "relative";
+              body.insertBefore(watermark, body.firstChild);
+            }
+            const wm = body.querySelector(".joes-studio-watermark");
+            if (wm) {
+              wm.style.zIndex = "0";
+              Array.from(body.children).forEach(child => {
+                if (child !== wm && !child.style.zIndex) child.style.position = child.style.position || "relative";
+              });
+            }
+          }
+          return result;
+        };
+
+        fetch("/api/usage?action=paymentInfo", { credentials: "same-origin" }).then(r => r.json()).then(d => {
+          if (d?.instructions) {
+            const el = document.getElementById("paymentInstructions");
+            if (el) el.textContent = d.instructions;
+          }
+        }).catch(() => {});
       };
     </script>
   </body>
