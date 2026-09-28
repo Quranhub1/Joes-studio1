@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kampala School of Health Sciences - Examination Card Template</title>
+    <title>School Examination Card - Examination Card Template</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -114,7 +114,37 @@
             background: #334155;
             border-radius: 3px;
         }
-    </style>
+     
+        /* Authoritative: modern institutional document design */
+        .card-container{background:#fff;border:1.4px solid #111827;border-radius:2.2mm;box-shadow:0 8px 22px rgba(15,23,42,.15);isolation:isolate;}
+        .authority-band{position:absolute;top:0;left:0;width:7mm;height:100%;background:#172033;}
+        .authority-inner{height:100%;box-sizing:border-box;padding:3.5mm 4mm 3mm 11mm;display:flex;flex-direction:column;position:relative;}
+        .authority-head{display:grid;grid-template-columns:16mm 1fr 24mm;gap:3mm;align-items:center;padding-bottom:2mm;border-bottom:1.2px solid #172033;}
+        .authority-badge{width:16mm;height:16mm;display:flex;align-items:center;justify-content:center;}
+        .authority-badge-placeholder{width:11.5mm;height:11.5mm;border:1px solid #64748b;border-radius:1.5mm;display:flex;align-items:center;justify-content:center;font:800 5px Arial,sans-serif;letter-spacing:1px;color:#64748b;background:#f8fafc;}
+        .badge-image{width:100%;height:100%;object-fit:contain;}
+        .authority-title{text-align:left;}
+        .authority-label{font:800 5.2px Arial,sans-serif;letter-spacing:1.3px;color:#64748b;margin-bottom:.7mm;}
+        .authority-title h1{font:900 10.5px Arial,sans-serif;letter-spacing:.35px;margin:0;color:#111827;text-transform:uppercase;line-height:1.05;}
+        .authority-title h2{font:900 7.2px Arial,sans-serif;letter-spacing:2px;margin:1.2mm 0 0;color:#111827;}
+        .authority-photo{width:24mm;height:27mm;border:1.4px solid #111827;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+        .photo-image{width:100%;height:100%;object-fit:cover;display:block;}
+        .photo-placeholder{font:800 6px Arial,sans-serif;letter-spacing:1.1px;color:#94a3b8;text-align:center;}
+        .authority-body{margin-top:2.4mm;display:flex;flex-direction:column;gap:1.7mm;font-family:Arial,sans-serif;}
+        .authority-row{display:grid;grid-template-columns:31mm 1fr;align-items:end;min-width:0;}
+        .authority-row>span,.authority-row>div>span{font:900 6.2px Arial,sans-serif;letter-spacing:.8px;color:#475569;}
+        .authority-row>div{min-height:4mm;border-bottom:1px solid #334155;font:800 8px Arial,sans-serif;text-transform:uppercase;overflow:hidden;white-space:nowrap;padding:0 1mm;}
+        .authority-row.split{grid-template-columns:1fr 31mm;gap:4mm;}
+        .authority-row.split>div{display:grid;grid-template-columns:auto 1fr;gap:1.7mm;align-items:end;}
+        .authority-row.split>div>div{min-height:4mm;border-bottom:1px solid #334155;font:800 8px Arial,sans-serif;padding:0 1mm;text-transform:uppercase;overflow:hidden;white-space:nowrap;}
+        .authority-notice{margin-top:2mm;padding:1.5mm 2mm;background:#f1f5f9;border-left:1.5mm solid #172033;display:flex;gap:1.5mm;font:6px/1.25 Arial,sans-serif;color:#334155;}
+        .authority-notice strong{font-size:6px;letter-spacing:.8px;color:#111827;}
+        .authority-foot{margin-top:auto;padding-top:1.6mm;border-top:1px solid #cbd5e1;display:grid;grid-template-columns:1fr auto;gap:4mm;align-items:end;font-family:Arial,sans-serif;}
+        .authority-foot>div{display:grid;grid-template-columns:auto 1fr;gap:1.5mm;align-items:end;}
+        .authority-foot span{font:900 6px Arial,sans-serif;letter-spacing:.7px;color:#475569;white-space:nowrap;}
+        .authority-foot>div>div{min-height:3.5mm;border-bottom:1px solid #334155;font:700 7px Arial,sans-serif;padding:0 1mm;}
+        .authority-foot>strong{font:900 6px Arial,sans-serif;letter-spacing:1.2px;color:#172033;white-space:nowrap;}
+</style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
@@ -126,7 +156,7 @@
                 </div>
                 <div>
                     <h1 class="text-base font-bold text-white leading-tight">Examination Card Template Studio</h1>
-                    <p class="text-xs text-slate-400">Kampala School of Health Sciences (Landscape 8-per-A4)</p>
+                    <p class="text-xs text-slate-400">School Examination Card (Landscape 8-per-A4)</p>
                 </div>
             </div>
 
@@ -253,7 +283,7 @@
             </div>
 
             <div class="pt-4 border-t border-slate-700 text-[11px] text-slate-400 leading-relaxed">
-                <p><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Exact 1:1 replica of Kampala School of Health Sciences Examination Card template. Click <b>Print Card</b> to print directly on card paper.</p>
+                <p><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Exact 1:1 replica of School Examination Card Examination Card template. Click <b>Print Card</b> to print directly on card paper.</p>
             </div>
         </section>
 
@@ -264,116 +294,38 @@
             <div id="printable-area" class="py-2 print-active">
                 
                 <!-- CARD TEMPLATE CONTAINER (Landscape W > H) -->
-                <div id="exam-card" class="card-container text-black p-2 border-2 border-black shadow-2xl relative flex flex-col justify-between paper-white selection:bg-slate-200" style="font-family: 'Arial', 'Helvetica', sans-serif;">
-                    
-                    <!-- EXACT PDF TEMPLATE (Landscape Aspect Ratio) -->
-                    <div id="card-variant-pdf" class="h-full flex flex-col justify-between">
-                        <div>
-                            <!-- Header Row with Badge on Upper Left, Titles Center, Photo Box Upper Right -->
-                            <div class="flex items-start justify-between pb-0.5 mb-0.5 border-b border-black/20">
-                                <!-- Badge Emblem on Upper Left Corner -->
-                                <div class="shrink-0">
-                                    <svg viewBox="0 0 200 260" class="w-7 h-10 shrink-0" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M 15 15 C 70 25, 130 25, 185 15 C 170 100, 155 180, 100 245 C 45 180, 30 100, 15 15 Z" fill="#1c1c1c" stroke="#000000" stroke-width="4"/>
-                                        <path d="M 22 22 C 72 31, 128 31, 178 22 C 164 100, 150 174, 100 234 C 50 174, 36 100, 22 22 Z" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.35"/>
-                                        <path d="M 100 45 C 70 20, 25 30, 25 35 C 55 52 78 58 100 52 Z" fill="#ffffff"/>
-                                        <path d="M 100 52 C 72 40, 35 48, 35 52 C 60 62 80 64 100 58 Z" fill="#ffffff"/>
-                                        <path d="M 100 45 C 130 20, 175 30, 175 35 C 145 52 122 58 100 52 Z" fill="#ffffff"/>
-                                        <path d="M 100 52 C 128 40, 165 48, 165 52 C 140 62 120 64 100 58 Z" fill="#ffffff"/>
-                                        <circle cx="100" cy="28" r="6" fill="#ffffff"/>
-                                        <line x1="100" y1="28" x2="100" y2="195" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-                                        <path d="M 100 55 C 80 65 80 85 100 95 C 120 105 120 125 100 135 C 80 145 80 165 100 175 C 120 185 120 190 100 195" fill="none" stroke="#ffffff" stroke-width="3"/>
-                                        <path d="M 100 55 C 120 65 120 85 100 95 C 80 105 80 125 100 135 C 120 145 120 165 100 175 C 80 185 80 190 100 195" fill="none" stroke="#ffffff" stroke-width="3"/>
-                                        <path d="M 60 75 C 50 72 45 82 50 92 L 58 115 C 62 128 72 140 85 145" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-                                        <circle cx="48" cy="85" r="4.5" fill="#ffffff"/>
-                                        <line x1="140" y1="78" x2="155" y2="128" stroke="#ffffff" stroke-width="4.5"/>
-                                        <line x1="135" y1="68" x2="143" y2="73" stroke="#ffffff" stroke-width="3"/>
-                                        <line x1="155" y1="128" x2="162" y2="150" stroke="#ffffff" stroke-width="2"/>
-                                        <text x="60" y="218" fill="#ffffff" font-family="'Arial', 'Helvetica', sans-serif" font-weight="900" font-size="24" text-anchor="middle">KS</text>
-                                        <text x="140" y="218" fill="#ffffff" font-family="'Arial', 'Helvetica', sans-serif" font-weight="900" font-size="24" text-anchor="middle">HS</text>
-                                    </svg>
-                                </div>
-
-                                <!-- Institution Header Titles Centered -->
-                                <div class="flex-1 text-center px-1 self-center flex flex-col items-center justify-center">
-                                    <h1 class="text-[9.5px] font-black uppercase tracking-tight leading-tight text-black text-center w-full">
-                                        KAMPALA SCHOOL OF HEALTH SCIENCES
-                                    </h1>
-                                    <h2 class="text-[8.5px] font-black uppercase tracking-wider border-b-2 border-black pb-0.5 text-center inline-block">
-                                        EXAMINATION CARD
-                                    </h2>
-                                </div>
-
-                                <!-- Student Photo Box Upper Right (Enlarged for Visibility) -->
-                                <div class="shrink-0 ml-1">
-                                    <div class="w-[24mm] h-[30mm] border-1.5 border-black flex items-center justify-center bg-transparent overflow-hidden relative shadow-xs">
-                                        <img id="out-photo" src="" alt="Photo" class="w-full h-full object-cover hidden">
-                                        <div id="out-photo-placeholder" class="text-[8px] font-bold text-slate-400 uppercase tracking-wider text-center p-1 leading-tight flex flex-col items-center justify-center">
-                                            <i class="fa-solid fa-user text-slate-300 text-sm mb-0.5"></i>
-                                            <span>PHOTO</span>
-                                        </div>
-                                    </div>
-                                </div>
+                <div id="exam-card" class="card-container text-black relative overflow-hidden paper-white selection:bg-slate-200">
+                    <div class="authority-band"></div>
+                    <div class="authority-inner">
+                        <header class="authority-head">
+                            <div class="authority-badge" id="badge-container">
+                                <div class="authority-badge-placeholder">BADGE</div>
+                                <img id="badge-custom-img" src="" alt="School Badge" class="badge-image hidden">
                             </div>
-
-                            <!-- Compact Landscape Field Rows -->
-                            <div class="space-y-0.5 text-[8.5px] font-bold text-black">
-                                
-                                <!-- NAME Field -->
-                                <div class="flex items-end">
-                                    <span class="shrink-0 font-black text-[8.5px]">NAME:</span>
-                                    <div id="out-name" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
-                                </div>
-
-                                <!-- REG NO & SEX Field Row -->
-                                <div class="grid grid-cols-12 gap-1.5 items-end">
-                                    <div class="col-span-8 flex items-end">
-                                        <span class="shrink-0 font-black text-[8.5px]">REG NO:</span>
-                                        <div id="out-regno" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-mono font-bold tracking-wide uppercase text-[8.5px]"></div>
-                                    </div>
-                                    <div class="col-span-4 flex items-end">
-                                        <span class="shrink-0 font-black text-[8.5px]">SEX:</span>
-                                        <div id="out-sex" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
-                                    </div>
-                                </div>
-
-                                <!-- SITTING Field -->
-                                <div class="flex items-end">
-                                    <span class="shrink-0 font-black text-[8.5px]">SITTING:</span>
-                                    <div id="out-sitting" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
-                                </div>
-
-                                <!-- COURSE Field -->
-                                <div class="flex items-end">
-                                    <span class="shrink-0 font-black text-[8.5px]">COURSE:</span>
-                                    <div id="out-course" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold tracking-wide uppercase text-[8.5px]"></div>
-                                </div>
-
+                            <div class="authority-title">
+                                <div class="authority-label">STUDENT ASSESSMENT • OFFICIAL</div>
+                                <h1>SCHOOL NAME</h1>
+                                <h2>EXAMINATION CARD</h2>
                             </div>
-
-                            <!-- Warning Notice Paragraph -->
-                            <div class="mt-1 text-[7.5px] leading-tight text-left">
-                                <span class="font-bold">NOTE:</span> This card is void to duplication and any intent to that may lead to expulsion.
+                            <div class="authority-photo">
+                                <img id="out-photo" src="" alt="Photo" class="photo-image hidden">
+                                <div id="out-photo-placeholder" class="photo-placeholder"><span>PHOTO</span></div>
                             </div>
+                        </header>
 
-                            <!-- Issued By Line -->
-                            <div class="mt-1 flex items-end text-[8.5px] font-bold text-black w-full">
-                                <span class="shrink-0 font-black text-[8.5px]">Issued by:</span>
-                                <div id="out-issuedby" class="flex-1 dots-underline ml-1 px-1 min-h-[0.85rem] font-bold text-[8.5px]"></div>
-                            </div>
-
-                            <!-- Bottom Centered KS HS Branding -->
-                            <div class="mt-0.5 text-center font-black text-[9px] tracking-[0.25em] uppercase text-black w-full">
-                                KS HS
-                            </div>
+                        <div class="authority-body">
+                            <div class="authority-row"><span>NAME</span><div id="out-name"></div></div>
+                            <div class="authority-row split"><div><span>REG NO</span><div id="out-regno"></div></div><div><span>SEX</span><div id="out-sex"></div></div></div>
+                            <div class="authority-row"><span>SITTING</span><div id="out-sitting"></div></div>
+                            <div class="authority-row"><span>COURSE / PROGRAMME</span><div id="out-course"></div></div>
                         </div>
-                    </div>
 
-                    <!-- VARIANT 2: DETAILED TEMPLATE (Matching Image 1) -->
-                    <div id="card-variant-detailed" class="h-full flex flex-col justify-between hidden">
-                        <!-- ... existing detailed variant content ... -->
+                        <div class="authority-notice"><strong>NOTE</strong><span>This card is void to duplication and any intent to that may lead to expulsion.</span></div>
+                        <footer class="authority-foot">
+                            <div><span>ISSUED BY</span><div id="out-issuedby"></div></div>
+                            <strong>EXAMINATIONS OFFICE</strong>
+                        </footer>
                     </div>
-
                 </div>
 
             </div>
