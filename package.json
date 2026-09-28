@@ -6,7 +6,8 @@
     "node": "22.x"
   },
   "scripts": {
-    "vercel-build": "node -e \"console.log('Joes Studio: static frontend, Vercel Functions under /api')\""
+    "vercel-build": "node -e \"console.log('Joes Studio: static frontend, Vercel Functions under /api')\"",
+    "test:syntax": "node --check api/_auth.mjs && node --check api/auth.js && node --check api/admin.js && node --check api/usage.js && node --check api/payments.js && node --check static/student-batch.js"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1"
