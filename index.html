@@ -898,8 +898,31 @@
                 <p class="mt-1 text-[9px] text-slate-500">Corrects dark or uneven lighting and replaces detected background areas with a clean white backdrop before placement on the card.</p>
               </div>
             </div>
-            <div id="studentBatchPreview" class="min-w-[180px] min-h-[130px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
-              <span class="text-[10px] text-slate-400">Template preview</span>
+            <div class="col-span-2 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-4">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div><h3 class="font-bold text-slate-700 text-sm">Template Preview &amp; Branding</h3><p class="text-[10px] text-slate-400">Change the school identity without editing the HTML template.</p></div>
+                <span id="studentBatchBrandingStatus" class="text-[9px] font-semibold text-indigo-500">Live</span>
+              </div>
+              <div class="grid grid-cols-[minmax(190px,1fr)_minmax(180px,1fr)] gap-3">
+                <div class="space-y-3">
+                  <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">School name
+                    <input id="studentBatchSchoolName" type="text" maxlength="80" placeholder="Kampala School of Health Sciences" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-xs bg-white">
+                  </label>
+                  <div>
+                    <div class="flex items-center justify-between mb-1"><label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">School badge / logo</label><button type="button" id="studentBatchBadgeClearInline" class="text-[9px] text-red-500 font-semibold hover:underline hidden">Reset</button></div>
+                    <div class="flex items-center gap-2">
+                      <div id="studentBatchBadgePreviewInline" class="w-12 h-12 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden shrink-0"><i class="ph ph-seal text-slate-300 text-xl"></i></div>
+                      <button type="button" onclick="JoesStudentBatch.chooseBadge()" class="flex-1 px-3 py-2 rounded-lg bg-slate-800 text-white text-[10px] font-semibold hover:bg-slate-700"><i class="ph ph-upload-simple mr-1"></i> Upload badge</button>
+                    </div>
+                    <p id="studentBatchBadgeNameInline" class="text-[9px] text-slate-400 mt-1 truncate">Using template artwork</p>
+                  </div>
+                  <button type="button" id="studentBatchBrandingReset" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-[10px] font-semibold hover:bg-slate-50"><i class="ph ph-arrow-counter-clockwise mr-1"></i> Reset branding</button>
+                </div>
+                <div>
+                  <div id="studentBatchPreview" class="w-full min-h-[190px] rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden shadow-inner"><span class="text-[10px] text-slate-400">Select an HTML template to preview it here.</span></div>
+                  <p class="text-[9px] text-slate-400 mt-1 text-center">Preview updates with the school name, badge, template, and photo settings.</p>
+                </div>
+              </div>
             </div>
           </section>
 
