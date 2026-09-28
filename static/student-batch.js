@@ -432,8 +432,8 @@
         // and must not execute scripts, while remote GitHub pages may send
         // X-Frame-Options headers that prevent direct iframe navigation.
         return String(html || "")
-          .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, "")
-          .replace(/<script\\b[^>]*\\/?>/gi, "")
+          .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+          .replace(/<script\b[^>]*\/?>/gi, "")
           .replace(/<meta[^>]+http-equiv=["']?x-frame-options["']?[^>]*>/gi, "")
           .replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, "")
           .replace(/https?:\\/\\/cdn\\.tailwindcss\\.com(?:\\/[^"'\\s>]*)?/gi, "");
