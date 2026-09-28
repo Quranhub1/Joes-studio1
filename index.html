@@ -997,8 +997,7 @@
                   <label class="text-[10px] text-slate-400">Orientation
                     <select id="studentBatchOrientation" class="mt-1 w-full border border-slate-700 rounded-lg p-2 bg-slate-950 text-slate-200">
                       <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
-                    </select>
-                  </label>
+                    </select>                  </label>
                   <label class="text-[10px] text-slate-400">Cards / page
                     <input id="studentBatchCardsPerPage" type="number" min="1" max="40" step="1" value="6" class="mt-1 w-full border border-slate-700 rounded-lg p-2 bg-slate-950 text-white">
                   </label>
@@ -1056,7 +1055,7 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     <h3 class="text-xs font-bold text-white uppercase tracking-wider">Live Template Preview</h3>
                   </div>
-                  <span id="studentBatchBrandingStatus" class="text-[9px] font-semibold text-emerald-400">Live</span>
+                  <span id="studentBatchPreviewLiveStatus" class="text-[9px] font-semibold text-emerald-400">Live</span>
                 </div>
                 <div id="studentBatchPreview" class="w-full min-h-[300px] max-h-[520px] rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center overflow-auto shadow-inner">
                   <span class="text-[10px] text-slate-500 text-center px-6">Select an HTML template to preview it here.</span>
@@ -1997,8 +1996,7 @@
                 </div>
 
                 <div id="bc2DOptions" class="hidden space-y-2">
-                  <div>
-                    <label class="compact-label">Error Correction</label>
+                  <div>                    <label class="compact-label">Error Correction</label>
                     <select id="bcEcc" onchange="App.barcode.applySettings()" class="w-full compact-input border rounded bg-white">
                       <option value="L">L (7%)</option>
                       <option value="M">M (15%)</option>
@@ -2997,8 +2995,7 @@
           applyCustomRotationControls(fabric.Object.prototype.controls);
           applyCustomRotationControls(fabric.Textbox.prototype.controls);
           const baseRenderTextbox = fabric.Textbox.prototype._renderTextLine;
-          const baseRenderIText = fabric.IText.prototype._renderTextLine;
-          function renderJustifiedTextLine(baseMethod, method, ctx, line, left, top, lineIndex) {
+          const baseRenderIText = fabric.IText.prototype._renderTextLine;          function renderJustifiedTextLine(baseMethod, method, ctx, line, left, top, lineIndex) {
             const isLastLine = lineIndex === this._textLines.length - 1;
             if (this.textAlign !== "justify" || isLastLine || this.isVertical) {
               return baseMethod.call(this, method, ctx, line, left, top, lineIndex);
@@ -3997,8 +3994,7 @@
           updateNavUI: function () {
             const max = this.calculateTotalPages();
             let current = App.state.currentDataIndex;
-            if (current >= max) {
-              current = max - 1;
+            if (current >= max) {              current = max - 1;
               App.state.currentDataIndex = current;
             }
             if (current < 0) current = 0;
@@ -4997,8 +4993,7 @@
                   evented: false,
                   isGrid: true,
                   excludeFromExport: true,
-                  originX: "left",
-                  originY: "top",
+                  originX: "left",                  originY: "top",
                   objectCaching: false,
                   strokeLineCap: "square",
                   strokeLineJoin: "miter",
@@ -5998,74 +5993,3 @@
           addDate: function () {
             const cfg = App.paper.getSettings();
             const isDyn = App.state.dataSource.isActive || App.state.paperType === "label";
-            const opts = isDyn
-              ? {
-                  text: "Date/Time Preview",
-                  left: App.state.baseWidth / 2,
-                  top: App.state.baseHeight - Utils.mm2px(20),
-                  originX: "center",
-                  font: "Arial",
-                  fill: "#000000",
-                  size: 12,
-                  editable: false,
-                }
-              : {
-                  text: "____-__-__",
-
-                  left: App.state.baseWidth - cfg.marginRight,
-                  top: Math.max(Utils.mm2px(5), cfg.marginTop - 35),
-                  originX: "right",
-                  font: "KaiTi",
-                  fill: cfg.gridColor || "#000000",
-                  size: 14,
-                  editable: true,
-                };
-            const obj = new fabric.IText(opts.text, {
-              left: opts.left,
-              top: opts.top,
-              originX: opts.originX,
-              originY: "center",
-              fontSize: Utils.pt2px(opts.size),
-              fontFamily: opts.font,
-              fill: opts.fill,
-              editable: opts.editable,
-            });
-            if (isDyn) {
-              obj.isDynamicDate = true;
-              obj.dateConfig = {
-                showDate: true,
-                showTime: true,
-                dateFormat: "YYYY-MM-DD",
-                timeFormat: "HH:mm:ss",
-                offsetDays: 0,
-                offsetMinutes: 0,
-              };
-              obj.set("text", Utils.formatDate(new Date(), null, obj.dateConfig));
-            }
-
-            this._addToCanvas(obj);
-            App.ui.updateInspector();
-          },
-
-          addPageNum: function () {
-            const hasDataSource = App.state.dataSource.isActive || App.state.paperType === "label";
-            const cfg = App.paper.getSettings();
-            const pageObj = new fabric.IText(hasDataSource ? "Page 1" : "Page   ", {
-              left: App.state.baseWidth / 2,
-              top: App.state.baseHeight - Utils.mm2px(20),
-              fontSize: Utils.pt2px(20),
-              fontFamily: "SimSun",
-              fill: cfg.gridColor,
-              originX: "center",
-              originY: "center",
-              editable: false,
-            });
-            if (hasDataSource) {
-              pageObj.isDynamicPageNum = true;
-              pageObj.pageConfig = {
-                format: "Page {page}",
-                startFrom: 1,
-              };
-            }
-
-            this._addToCanvas(pageObj);
