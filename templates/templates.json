@@ -53,5 +53,145 @@
     "desc": "Reusable HTML examination card template",
     "type": "html",
     "url": "./templates/kshs-examination-card-template2.html"
+  },
+  {
+    "id": "kshs_exam_html_01",
+    "name": "KSHS Examination Card 01",
+    "desc": "Distinct printable KSHS examination card design 01",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-01.html"
+  },
+  {
+    "id": "kshs_exam_html_02",
+    "name": "KSHS Examination Card 02",
+    "desc": "Distinct printable KSHS examination card design 02",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-02.html"
+  },
+  {
+    "id": "kshs_exam_html_03",
+    "name": "KSHS Examination Card 03",
+    "desc": "Distinct printable KSHS examination card design 03",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-03.html"
+  },
+  {
+    "id": "kshs_exam_html_04",
+    "name": "KSHS Examination Card 04",
+    "desc": "Distinct printable KSHS examination card design 04",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-04.html"
+  },
+  {
+    "id": "kshs_exam_html_05",
+    "name": "KSHS Examination Card 05",
+    "desc": "Distinct printable KSHS examination card design 05",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-05.html"
+  },
+  {
+    "id": "kshs_exam_html_06",
+    "name": "KSHS Examination Card 06",
+    "desc": "Distinct printable KSHS examination card design 06",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-06.html"
+  },
+  {
+    "id": "kshs_exam_html_07",
+    "name": "KSHS Examination Card 07",
+    "desc": "Distinct printable KSHS examination card design 07",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-07.html"
+  },
+  {
+    "id": "kshs_exam_html_08",
+    "name": "KSHS Examination Card 08",
+    "desc": "Distinct printable KSHS examination card design 08",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-08.html"
+  },
+  {
+    "id": "kshs_exam_html_09",
+    "name": "KSHS Examination Card 09",
+    "desc": "Distinct printable KSHS examination card design 09",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-09.html"
+  },
+  {
+    "id": "kshs_exam_html_10",
+    "name": "KSHS Examination Card 10",
+    "desc": "Distinct printable KSHS examination card design 10",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-10.html"
+  },
+  {
+    "id": "kshs_exam_html_11",
+    "name": "KSHS Examination Card 11",
+    "desc": "Distinct printable KSHS examination card design 11",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-11.html"
+  },
+  {
+    "id": "kshs_exam_html_12",
+    "name": "KSHS Examination Card 12",
+    "desc": "Distinct printable KSHS examination card design 12",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-12.html"
+  },
+  {
+    "id": "kshs_exam_html_13",
+    "name": "KSHS Examination Card 13",
+    "desc": "Distinct printable KSHS examination card design 13",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-13.html"
+  },
+  {
+    "id": "kshs_exam_html_14",
+    "name": "KSHS Examination Card 14",
+    "desc": "Distinct printable KSHS examination card design 14",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-14.html"
+  },
+  {
+    "id": "kshs_exam_html_15",
+    "name": "KSHS Examination Card 15",
+    "desc": "Distinct printable KSHS examination card design 15",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-15.html"
+  },
+  {
+    "id": "kshs_exam_html_16",
+    "name": "KSHS Examination Card 16",
+    "desc": "Distinct printable KSHS examination card design 16",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-16.html"
+  },
+  {
+    "id": "kshs_exam_html_17",
+    "name": "KSHS Examination Card 17",
+    "desc": "Distinct printable KSHS examination card design 17",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-17.html"
+  },
+  {
+    "id": "kshs_exam_html_18",
+    "name": "KSHS Examination Card 18",
+    "desc": "Distinct printable KSHS examination card design 18",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-18.html"
+  },
+  {
+    "id": "kshs_exam_html_19",
+    "name": "KSHS Examination Card 19",
+    "desc": "Distinct printable KSHS examination card design 19",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-19.html"
+  },
+  {
+    "id": "kshs_exam_html_20",
+    "name": "KSHS Examination Card 20",
+    "desc": "Distinct printable KSHS examination card design 20",
+    "type": "html",
+    "url": "./templates/kshs-examination-card-20.html"
   }
 ]
