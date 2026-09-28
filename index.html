@@ -11542,7 +11542,23 @@
     const adminButton=$("joesAdminButton");
     if(!adminButton)return;
     adminButton.style.display="none";
-    try{await api("/api/admin");adminAuthenticated=true;adminButton.style.setProperty("display","flex","important");adminButton.style.alignItems="center";adminButton.style.justifyContent="center";adminButton.style.gap="clamp(.7rem,2vw,1rem)";}catch(_){}
+    try{
+      await api("/api/admin?action=sync",{method:"POST",body:"{}"});
+      adminAuthenticated=true;
+      adminButton.style.setProperty("display","flex","important");
+      adminButton.style.alignItems="center";
+      adminButton.style.justifyContent="center";
+      adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+      return;
+    }catch(_){}
+    try{
+      await api("/api/admin");
+      adminAuthenticated=true;
+      adminButton.style.setProperty("display","flex","important");
+      adminButton.style.alignItems="center";
+      adminButton.style.justifyContent="center";
+      adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+    }catch(_){}
   }
   async function refresh(){
     try{user=(await api("/api/auth?action=me")).user}catch(_){user=null}
