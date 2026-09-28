@@ -10466,11 +10466,11 @@
             const appendBuiltIn = (t, label) => {
               const d = document.createElement("div");
               d.className = "template-card bg-white p-3 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col gap-2";
-              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : `<div class="text-center text-slate-400"><i class="ph ${String(t.type || "").toLowerCase() === "html" ? "ph-file-html" : "ph-file-plus"} text-4xl"></i><div class="text-[10px] mt-2">${String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Paper template"}</div></div>`}</div><div><h3 class="font-bold text-slate-700 text-sm"></h3><p class="text-slate-400 text-xs"></p></div>
+              d.innerHTML = `<div class="h-36 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100">${t.thumbnail ? `<img src="${t.thumbnail}" class="h-full w-auto object-contain">` : `<div class="text-center text-slate-400"><i class="ph ${String(t.type || "").toLowerCase() === "html" ? "ph-file-html" : "ph-file-plus"} text-4xl"></i><div class="text-[10px] mt-2">${String(t.type || "").toLowerCase() === "html" ? "HTML template" : "Paper template"}</div></div>`}</div><div><h3 class="font-bold text-slate-700 text-sm"></h3><p class="text-slate-400 text-xs"></p></div>`;
               const info = d.querySelector("h3");
               const desc = d.querySelector("p");
               if (info) info.textContent = t.name || "Untitled Template";
-              if (desc) desc.textContent = label || "Template";`;
+              if (desc) desc.textContent = label || "Template";
               d.onclick = () => this.load(t.id);
               grid.appendChild(d);
             };
