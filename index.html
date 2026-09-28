@@ -10564,7 +10564,15 @@
                 frame.src = t.url + (t.url.includes("?") ? "&" : "?") + "preview=1";
                 frame.title = t.name || "Template preview";
                 frame.setAttribute("sandbox", "allow-same-origin");
-                frame.style.cssText = "width:130mm;height:60mm;min-width:130mm;min-height:60mm;border:0;transform:scale(.86);transform-origin:center;pointer-events:none;background:#fff;";
+                frame.style.cssText = "width:130mm;height:60mm;min-width:130mm;min-height:60mm;border:0;transform-origin:center;pointer-events:none;background:#fff;";
+                const fitPreview = () => {
+                  const cardWidth = 130 * 3.779527559;
+                  const cardHeight = 60 * 3.779527559;
+                  const scale = Math.min(.95, preview.clientWidth / cardWidth, preview.clientHeight / cardHeight);
+                  frame.style.transform = "scale(" + Math.max(.1, scale) + ")";
+                };
+                requestAnimationFrame(fitPreview);
+                window.addEventListener("resize", fitPreview, { passive: true });
                 preview.appendChild(frame);
                 const badge = document.createElement("span");
                 badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm";
