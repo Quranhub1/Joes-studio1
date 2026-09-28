@@ -861,12 +861,17 @@
                   <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                     <div class="flex items-center justify-between gap-2">
                       <label class="text-xs font-bold text-slate-300 flex items-center gap-1.5"><i class="ph ph-file-html text-blue-400"></i> HTML Card Template</label>
-                      <button type="button" onclick="JoesStudentBatch.chooseTemplate()" class="text-[10px] font-semibold text-blue-400 hover:text-blue-300">Load Custom</button>
+                      <span class="text-[9px] text-slate-500">Custom or existing</span>
                     </div>
                     <p id="studentBatchTemplateName" class="text-[10px] text-slate-400 truncate">No template selected</p>
-                    <button type="button" onclick="JoesStudentBatch.chooseTemplate()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition">
-                      <i class="ph ph-upload-simple mr-1"></i> Open HTML Template
-                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button type="button" onclick="JoesStudentBatch.chooseTemplate()" class="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold transition">
+                        <i class="ph ph-upload-simple mr-1"></i> Import Custom
+                      </button>
+                      <button type="button" onclick="JoesStudentBatch.chooseSavedTemplate()" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-[10px] font-bold transition">
+                        <i class="ph ph-stack mr-1"></i> Choose Existing
+                      </button>
+                    </div>
                     <p class="text-[9px] text-slate-500">Use an HTML card template. Its placeholders and bindings define the fields available for mapping.</p>
                   </div>
 
