@@ -1805,7 +1805,7 @@
       // Apply a subtle JOES STUDIO watermark to every generated card.
       // It is deliberately low-contrast so it identifies the studio without
       // competing with student data, photos, badges, QR codes, or print text.
-      if (!body.querySelector(".joes-studio-watermark")) {
+      const isPro = window.JoesAuth?.getUser?.()?.plan?.tier === "pro";\n      if (!isPro && !body.querySelector(".joes-studio-watermark")) {
         const watermark = body.ownerDocument.createElement("div");
         watermark.className = "joes-studio-watermark";
         watermark.textContent = "JOES STUDIO";
@@ -2499,7 +2499,16 @@
         return;
       }
 
-      let usage;\n      try {\n        usage = await window.JoesAuth?.consumeBatch?.();\n        if (!usage?.allowed) throw new Error("Your free batch limit has been reached. Upgrade to Pro to continue.");\n      } catch (e) {\n        this.notify(e.message || "Please sign in before exporting.", "error");\n        return;\n      }\n\n      // Badge upload is optional. Keep the template's existing badge/logo when
+      let usage;
+      try {
+        usage = await window.JoesAuth?.consumeBatch?.();
+        if (!usage?.allowed) throw new Error("Your free batch limit has been reached. Upgrade to Pro to continue.");
+      } catch (e) {
+        this.notify(e.message || "Please sign in before exporting.", "error");
+        return;
+      }
+
+      // Badge upload is optional. Keep the template's existing badge/logo when
       // no custom PNG has been selected, or leave the badge slot empty when the
       // template uses an empty placeholder.
       const layout = this.layout();
