@@ -436,7 +436,7 @@
           .replace(/<script\b[^>]*\/?>/gi, "")
           .replace(/<meta[^>]+http-equiv=["']?x-frame-options["']?[^>]*>/gi, "")
           .replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, "")
-          .replace(/https?:\/\/cdn\.tailwindcss\.com(?:\/[^"\s>]*)?/gi, "");
+          .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/gi, "")\n          .replace(/https?:\/\/cdn\.tailwindcss\.com(?:\/[^"\s>]*)?/gi, "");
       };
 
       const loadPreview = async (item, iframe) => {
