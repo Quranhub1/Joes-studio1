@@ -20,7 +20,9 @@ async function issueUserSession(res,user){
 
 async function issueAdminSession(res){
   const token=await createSession("admin:"+ADMIN_USERNAME,"admin");
-  res.append("Set-Cookie",cookieHeader(ADMIN_COOKIE,token,8*60*60));
+  const current=res.getHeader("Set-Cookie");
+  const adminCookie=cookieHeader(ADMIN_COOKIE,token,8*60*60);
+  res.setHeader("Set-Cookie",Array.isArray(current)?current.concat(adminCookie):current?[current,adminCookie]:adminCookie);
 }
 
 async function googleStart(req,res){
