@@ -4,5 +4,8 @@
   "type": "module",
   "engines": {
     "node": "22.x"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.9.4"
   }
 }
