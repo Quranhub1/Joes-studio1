@@ -427,7 +427,35 @@
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
       }[char]));
 
-      const render = () => {
+      const preparePreviewHtml = html => {
+        // Gallery previews are intentionally static. Uploaded HTML is untrusted
+        // and must not execute scripts, while remote GitHub pages may send
+        // X-Frame-Options headers that prevent direct iframe navigation.
+        return String(html || "")
+          .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, "")
+          .replace(/<script\\b[^>]*\\/?>/gi, "")
+          .replace(/<meta[^>]+http-equiv=["']?x-frame-options["']?[^>]*>/gi, "")
+          .replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, "")
+          .replace(/https?:\\/\\/cdn\\.tailwindcss\\.com(?:\\/[^"'\\s>]*)?/gi, "");
+      };
+
+      const loadPreview = async (item, iframe) => {
+        try {
+          let html = item.content || "";
+          if (!html && item.url) {
+            const response = await fetch(item.url, { cache: "no-store" });
+            if (!response.ok) throw new Error("HTTP " + response.status);
+            html = await response.text();
+          }
+          if (!html) throw new Error("Template content is empty.");
+          iframe.srcdoc = preparePreviewHtml(html);
+        } catch (error) {
+          iframe.srcdoc = '<!doctype html><html><body style="margin:0;display:grid;place-items:center;height:100%;font:12px Arial;color:#64748b;background:#fff">Preview unavailable</body></html>';
+          console.warn("Template preview failed:", item.name, error);
+        }
+      };
+
+      const render = async () => {
         const query = String(search?.value || "").trim().toLowerCase();
         const filtered = templates.filter(item => String(item.name || "").toLowerCase().includes(query));
         if (!filtered.length) {
@@ -440,16 +468,21 @@
           return;
         }
 
-        grid.innerHTML = filtered.map((item, index) => `
+        grid.innerHTML = filtered.map(item => `
           <button type="button" data-index="${templates.indexOf(item)}" class="text-left rounded-xl border border-slate-700 bg-slate-950 p-3 hover:border-blue-500/70 hover:bg-slate-800 transition">
             <div class="h-36 rounded-lg bg-white border border-slate-700 overflow-hidden flex items-center justify-center">
-              <iframe src="${safeText(item.url || "")}" title="${safeText(item.name)}" class="w-full h-full pointer-events-none bg-white" loading="lazy" sandbox=""></iframe>
+              <iframe data-preview-index="${templates.indexOf(item)}" title="${safeText(item.name)}" class="w-full h-full pointer-events-none bg-white" loading="lazy" sandbox=""></iframe>
             </div>
             <div class="mt-2 flex items-center justify-between gap-2">
               <span class="text-[10px] font-semibold text-white truncate" title="${safeText(item.name)}">${safeText(item.name || "Template")}</span>
               <span class="text-[8px] text-slate-500 shrink-0">${item.source === "templates" ? "templates/" : "Saved"}</span>
             </div>
           </button>`).join("");
+
+        await Promise.all(filtered.map(async item => {
+          const iframe = grid.querySelector(`iframe[data-preview-index="${templates.indexOf(item)}"]`);
+          if (iframe) await loadPreview(item, iframe);
+        }));
 
         grid.querySelectorAll("[data-index]").forEach(button => {
           button.addEventListener("click", async () => {
