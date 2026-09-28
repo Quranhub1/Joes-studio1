@@ -205,11 +205,14 @@
         return t.includes("optional student photos") && t.includes("template badge");
       });
       const print = findSection("print sheet");
-      if (!template || !excel || !mapping || !photoBrand || !print) return;
+      const branding = Array.from(grid.children).find(el => el.querySelector?.("#studentBatchSchoolName"));
+      const footer = shell.querySelector(":scope > div:last-child");
+      if (!template || !excel || !mapping || !photoBrand || !branding || !print) return;
 
       const style = document.createElement("style");
       style.textContent = [
-        "#studentBatchWorkspace{display:block;min-height:0;overflow:visible;padding:0 20px 24px}",
+        "#studentBatchModal > div{max-height:none !important;height:100vh !important;overflow:hidden !important}",
+        "#studentBatchWorkspace{display:block;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;padding:0 20px 24px;box-sizing:border-box}",
         "#studentBatchTopNav{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0;background:#fff;border-bottom:1px solid #e2e8f0;margin-bottom:16px}",
         ".student-batch-step{display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer;font-size:11px;font-weight:800}",
         ".student-batch-step.active{background:#0f172a;color:#fff;border-color:#0f172a}",
@@ -217,6 +220,10 @@
         ".student-batch-step.active .num{background:#fff;color:#0f172a}",
         "#studentBatchAllContent{display:grid;gap:16px}",
         ".student-batch-section{border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:16px;scroll-margin-top:72px}",
+        "#studentBatchFields{max-height:none !important;overflow:visible !important}",
+        "#studentBatchWorkspace details{display:block !important}",
+        "#studentBatchWorkspace details[open] > div{display:block !important}",
+        "#studentBatchWorkspace .student-batch-card{width:100% !important;max-height:none !important;overflow:visible !important}",
         ".student-batch-section-title{font-size:15px;font-weight:850;color:#1e293b;margin-bottom:12px}",
         ".student-batch-section-sub{font-size:10px;color:#94a3b8;margin-top:-8px;margin-bottom:12px}",
         ".student-batch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
@@ -268,7 +275,7 @@
       setup.append(setupGrid,mapping);
 
       const visual=document.createElement("div");
-      visual.appendChild(photoBrand);
+      visual.append(photoBrand,branding);
 
       const output=document.createElement("div");
       output.appendChild(print);
@@ -286,10 +293,17 @@
       preview.onclick=()=>Batch.previewBatch();
       const top=document.createElement("button");
       top.type="button";top.className="student-batch-step";top.textContent="Back to top";
-      top.onclick=()=>workspace.scrollIntoView({behavior:"smooth",block:"start"});
+      top.onclick=()=>workspace.scrollTo({top:0,behavior:"smooth"});
       actions.append(preview,top);
 
       workspace.append(nav,all,actions);
+      if (footer) {
+        footer.classList.add("student-batch-original-actions");
+        footer.style.display = "none";
+        workspace.append(footer);
+        footer.style.display = "";
+        footer.className = "student-batch-actionbar";
+      }
       shell.insertBefore(workspace,grid);
 
       const observer=new IntersectionObserver(entries=>{
