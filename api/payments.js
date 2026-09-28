@@ -6,8 +6,8 @@ async function paymentConfig(){
   const plans=stored?(typeof stored==="string"?JSON.parse(stored):stored):null;
   return {
     method:process.env.PAYMENT_METHOD||"Mobile Money",
-    accountName:process.env.PAYMENT_ACCOUNT_NAME||"",
-    accountNumber:process.env.PAYMENT_ACCOUNT_NUMBER||"",
+    accountName:process.env.PAYMENT_ACCOUNT_NAME||"Kabali Madina",
+    accountNumber:process.env.PAYMENT_ACCOUNT_NUMBER||"+256749846848",
     currency:process.env.PAYMENT_CURRENCY||"UGX",
     proPrice:plans?.pro?.price||process.env.PRO_PRICE||""
   };
