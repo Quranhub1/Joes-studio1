@@ -37,6 +37,8 @@
       badgeLibraryId: "",
       schoolName: "",
       schoolNameCustomized: false,
+      cardTitle: "EXAMINATION CARD",
+      cardTitleCustomized: false,
       // Student photos are automatically optimized for card printing.
       // This keeps faces readable on paper without altering the original
       // uploaded files.
@@ -107,6 +109,26 @@
 
     getDefaultSchoolName() { return ""; },
 
+    getDefaultCardTitle() { return "EXAMINATION CARD"; },
+
+    setCardTitle(value, options = {}) {
+      const next = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 80) || this.getDefaultCardTitle();
+      this.state.cardTitle = next;
+      if (options.customized !== false) this.state.cardTitleCustomized = next !== this.getDefaultCardTitle();
+      try { localStorage.setItem("joesStudio.studentBatchCardTitle.v1", this.state.cardTitle); } catch (_) {}
+      this.refresh();
+    },
+
+    restoreCardTitle() {
+      try {
+        const saved = localStorage.getItem("joesStudio.studentBatchCardTitle.v1");
+        if (saved) {
+          this.state.cardTitle = String(saved).trim().slice(0, 80) || this.getDefaultCardTitle();
+          this.state.cardTitleCustomized = this.state.cardTitle !== this.getDefaultCardTitle();
+        }
+      } catch (_) {}
+    },
+
     setSchoolName(value, options = {}) {
       const next = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
       this.state.schoolName = next;
@@ -128,7 +150,12 @@
     resetBranding() {
       this.state.schoolName = this.getDefaultSchoolName();
       this.state.schoolNameCustomized = false;
-      try { localStorage.removeItem("joesStudio.studentBatchSchoolName.v1"); } catch (_) {}
+      try {
+        localStorage.removeItem("joesStudio.studentBatchSchoolName.v1");
+        localStorage.removeItem("joesStudio.studentBatchCardTitle.v1");
+      } catch (_) {}
+      this.state.cardTitle = this.getDefaultCardTitle();
+      this.state.cardTitleCustomized = false;
       this.clearBadge(true);
       this.refresh();
       this.notify("Template branding reset.");
@@ -144,6 +171,31 @@
         if (candidate) { schoolNode = candidate; break; }
       }
       if (schoolNode) schoolNode.textContent = school;
+
+      const cardTitle = this.state.cardTitle || this.getDefaultCardTitle();
+      const titleSelectors = [
+        "[data-card-title]", ".exam-title", ".examination-title",
+        "#exam-title", "#examination-title", ".card-title"
+      ];
+      let cardTitleNode = null;
+      for (const selector of titleSelectors) {
+        const candidate = root.querySelector(selector);
+        if (candidate) { cardTitleNode = candidate; break; }
+      }
+      if (cardTitleNode) {
+        cardTitleNode.textContent = cardTitle;
+      } else {
+        const walker = root.ownerDocument?.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const textNodes = [];
+        let node;
+        while (walker && (node = walker.nextNode())) textNodes.push(node);
+        textNodes.forEach(textNode => {
+          const value = String(textNode.nodeValue || "");
+          if (/\bEXAMINATION\s+CARD\b/i.test(value)) {
+            textNode.nodeValue = value.replace(/\bEXAMINATION\s+CARD\b/gi, cardTitle);
+          }
+        });
+      }
 
       let badgeImg = root.querySelector("[data-badge] img,[data-logo] img,.badge-img,.badge-image,.school-badge,.school-logo,.logo-img,#badge,#school-badge,#school-logo");
       if (!badgeImg) badgeImg = Array.from(root.querySelectorAll("img")).find(img => /badge|logo|crest|emblem|seal/i.test(String(img.className || "") + " " + String(img.id || "") + " " + String(img.alt || ""))) || null;
@@ -328,6 +380,7 @@
       document.getElementById("studentBatchModal")?.classList.remove("hidden");
       this.restoreSavedBadge();
       this.restoreSchoolName();
+      this.restoreCardTitle();
       this.refresh();
     },
 
@@ -2377,6 +2430,7 @@
       const badgePreviewInlineEl = document.getElementById("studentBatchBadgePreviewInline");
       const badgeNameInlineEl = document.getElementById("studentBatchBadgeNameInline");
       const schoolNameEl = document.getElementById("studentBatchSchoolName");
+      const cardTitleEl = document.getElementById("studentBatchCardTitle");
       const brandingStatusEl = document.getElementById("studentBatchBrandingStatus");
 
       const bgInput = document.getElementById("studentBatchCardBackground");
@@ -2401,7 +2455,8 @@
       }
       if (badgeClearEl) badgeClearEl.classList.toggle("hidden", !this.state.badgeDataUrl);
       if (schoolNameEl && schoolNameEl.value !== this.state.schoolName) schoolNameEl.value = this.state.schoolName;
-      if (brandingStatusEl) brandingStatusEl.textContent = this.state.schoolNameCustomized || this.state.badgeDataUrl ? "Customized" : "Template default";
+      if (cardTitleEl && cardTitleEl.value !== this.state.cardTitle) cardTitleEl.value = this.state.cardTitle;
+      if (brandingStatusEl) brandingStatusEl.textContent = this.state.schoolNameCustomized || this.state.cardTitleCustomized || this.state.badgeDataUrl ? "Customized" : "Template default";
       if (badgeNameInlineEl) badgeNameInlineEl.textContent = this.state.badgeFile?.name ? "Uploaded: " + this.state.badgeFile.name : "Using template artwork";
       if (badgePreviewInlineEl) badgePreviewInlineEl.innerHTML = this.state.badgeDataUrl
         ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="w-full h-full object-contain p-1">'
@@ -2760,6 +2815,7 @@
     document.getElementById("studentBatchBadgeClear")?.addEventListener("click", () => Batch.clearBadge());
     document.getElementById("studentBatchBadgeClearInline")?.addEventListener("click", () => Batch.clearBadge());
     document.getElementById("studentBatchSchoolName")?.addEventListener("input", e => Batch.setSchoolName(e.target.value));
+    document.getElementById("studentBatchCardTitle")?.addEventListener("input", e => Batch.setCardTitle(e.target.value));
     document.getElementById("studentBatchBrandingReset")?.addEventListener("click", () => Batch.resetBranding());
     document.getElementById("studentBatchPhotoEnhance")?.addEventListener("change", e => Batch.setPhotoEnhancement({enabled:e.target.checked}));
     document.getElementById("studentBatchPhotoWhiteBg")?.addEventListener("change", e => Batch.setPhotoEnhancement({whiteBackground:e.target.checked}));
