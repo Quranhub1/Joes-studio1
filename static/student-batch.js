@@ -2238,32 +2238,82 @@
     renderTemplatePreview() {
       const host = document.getElementById("studentBatchPrintPreview");
       if (!host || this.state.templateMode !== "html") return;
+
       host.innerHTML = "";
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.state.htmlText, "text/html");
       doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
       const source = this.findHtmlCardRoot(doc);
+
+      const ratio = Math.max(0.05, Number(this.state.cardHeightMm) / Math.max(1, Number(this.state.cardWidthMm)));
       const wrapper = document.createElement("div");
       wrapper.className = "student-batch-preview-card";
-      wrapper.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
-      wrapper.style.width = Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) + "px";
-      wrapper.style.height = (Math.min(260, Math.max(160, this.state.cardWidthMm * 2.4)) * this.state.cardHeightMm / this.state.cardWidthMm) + "px";
+      wrapper.style.cssText = [
+        "position:relative",
+        "width:100%",
+        "height:100%",
+        "max-width:100%",
+        "max-height:100%",
+        "aspect-ratio:" + (Number(this.state.cardWidthMm) || 130) + "/" + (Number(this.state.cardHeightMm) || 60),
+        "overflow:hidden",
+        "box-sizing:border-box",
+        "background:" + this.normalizeCardColor(this.state.cardBackground),
+        "box-shadow:0 8px 24px rgba(15,23,42,.12)",
+        "border-radius:6px",
+        "flex:0 1 auto"
+      ].join(";");
+
       const style = document.createElement("style");
       style.textContent = this.state.htmlStyles;
       wrapper.appendChild(style);
-      // Preserve the selected template's actual root element. Moving only its
-      // children loses root-level classes, inline sizing, borders and layout.
+
+      // Keep the template's real root, including its classes, dimensions and
+      // internal layout, then scale that root down to the available preview box.
       const body = source.cloneNode(true);
-      // Never allow literal template placeholders such as {{photo}} to become
-      // browser requests like /{{photo}}. They are intentionally blank until
-      // Excel/photo data is available.
       this.sanitizePlaceholderImages(body);
       this.applyBranding(body);
       this.proxyExternalPreviewImages(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
+      body.style.position = "absolute";
+      body.style.left = "0";
+      body.style.top = "0";
+      body.style.transformOrigin = "top left";
+      body.style.overflow = "hidden";
+
+      const nativeW = Math.max(1, (Number(this.state.cardWidthMm) || 130) * 96 / 25.4);
+      const nativeH = Math.max(1, (Number(this.state.cardHeightMm) || 60) * 96 / 25.4);
+      body.style.width = nativeW + "px";
+      body.style.height = nativeH + "px";
+
       wrapper.appendChild(body);
       host.appendChild(wrapper);
+
+      const fit = () => {
+        const availableW = Math.max(1, host.clientWidth - 24);
+        const availableH = Math.max(1, host.clientHeight - 24);
+        const cardW = Math.max(1, Number(this.state.cardWidthMm) || 130);
+        const cardH = Math.max(1, Number(this.state.cardHeightMm) || 60);
+        const scale = Math.min(
+          availableW / nativeW,
+          availableH / nativeH,
+          1.5
+        );
+
+        const visualW = nativeW * scale;
+        const visualH = nativeH * scale;
+        wrapper.style.width = Math.min(availableW, visualW) + "px";
+        wrapper.style.height = Math.min(availableH, visualH) + "px";
+        wrapper.style.aspectRatio = cardW + "/" + cardH;
+        body.style.transform = "scale(" + scale + ")";
+      };
+
+      requestAnimationFrame(fit);
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(fit);
+        observer.observe(host);
+        wrapper._studentBatchPreviewObserver = observer;
+      }
     },
 
     refresh() {
