@@ -1537,6 +1537,37 @@
           const layout = this.layout();
           const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
           if (!this.state.rows.length) {
+            if (this.state.photoFiles.size) {
+              const firstPhoto = this.state.photoFiles.values().next().value;
+              const dataUrl = firstPhoto ? await this.fileToDataUrl(firstPhoto) : "";
+              if (dataUrl) {
+                const previewRow = { __embeddedPhoto: dataUrl };
+                const result = await this.buildHtmlCard(previewRow);
+                const maxPageWidth = Math.min(900, Math.max(420, host.clientWidth - 24));
+                const previewW = Math.min(560, maxPageWidth);
+                const ratio = (Number(this.state.cardHeightMm) || 60) / (Number(this.state.cardWidthMm) || 130);
+                const wrapper = document.createElement("div");
+                wrapper.className = "student-batch-preview-card";
+                wrapper.style.cssText = "position:relative;overflow:hidden;width:"+previewW+"px;height:"+Math.round(previewW*ratio)+"px;margin:0 auto;background:"+this.normalizeCardColor(this.state.cardBackground);
+                const style = document.createElement("style");
+                style.textContent = this.state.htmlStyles;
+                wrapper.appendChild(style);
+                const body = result.body.cloneNode(true);
+                this.sanitizePlaceholderImages(body);
+                this.proxyExternalPreviewImages(body);
+                body.style.margin = "0";
+                body.style.boxSizing = "border-box";
+                wrapper.appendChild(body);
+                host.innerHTML = "";
+                host.style.display = "flex";
+                host.style.flexDirection = "column";
+                host.style.alignItems = "stretch";
+                host.appendChild(wrapper);
+                const status = document.getElementById("studentBatchPreviewStatus");
+                if (status) status.textContent = "Live template preview • first selected photo • Excel data not loaded";
+                return;
+              }
+            }
             this.renderTemplatePreview();
             const status = document.getElementById("studentBatchPreviewStatus");
             if (status) status.textContent = "Template preview • import Excel data to populate cards";
