@@ -11406,6 +11406,8 @@
 </style>
 <style id="joes-auth-ui">
 #joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+#joesAdminButton{position:fixed;right:112px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#0f172a;color:#fff;text-decoration:none;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+#joesAdminButton:hover{transform:translateY(-1px);opacity:.92}@media(max-width:520px){#joesAdminButton{right:104px;padding:9px 10px}.joes-admin-label{display:none}}
 #joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}
 #joesAuthOverlay.required{z-index:99999;background:rgba(15,23,42,.82)}
 #joesAuthOverlay.open{display:flex}
@@ -11438,6 +11440,7 @@
 .joes-auth-plan{font-size:12px;color:#475569;margin-top:4px}
 .joes-auth-payment{margin-top:14px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
 </style>
+<a id="joesAdminButton" href="./admin.html" aria-label="Open administrator dashboard"><span class="joes-admin-label">Admin</span> ⚙</a>
 <button id="joesAuthButton" type="button">Sign in</button>
 <div id="joesAuthOverlay" aria-hidden="true">
   <div class="joes-auth-card">
