@@ -1805,7 +1805,8 @@
       // Apply a subtle JOES STUDIO watermark to every generated card.
       // It is deliberately low-contrast so it identifies the studio without
       // competing with student data, photos, badges, QR codes, or print text.
-      const isPro = window.JoesAuth?.getUser?.()?.plan?.tier === "pro";\n      if (!isPro && !body.querySelector(".joes-studio-watermark")) {
+      const isPro = window.JoesAuth?.getUser?.()?.plan?.tier === "pro";
+      if (!isPro && !body.querySelector(".joes-studio-watermark")) {
         const watermark = body.ownerDocument.createElement("div");
         watermark.className = "joes-studio-watermark";
         watermark.textContent = "JOES STUDIO";
@@ -2353,6 +2354,13 @@
         return;
       }
 
+      try {
+        const usage = await window.JoesAuth?.consumeBatch?.();
+        if (!usage?.allowed) throw new Error("Your free batch limit has been reached. Upgrade to Pro to continue.");
+      } catch (e) {
+        this.notify(e.message || "Please sign in before printing.", "error");
+        return;
+      }
       const button = document.getElementById("studentBatchPrint");
       const oldHtml = button ? button.innerHTML : "";
       if (button) {
