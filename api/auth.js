@@ -74,7 +74,7 @@ async function googleCallback(req,res,url){
     await issueUserSession(res,user);
     const googleIsAdmin = !!ADMIN_EMAIL && email === ADMIN_EMAIL;
     if(googleIsAdmin) await issueAdminSession(res);
-    return redirect(res,returnTo+"?auth=google");
+    return redirect(res,returnTo+"?auth=google"+(googleIsAdmin?"&admin=1":""));
   }catch(error){
     console.error("Google OAuth error:",error);
     return redirect(res,returnTo+"?auth_error=google_failed");
