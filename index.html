@@ -19,7 +19,7 @@
     <script src="./static/jszip.min.js"></script>
     <script src="./static/idb-keyval.umd.js"></script>
     <script src="./static/bwip-js.min.js"></script>
-    <script src="./static/student-photo-enhancer.js?v=20260928-dark-portrait-fix"></script>
+    <script src="./static/student-photo-enhancer.js?v=20260928-syntax-and-gallery-fix"></script>
     <script src="./static/student-batch.js?v=20260928-template-print"></script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
@@ -10528,20 +10528,25 @@
 
             const appendBuiltIn = async (t, label) => {
               if (renderToken !== this.galleryRenderToken) return;
+
               const d = document.createElement("div");
               d.className = "template-card group bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-lg cursor-pointer transition overflow-hidden flex flex-col min-w-0 relative";
+
               const preview = document.createElement("div");
               preview.className = "relative h-52 bg-slate-100 overflow-hidden flex items-center justify-center";
 
               if (String(t.type || "").toLowerCase() === "html" && t.url) {
                 const stage = document.createElement("div");
-                stage.className = "w-full h-full flex items-center justify-center overflow-hidden";
-                stage.style.cssText = "contain:layout;position:relative;";
+                stage.className = "w-full h-full flex items-center justify-center overflow-hidden relative";
                 preview.appendChild(stage);
 
                 try {
-                  const response = await fetch(t.url + (String(t.url).includes("?") ? "&" : "?") + "galleryPreview=" + Date.now(), { cache: "no-store" });
+                  const response = await fetch(
+                    t.url + (String(t.url).includes("?") ? "&" : "?") + "galleryPreview=" + Date.now(),
+                    { cache: "no-store" }
+                  );
                   if (!response.ok) throw new Error("HTTP " + response.status);
+
                   let html = await response.text();
 
                   const samplePhoto = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
@@ -10559,48 +10564,108 @@
                     html = html.split(key).join(value);
                   });
 
-                  // Gallery previews are static and isolated in a Shadow DOM.
-                  // Remove scripts and document-level wrappers so template code cannot
-                  // execute or leak styles/events into the editor page.
-                  html = html.replace(/<script[\s\S]*?<\/script>/gi, "");
                   const parsed = new DOMParser().parseFromString(html, "text/html");
-                  parsed.querySelectorAll("script").forEach(el => el.remove());
-                  parsed.querySelectorAll("meta, link, base").forEach(el => el.remove());
+                  parsed.querySelectorAll("iframe, object, embed").forEach(el => el.remove());
 
-                  const shadow = stage.attachShadow({ mode: "closed" });
-                  const styleText = Array.from(parsed.querySelectorAll("style")).map(el => el.textContent || "").join("\\n");
-                  const style = document.createElement("style");
-                  style.textContent = styleText + "\n" +
-                    ".card{position:relative!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;margin:0!important;}" +
-                    "html,body{position:relative!important;overflow:hidden!important;margin:0!important;padding:0!important;}" +
-                    "*{box-sizing:border-box;}";
-                  shadow.appendChild(style);
+                  const cardSelectors = [
+                    "#exam-card",
+                    "[data-card]",
+                    ".card-container",
+                    ".exam-card",
+                    ".student-card",
+                    "#student-card",
+                    ".id-card",
+                    "#id-card",
+                    ".examination-card",
+                    ".card"
+                  ];
+                  let cardSource = null;
+                  for (const selector of cardSelectors) {
+                    cardSource = parsed.querySelector(selector);
+                    if (cardSource) break;
+                  }
 
-                  const cardSource = parsed.querySelector(".card") || parsed.body.firstElementChild || parsed.body;
-                  const card = document.createElement("div");
-                  card.innerHTML = cardSource === parsed.body
-                    ? parsed.body.innerHTML
-                    : cardSource.outerHTML;
-                  shadow.appendChild(card);
+                  if (!cardSource) {
+                    const likely = Array.from(parsed.body?.querySelectorAll("*") || []).find(el => {
+                      const token = (String(el.className || "") + " " + String(el.id || "")).toLowerCase();
+                      return /card|exam|student|identity|admission/.test(token);
+                    });
+                    cardSource = likely || parsed.body?.firstElementChild || parsed.body;
+                  }
 
-                  const cardEl = card.querySelector(".card") || card.firstElementChild || card;
-                  cardEl.style.margin = "0";
-                  cardEl.style.transformOrigin = "center center";
-                  cardEl.style.maxWidth = "none";
-                  cardEl.style.maxHeight = "none";
+                  if (!cardSource) throw new Error("No previewable card element found.");
 
-                  const fitPreview = () => {
-                    const cardWidth = 130 * 3.779527559;
-                    const cardHeight = 60 * 3.779527559;
-                    const scale = Math.min(.95, preview.clientWidth / cardWidth, preview.clientHeight / cardHeight);
-                    cardEl.style.transform = "scale(" + Math.max(.1, scale) + ")";
-                  };
-                  requestAnimationFrame(() => {
-                    if (renderToken === this.galleryRenderToken && document.contains(d)) fitPreview();
+                  cardSource.classList.add("joes-gallery-card");
+
+                  const baseUrl = String(t.url);
+                  parsed.querySelectorAll("[src]").forEach(el => {
+                    const value = el.getAttribute("src");
+                    if (!value || /^(data:|blob:|https?:|\/\/|#)/i.test(value)) return;
+                    try { el.setAttribute("src", new URL(value, baseUrl).href); } catch (_) {}
+                  });
+                  parsed.querySelectorAll("[href]").forEach(el => {
+                    const value = el.getAttribute("href");
+                    if (!value || /^(data:|blob:|https?:|\/\/|#|mailto:|javascript:)/i.test(value)) return;
+                    try { el.setAttribute("href", new URL(value, baseUrl).href); } catch (_) {}
                   });
 
+                  const previewStyle = document.createElement("style");
+                  previewStyle.textContent = [
+                    "html,body{margin:0!important;padding:0!important;overflow:hidden!important;background:transparent!important;}",
+                    "body>*{visibility:hidden!important;}",
+                    ".joes-gallery-card,.joes-gallery-card *{visibility:visible!important;}",
+                    ".joes-gallery-card{position:absolute!important;left:0!important;top:0!important;margin:0!important;transform:none!important;}",
+                    ".joes-gallery-card img{max-width:none;}"
+                  ].join("");
+
+                  if (parsed.head) {
+                    parsed.head.appendChild(previewStyle);
+                  } else {
+                    const head = parsed.createElement("head");
+                    head.appendChild(previewStyle);
+                    parsed.documentElement.insertBefore(head, parsed.body);
+                  }
+
+                  const iframe = document.createElement("iframe");
+                  iframe.title = "Template preview";
+                  iframe.setAttribute("aria-label", "Template preview");
+                  iframe.setAttribute("sandbox", "allow-scripts");
+                  iframe.setAttribute("loading", "eager");
+                  iframe.style.cssText = [
+                    "display:block",
+                    "border:0",
+                    "padding:0",
+                    "margin:0",
+                    "width:491.3px",
+                    "height:226.8px",
+                    "flex:none",
+                    "background:transparent",
+                    "transform-origin:center center"
+                  ].join(";");
+
+                  const fitPreview = () => {
+                    const cardWidth = 491.3;
+                    const cardHeight = 226.8;
+                    const scale = Math.min(
+                      0.95,
+                      preview.clientWidth / cardWidth,
+                      preview.clientHeight / cardHeight
+                    );
+                    iframe.style.transform = "scale(" + Math.max(0.1, scale) + ")";
+                  };
+
+                  iframe.onload = () => {
+                    if (renderToken === this.galleryRenderToken && document.contains(d)) {
+                      requestAnimationFrame(fitPreview);
+                    }
+                  };
+
+                  stage.appendChild(iframe);
+                  iframe.srcdoc = "<!doctype html>\n" + parsed.documentElement.outerHTML;
+                  requestAnimationFrame(fitPreview);
+
                   const badge = document.createElement("span");
-                  badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm";
+                  badge.className = "absolute top-2 right-2 px-2 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-slate-600 shadow-sm z-10";
                   badge.textContent = "Live preview";
                   preview.appendChild(badge);
                 } catch (error) {
@@ -10620,12 +10685,15 @@
               body.className = "p-3 flex items-center gap-3";
               const info = document.createElement("div");
               info.className = "min-w-0 flex-1";
+
               const title = document.createElement("h3");
               title.className = "font-bold text-slate-700 text-sm truncate";
               title.textContent = t.name || "Untitled Design";
+
               const desc = document.createElement("p");
               desc.className = "text-slate-400 text-[11px] mt-0.5 truncate";
               desc.textContent = label || t.desc || "Printable design";
+
               info.appendChild(title);
               info.appendChild(desc);
 
@@ -10643,10 +10711,10 @@
               d.appendChild(preview);
               d.appendChild(body);
               d.onclick = () => this.load(t.id);
+
               if (renderToken !== this.galleryRenderToken) return;
               grid.appendChild(d);
             };
-
             if (used.length) {
               appendHeading("Recently Used");
               for (const t of used) {
