@@ -1047,7 +1047,7 @@
       if (!needsProcessing) return dataUrl;
 
       const key = dataUrl + "|" + JSON.stringify({
-        ai:true,
+        upscaler:true,
         enabled:this.state.photoEnhancement.enabled,
         whiteBackground:this.state.photoEnhancement.whiteBackground,
         strength:this.state.photoEnhancement.strength,
@@ -1058,36 +1058,42 @@
 
       let working = dataUrl;
 
-      // AI enhancement is now the primary automatic path. The API key never
-      // reaches the browser; /api/fal-enhance keeps it server-side.
-      if (this.state.photoEnhancement.enabled) {
+      // Browser-local super-resolution replaces the old Fal.ai network path.
+      // Photos stay on the user device. ESRGAN Medium 2x is used only for
+      // genuinely small portraits, then the deterministic local finishing
+      // pass handles print brightness, shadows, face lighting and sharpening.
+      if (this.state.photoEnhancement.enabled && window.Upscaler && window.ESRGANMedium2x) {
         try {
-          const response = await fetch("./api/fal-enhance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image_url: dataUrl })
+          const img = await new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = dataUrl;
           });
+          const maxSide = Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height);
 
-          const result = await response.json().catch(() => ({}));
-          if (!response.ok || !result.image_url) {
-            throw new Error(result.error || `AI enhancement failed (${response.status})`);
+          // Do not invent detail in photos that already have enough pixels.
+          if (maxSide < 1200) {
+            if (!this._photoUpscaler) {
+              this._photoUpscaler = new window.Upscaler({ model: window.ESRGANMedium2x });
+            }
+            working = await this._photoUpscaler.upscale(img, {
+              output: "base64",
+              patchSize: 64,
+              padding: 4,
+              awaitNextFrame: true
+            });
           }
-
-          working = result.image_url;
         } catch (error) {
-          console.warn("fal.ai enhancement unavailable; falling back to local enhancement.", error);
-          if (window.Utils?.toast) {
-            window.Utils.toast("AI enhancement unavailable, using local photo enhancement.", "warning");
-          }
+          console.warn("UpscalerJS unavailable for this photo; using local enhancement.", error);
         }
       }
 
       try {
-        // Keep the local processor as a print-safety finishing pass for manual
-        // controls, white-background cleanup and output consistency.
+        // Guaranteed local print-safety finishing pass.
         if (window.JoesStudentPhotoEnhancer?.process) {
           const enhanced = await window.JoesStudentPhotoEnhancer.process(working, {
-            auto: !this.state.photoEnhancement.enabled,
+            auto: true,
             strength: this.state.photoEnhancement.strength,
             whiteBackground: this.state.photoEnhancement.whiteBackground,
             manual: m
@@ -1099,7 +1105,7 @@
         this.state.enhancedPhotoCache.set(key, working);
         return working;
       } catch (error) {
-        console.warn("Student photo finishing pass failed; using AI/original photo.", error);
+        console.warn("Student photo finishing pass failed; using original/upscaled photo.", error);
         this.state.enhancedPhotoCache.set(key, working);
         return working;
       }
