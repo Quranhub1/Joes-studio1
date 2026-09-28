@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import {cors,json,requireOrigin,redis,safeEqual,createSession,getSession,destroySession,getUser,saveUser,normalizeUser,publicUser,ADMIN_COOKIE,cookieHeader,clearCookie,evalRedis,FREE_BATCH_LIMIT} from "./_auth.mjs";
+import {cors,json,requireOrigin,redis,safeEqual,createSession,getSession,destroySession,getUser,saveUser,normalizeUser,publicUser,ADMIN_COOKIE,cookieHeader,clearCookie,evalRedis,FREE_BATCH_LIMIT,currentPeriodKey} from "./_auth.mjs";
 
 const ADMIN_USERNAME=process.env.ADMIN_USERNAME||"";
 const ADMIN_PASSWORD=process.env.ADMIN_PASSWORD||"";
@@ -14,7 +14,7 @@ function adminAuthed(session){return !!session?.userId&&session.userId.startsWit
 async function listUsers(){
   const ids=await redis("smembers","joes:users")||[];
   const users=await Promise.all(ids.map(async id=>{try{return await getUser(id)}catch(_){return null}}));
-  return users.filter(Boolean).map(publicUser).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  const period=currentPeriodKey();\n  const normalized=users.filter(Boolean);\n  await Promise.all(normalized.map(async user=>{ const count=await redis("get","joes:usage:"+user.id+":"+period).catch(()=>null); if(count!==null&&count!==undefined){user.usage={periodKey:period,batchesUsed:Number(count)||0,batchLimit:user.plan?.tier==="pro"?Number.MAX_SAFE_INTEGER:FREE_BATCH_LIMIT};} }));\n  return normalized.map(publicUser).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 async function listPayments(){
   const ids=await redis("smembers","joes:payments")||[];
