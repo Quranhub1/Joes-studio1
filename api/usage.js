@@ -23,7 +23,7 @@ return {1,next,limit}`,[key],[String(limit)]);
     if(allowed){
       user.usage={periodKey:period,batchesUsed:used,batchLimit:limit};
       user.updatedAt=new Date().toISOString();
-      await redisUserUsage(user,period,used,limit);
+      user.usage={periodKey:period,batchesUsed:used,batchLimit:limit};
     }
     return json(res,allowed?200:429,{ok:allowed,allowed,used,limit,periodKey:period,user:publicUser(user),error:allowed?undefined:"Free batch limit reached"});
   }catch(e){return json(res,500,{error:e.message||"Usage check failed"});}
