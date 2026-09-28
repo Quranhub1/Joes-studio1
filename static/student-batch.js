@@ -28,7 +28,7 @@
       cardWidthMm: 130,
       cardHeightMm: 60,
       cardBackground: "#ffffff",
-      orientation: "portrait",
+      orientation: "landscape",
       cardsPerPage: 6,
       resolution: 300,
       embeddedPhotos: new Map(),
@@ -1513,43 +1513,60 @@
     },
 
     layout() {
-      const baseCard = { w: Number(this.state.cardWidthMm) || 130, h: Number(this.state.cardHeightMm) || 60 };
+      const baseCard = {
+        w: Math.max(1, Number(this.state.cardWidthMm) || 130),
+        h: Math.max(1, Number(this.state.cardHeightMm) || 60)
+      };
       const sheet = this.getSheetSize();
-      const margin = Number(this.state.margin) || 0;
-      const gx = Number(this.state.gapX) || 0;
-      const gy = Number(this.state.gapY) || 0;
+      const margin = Math.max(0, Number(this.state.margin) || 0);
+      const gx = Math.max(0, Number(this.state.gapX) || 0);
+      const gy = Math.max(0, Number(this.state.gapY) || 0);
       const requested = Math.max(1, Number(this.state.cardsPerPage) || 1);
 
-      // Keep the real card aspect ratio. Cards are enlarged uniformly until
-      // they fill the available grid as much as physically possible. This
-      // avoids the previous two bad extremes: cards stranded in one corner
-      // and cards stretched independently in X/Y.
+      // Batch cards must keep the template's real geometry. The old layout
+      // algorithm enlarged cards to fill each grid cell, which meant a
+      // 130 x 60 mm template could silently become a different physical size.
+      // Fit the requested number of cards without stretching them. If the
+      // requested layout cannot physically fit, reduce the card uniformly.
       let best = null;
+
       for (let cols = 1; cols <= requested; cols++) {
         const rows = Math.ceil(requested / cols);
         const availableW = sheet.w - margin * 2 - Math.max(0, cols - 1) * gx;
         const availableH = sheet.h - margin * 2 - Math.max(0, rows - 1) * gy;
         if (availableW <= 0 || availableH <= 0) continue;
 
-        const cellW = availableW / cols;
-        const cellH = availableH / rows;
-        const scale = Math.min(cellW / baseCard.w, cellH / baseCard.h);
+        const scale = Math.min(1, availableW / baseCard.w, availableH / baseCard.h);
         const usedW = baseCard.w * scale;
         const usedH = baseCard.h * scale;
-        const fill = (usedW * usedH) / (cellW * cellH);
+        const fill = (usedW * usedH) / Math.max(1, availableW * availableH);
         const shapePenalty = Math.abs(Math.log(cols / rows));
-        const score = fill - shapePenalty * 0.03;
+        const score = fill - shapePenalty * 0.01;
 
         if (!best || score > best.score) {
-          best = { cols, rows, cellW, cellH, scale, usedW, usedH, score };
+          best = { cols, rows, cellW: availableW / cols, cellH: availableH / rows, scale, usedW, usedH, score };
         }
       }
 
-      if (!best) best = { cols: 1, rows: 1, cellW: sheet.w - margin * 2, cellH: sheet.h - margin * 2, scale: 1, usedW: baseCard.w, usedH: baseCard.h, score: 0 };
+      if (!best) {
+        best = {
+          cols: 1,
+          rows: 1,
+          cellW: Math.max(baseCard.w, sheet.w - margin * 2),
+          cellH: Math.max(baseCard.h, sheet.h - margin * 2),
+          scale: Math.min(1, (sheet.w - margin * 2) / baseCard.w, (sheet.h - margin * 2) / baseCard.h),
+          usedW: baseCard.w,
+          usedH: baseCard.h,
+          score: 0
+        };
+        best.usedW = baseCard.w * best.scale;
+        best.usedH = baseCard.h * best.scale;
+      }
 
       const card = { w: best.usedW, h: best.usedH };
       this.state.columns = best.cols;
       this.state.rowsPerPage = best.rows;
+
       return {
         card,
         sheet,
