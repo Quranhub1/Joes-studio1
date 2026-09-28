@@ -825,92 +825,114 @@
           <button onclick="JoesStudentBatch.close()" class="w-9 h-9 rounded-full hover:bg-gray-100 text-slate-500"><i class="ph ph-x text-lg"></i></button>
         </div>
 
-        <div class="p-5 grid grid-cols-12 gap-4 overflow-y-auto min-h-0 custom-scrollbar">
-          <section class="col-span-12 lg:col-span-6 border border-slate-200 rounded-xl p-4 min-w-0">
-            <h3 class="font-bold text-slate-700 mb-2">1. HTML Card Template</h3>
-            <p id="studentBatchTemplateName" class="text-xs text-slate-500 truncate mb-3">No template selected</p>
-            <button onclick="JoesStudentBatch.chooseTemplate()" class="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700"><i class="ph ph-file-html mr-1"></i> Open HTML Template</button>
-            <p class="text-[10px] text-slate-400 mt-2">Use any HTML card template. Its {{placeholders}} / data bindings define exactly what must be mapped to the Excel sheet.</p>
-            <div class="mt-3 flex items-center justify-between text-[10px] text-slate-500">
-              <span>Detected card size</span><strong id="studentBatchCardSize">85.6 × 54.0 mm</strong>
+        <div class="p-5 grid grid-cols-12 gap-3 overflow-y-auto min-h-0 custom-scrollbar">
+          <div class="col-span-12 flex items-center gap-2 mb-1 px-1">
+            <div class="flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-slate-800 text-white text-[10px] font-bold flex items-center justify-center">1</span>
+              <span class="text-[11px] font-bold text-slate-700">Source</span>
             </div>
-          </section>
+            <div class="flex-1 h-px bg-slate-200"></div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center">2</span>
+              <span class="text-[11px] font-bold text-slate-500">Map Fields</span>
+            </div>
+            <div class="flex-1 h-px bg-slate-200"></div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center">3</span>
+              <span class="text-[11px] font-bold text-slate-500">Output</span>
+            </div>
+          </div>
 
-          <section class="col-span-12 lg:col-span-6 border border-slate-200 rounded-xl p-4 min-w-0">
-            <h3 class="font-bold text-slate-700 mb-2">2. Student Excel Data</h3>
-            <p id="studentBatchExcelName" class="text-xs text-slate-500 truncate mb-3">No Excel file selected</p>
-            <button onclick="JoesStudentBatch.chooseExcel()" class="w-full py-2.5 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-800"><i class="ph ph-file-xls mr-1"></i> Import Excel</button>
-            <p class="text-[10px] text-slate-400 mt-2"><span id="studentBatchCount">0</span> student records detected.</p>
-          </section>
+          <div class="col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <section class="border border-slate-200 rounded-xl p-3 min-w-0">
+              <h3 class="font-bold text-slate-700 mb-1.5 text-sm flex items-center gap-1.5"><i class="ph ph-file-html text-red-600"></i> HTML Card Template</h3>
+              <p id="studentBatchTemplateName" class="text-[11px] text-slate-500 truncate mb-2">No template selected</p>
+              <button onclick="JoesStudentBatch.chooseTemplate()" class="w-full py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700"><i class="ph ph-file-html mr-1"></i> Open HTML Template</button>
+              <p class="text-[10px] text-slate-400 mt-1.5">Use any HTML card template. Its {{placeholders}} / data bindings define exactly what must be mapped to the Excel sheet.</p>
+              <div class="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                <span>Detected card size</span><strong id="studentBatchCardSize">85.6 × 54.0 mm</strong>
+              </div>
+            </section>
 
-          <section class="col-span-12 border border-slate-200 rounded-xl p-4 min-w-0">
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="font-bold text-slate-700">Template ↔ Excel Field Mapping</h3>
+            <section class="border border-slate-200 rounded-xl p-3 min-w-0">
+              <h3 class="font-bold text-slate-700 mb-1.5 text-sm flex items-center gap-1.5"><i class="ph ph-file-xls text-green-600"></i> Student Excel Data</h3>
+              <p id="studentBatchExcelName" class="text-[11px] text-slate-500 truncate mb-2">No Excel file selected</p>
+              <button onclick="JoesStudentBatch.chooseExcel()" class="w-full py-2 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-800"><i class="ph ph-file-xls mr-1"></i> Import Excel</button>
+              <p class="text-[10px] text-slate-400 mt-1.5"><span id="studentBatchCount">0</span> student records detected.</p>
+            </section>
+          </div>
+
+          <section class="col-span-12 border border-slate-200 rounded-xl p-3 min-w-0">
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="font-bold text-slate-700 text-sm flex items-center gap-1.5"><i class="ph ph-arrows-left-right text-indigo-600"></i> Template ↔ Excel Field Mapping</h3>
               <span class="text-[10px] text-slate-400">Map data fields to Excel. Badge fields show an Upload PNG control for the badge artwork.</span>
             </div>
-            <div id="studentBatchFields" class="max-h-44 overflow-y-auto bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs">
+            <div id="studentBatchFields" class="max-h-40 overflow-y-auto bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs">
               <span class="text-slate-400">Load an HTML template to detect {{placeholders}}.</span>
             </div>
           </section>
 
-          <section class="col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-            <div class="border border-slate-200 rounded-xl p-4">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <div>
-                  <h3 class="font-bold text-slate-700">Template Badge / Logo</h3>
-                  <p id="studentBatchBadgeName" class="text-xs text-slate-500 truncate">Using the selected template's original badge/logo</p>
-                </div>
-                <button type="button" onclick="JoesStudentBatch.chooseBadge()" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-700">
-                  <i class="ph ph-image mr-1"></i> Upload Badge / Logo
-                </button>
+          <div class="col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-3">
+            <div class="lg:col-span-3 border border-indigo-100 rounded-xl p-3 bg-gradient-to-br from-indigo-50 via-white to-slate-50 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div><h3 class="font-bold text-slate-700 text-sm flex items-center gap-1"><i class="ph ph-student text-indigo-600"></i> Branding</h3><p class="text-[10px] text-slate-400">School identity</p></div>
+                <span id="studentBatchBrandingStatus" class="text-[9px] font-semibold text-indigo-500">Live</span>
               </div>
-              <div class="flex items-center gap-3">
-                <div id="studentBatchBadgePreview" class="h-14 w-14 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden">
-                  <i class="ph ph-image text-slate-300 text-lg"></i>
+              <div class="space-y-2">
+                <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">School name
+                  <input id="studentBatchSchoolName" type="text" maxlength="80" placeholder="Kampala School of Health Sciences" class="mt-1 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white">
+                </label>
+                <div>
+                  <div class="flex items-center justify-between mb-1"><label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Badge / logo</label><button type="button" id="studentBatchBadgeClearInline" class="text-[9px] text-red-500 font-semibold hover:underline hidden">Reset</button></div>
+                  <div class="flex items-center gap-2">
+                    <div id="studentBatchBadgePreviewInline" class="w-10 h-10 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden shrink-0"><i class="ph ph-seal text-slate-300 text-lg"></i></div>
+                    <button type="button" onclick="JoesStudentBatch.chooseBadge()" class="flex-1 px-2 py-1.5 rounded-lg bg-slate-800 text-white text-[10px] font-semibold hover:bg-slate-700"><i class="ph ph-upload-simple mr-1"></i> Upload</button>
+                  </div>
+                  <p id="studentBatchBadgeNameInline" class="text-[9px] text-slate-400 mt-0.5 truncate">Using template artwork</p>
                 </div>
-                <div class="min-w-0 flex-1">
-                  <p class="text-[10px] text-slate-400">Applies to badge, logo, crest, emblem or seal image fields in the selected HTML template. Uploading a file replaces that artwork for the batch.</p>
-                  <button type="button" id="studentBatchBadgeClear" class="mt-2 text-[10px] text-red-600 font-semibold hover:underline hidden">Remove uploaded badge / logo</button>
-                </div>
+                <button type="button" id="studentBatchBrandingReset" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-[10px] font-semibold hover:bg-slate-50"><i class="ph ph-arrow-counter-clockwise mr-1"></i> Reset branding</button>
               </div>
             </div>
-            <div class="border border-slate-200 rounded-xl p-4">
-              <h3 class="font-bold text-slate-700 mb-2">Optional Student Photos</h3>
-              <p id="studentBatchPhotoName" class="text-xs text-slate-500 truncate mb-3">No photo folder selected</p>
-              <button onclick="JoesStudentBatch.choosePhotos()" class="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200"><i class="ph ph-folder-open mr-1"></i> Select Photo Folder</button>
-              <p class="text-[10px] text-slate-400 mt-2">If Excel contains a Photo filename, Joes Studio matches it to the selected folder.</p>
-              <div class="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
-                <div class="flex items-center justify-between gap-3">
-                  <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+
+            <div class="lg:col-span-5 border border-slate-200 rounded-xl p-3 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <h3 class="font-bold text-slate-700 text-sm flex items-center gap-1.5"><i class="ph ph-camera text-emerald-600"></i> Student Photos</h3>
+                <span id="studentBatchPhotoName" class="text-[10px] text-slate-500 truncate max-w-[180px]">No photo folder selected</span>
+              </div>
+              <button onclick="JoesStudentBatch.choosePhotos()" class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200"><i class="ph ph-folder-open mr-1"></i> Select Photo Folder</button>
+              <p class="text-[10px] text-slate-400 mt-1.5">If Excel contains a Photo filename, Joes Studio matches it to the selected folder.</p>
+              <div class="mt-2 rounded-lg border border-emerald-100 bg-emerald-50/60 p-2">
+                <div class="flex items-center justify-between gap-2">
+                  <label class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer">
                     <input id="studentBatchPhotoEnhance" type="checkbox" class="accent-emerald-600" checked>
-                    AI-enhance student photos (fal.ai)
+                    AI-enhance photos
                   </label>
-                  <select id="studentBatchPhotoStrength" class="border border-slate-200 rounded-md bg-white px-2 py-1 text-[10px]">
+                  <select id="studentBatchPhotoStrength" class="border border-slate-200 rounded-md bg-white px-1.5 py-0.5 text-[10px]">
                     <option value="natural">Natural</option>
                     <option value="balanced" selected>Balanced</option>
                     <option value="strong">Strong</option>
                   </select>
                 </div>
-                <label class="mt-2 flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+                <label class="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-600 cursor-pointer">
                   <input id="studentBatchPhotoWhiteBg" type="checkbox" class="accent-emerald-600">
                   Clean photo backgrounds to white
                 </label>
-                <p class="mt-1 text-[9px] text-slate-500">fal.ai is used for the automatic portrait pass. Your API key stays server-side; manual controls below remain available as a finishing pass.</p>
+                <p class="mt-1 text-[9px] text-slate-500">fal.ai keeps your API key server-side. Manual controls below are a finishing pass.</p>
               </div>
-              <details class="mt-3 rounded-lg border border-slate-200 bg-white overflow-hidden">
-                <summary class="cursor-pointer list-none px-3 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 select-none">
+              <details class="mt-2 rounded-lg border border-slate-200 bg-white overflow-hidden">
+                <summary class="cursor-pointer list-none px-2.5 py-2 flex items-center justify-between gap-2 hover:bg-slate-50 select-none">
                   <span class="min-w-0">
                     <span class="block text-[11px] font-bold text-slate-700">Manual photo editing</span>
-                    <span class="block text-[9px] text-slate-400 mt-0.5">Fine-tune brightness, lighting, crop and positioning when needed.</span>
+                    <span class="block text-[9px] text-slate-400">Fine-tune brightness, lighting, crop and positioning.</span>
                   </span>
                   <span class="shrink-0 text-slate-400"><i class="ph ph-caret-down"></i></span>
                 </summary>
-                <div class="border-t border-slate-100 p-3">
-                  <div class="flex items-center justify-between gap-2 mb-2">
-                    <span class="text-[9px] text-slate-400">Manual adjustments are applied on top of automatic enhancement.</span>
-                    <button type="button" id="studentBatchPhotoManualReset" class="shrink-0 px-2 py-1 rounded-md border border-slate-200 text-[9px] font-semibold text-slate-500 hover:bg-slate-50">Reset</button>
+                <div class="border-t border-slate-100 p-2.5">
+                  <div class="flex items-center justify-between gap-2 mb-1.5">
+                    <span class="text-[9px] text-slate-400">Applied on top of automatic enhancement.</span>
+                    <button type="button" id="studentBatchPhotoManualReset" class="shrink-0 px-1.5 py-0.5 rounded-md border border-slate-200 text-[9px] font-semibold text-slate-500 hover:bg-slate-50">Reset</button>
                   </div>
-                  <div class="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <div class="grid grid-cols-2 gap-x-2 gap-y-1.5">
                     <label class="block"><span class="flex items-center justify-between text-[9px] text-slate-500"><span>Brightness</span><output id="studentBatchPhotoManualValue_brightness">0</output></span><input id="studentBatchPhotoManual_brightness" type="range" min="-100" max="100" step="1" value="0" class="w-full accent-emerald-600"></label>
                     <label class="block"><span class="flex items-center justify-between text-[9px] text-slate-500"><span>Exposure</span><output id="studentBatchPhotoManualValue_exposure">0</output></span><input id="studentBatchPhotoManual_exposure" type="range" min="-100" max="100" step="1" value="0" class="w-full accent-emerald-600"></label>
                     <label class="block"><span class="flex items-center justify-between text-[9px] text-slate-500"><span>Shadows</span><output id="studentBatchPhotoManualValue_shadows">0</output></span><input id="studentBatchPhotoManual_shadows" type="range" min="-100" max="100" step="1" value="0" class="w-full accent-emerald-600"></label>
@@ -925,92 +947,66 @@
                     <label class="block"><span class="flex items-center justify-between text-[9px] text-slate-500"><span>Position Y</span><output id="studentBatchPhotoManualValue_positionY">0</output></span><input id="studentBatchPhotoManual_positionY" type="range" min="-50" max="50" step="1" value="0" class="w-full accent-emerald-600"></label>
                     <label class="block"><span class="flex items-center justify-between text-[9px] text-slate-500"><span>Opacity</span><output id="studentBatchPhotoManualValue_opacity">100%</output></span><input id="studentBatchPhotoManual_opacity" type="range" min="0" max="100" step="1" value="100" class="w-full accent-emerald-600"></label>
                   </div>
-                  <p class="mt-2 text-[9px] text-slate-400">Face lighting lifts foreground midtones. Crop and position affect the actual photo used in the card.</p>
+                  <p class="mt-1.5 text-[9px] text-slate-400">Face lighting lifts foreground midtones. Crop and position affect the actual photo used in the card.</p>
                 </div>
-              </details></div>
+              </details>
             </div>
-            <div class="col-span-2 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-4">
-              <div class="flex items-center justify-between gap-3 mb-3">
-                <div><h3 class="font-bold text-slate-700 text-sm">Template Preview &amp; Branding</h3><p class="text-[10px] text-slate-400">Change the school identity without editing the HTML template.</p></div>
-                <span id="studentBatchBrandingStatus" class="text-[9px] font-semibold text-indigo-500">Live</span>
-              </div>
-              <div class="grid grid-cols-[minmax(190px,1fr)_minmax(180px,1fr)] gap-3">
-                <div class="space-y-3">
-                  <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide">School name
-                    <input id="studentBatchSchoolName" type="text" maxlength="80" placeholder="Kampala School of Health Sciences" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-xs bg-white">
-                  </label>
-                  <div>
-                    <div class="flex items-center justify-between mb-1"><label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">School badge / logo</label><button type="button" id="studentBatchBadgeClearInline" class="text-[9px] text-red-500 font-semibold hover:underline hidden">Reset</button></div>
-                    <div class="flex items-center gap-2">
-                      <div id="studentBatchBadgePreviewInline" class="w-12 h-12 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden shrink-0"><i class="ph ph-seal text-slate-300 text-xl"></i></div>
-                      <button type="button" onclick="JoesStudentBatch.chooseBadge()" class="flex-1 px-3 py-2 rounded-lg bg-slate-800 text-white text-[10px] font-semibold hover:bg-slate-700"><i class="ph ph-upload-simple mr-1"></i> Upload badge</button>
-                    </div>
-                    <p id="studentBatchBadgeNameInline" class="text-[9px] text-slate-400 mt-1 truncate">Using template artwork</p>
-                  </div>
-                  <button type="button" id="studentBatchBrandingReset" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-[10px] font-semibold hover:bg-slate-50"><i class="ph ph-arrow-counter-clockwise mr-1"></i> Reset branding</button>
-                </div>
-                <div>
-                  <div id="studentBatchPreview" class="w-full min-h-[190px] rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden shadow-inner"><span class="text-[10px] text-slate-400">Select an HTML template to preview it here.</span></div>
-                  <p class="text-[9px] text-slate-400 mt-1 text-center">Preview updates with the school name, badge, template, and photo settings.</p>
-                </div>
-              </div>
-            </div>
-          </section>
 
-          <section class="col-span-12 bg-slate-50 rounded-xl p-4 border border-slate-200 min-w-0">
-            <h3 class="font-bold text-slate-700 mb-3">3. Print Sheet</h3>
-            <div class="grid grid-cols-4 gap-3">
-              <label class="text-xs text-slate-500">Paper
-                <select id="studentBatchSheetSize" class="mt-1 w-full border rounded-lg p-2 bg-white">
-                  <option value="A4">A4</option><option value="A3">A3</option><option value="A5">A5</option>
-                  <option value="B4">B4</option><option value="B5">B5</option><option value="Letter">Letter</option><option value="Legal">Legal</option>
-                </select>
-              </label>
-              <label class="text-xs text-slate-500">Orientation
-                <select id="studentBatchOrientation" class="mt-1 w-full border rounded-lg p-2 bg-white">
-                  <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
-                </select>
-              </label>
-              <label class="text-xs text-slate-500">Cards per page
-                <input id="studentBatchCardsPerPage" type="number" min="1" max="40" step="1" value="6" class="mt-1 w-full border rounded-lg p-2 bg-white">
-              </label>
-              <label class="text-xs text-slate-500">Print resolution
-                <select id="studentBatchResolution" class="mt-1 w-full border rounded-lg p-2 bg-white">
-                  <option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300" selected>300 DPI</option><option value="600">600 DPI</option>
-                </select>
-              </label>
-              <label class="text-xs text-slate-500">Card background
-                <div class="mt-1 flex items-center gap-2">
-                  <input id="studentBatchCardBackground" type="color" value="#ffffff" title="Choose card background color" class="h-10 w-12 p-1 border rounded-lg bg-white cursor-pointer">
-                  <input id="studentBatchCardBackgroundHex" type="text" value="#ffffff" maxlength="7" spellcheck="false" class="w-full border rounded-lg p-2 bg-white font-mono text-[11px]" aria-label="Card background hex color">
-                </div>
-                <span class="block mt-1 text-[9px] text-slate-400">White by default, or choose any background color.</span>
-              </label>
-              <label class="text-xs text-slate-500">Margin (mm)
-                <input id="studentBatchMargin" type="number" min="0" step="0.5" value="5" class="mt-1 w-full border rounded-lg p-2">
-              </label>
-              <label class="text-xs text-slate-500">Horizontal gap
-                <input id="studentBatchGapX" type="number" min="0" step="0.5" value="3" class="mt-1 w-full border rounded-lg p-2">
-              </label>
-              <label class="text-xs text-slate-500">Vertical gap
-                <input id="studentBatchGapY" type="number" min="0" step="0.5" value="3" class="mt-1 w-full border rounded-lg p-2">
-              </label>
-              <label class="text-xs text-slate-500">Copies/student
-                <input id="studentBatchCopies" type="number" min="1" step="1" value="1" class="mt-1 w-full border rounded-lg p-2">
-              </label>
+            <div class="lg:col-span-4 border border-slate-200 rounded-xl p-3 min-w-0">
+              <h3 class="font-bold text-slate-700 mb-2 text-sm flex items-center gap-1.5"><i class="ph ph-printer text-slate-600"></i> Print Sheet</h3>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="text-[11px] text-slate-500">Paper
+                  <select id="studentBatchSheetSize" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                    <option value="A4">A4</option><option value="A3">A3</option><option value="A5">A5</option>
+                    <option value="B4">B4</option><option value="B5">B5</option><option value="Letter">Letter</option><option value="Legal">Legal</option>
+                  </select>
+                </label>
+                <label class="text-[11px] text-slate-500">Orientation
+                  <select id="studentBatchOrientation" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                    <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
+                  </select>
+                </label>
+                <label class="text-[11px] text-slate-500">Cards/page
+                  <input id="studentBatchCardsPerPage" type="number" min="1" max="40" step="1" value="6" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                </label>
+                <label class="text-[11px] text-slate-500">Resolution
+                  <select id="studentBatchResolution" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                    <option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300" selected>300 DPI</option><option value="600">600 DPI</option>
+                  </select>
+                </label>
+                <label class="text-[11px] text-slate-500">Card background
+                  <div class="mt-0.5 flex items-center gap-1.5">
+                    <input id="studentBatchCardBackground" type="color" value="#ffffff" class="h-8 w-10 p-0.5 border rounded-md bg-white cursor-pointer">
+                    <input id="studentBatchCardBackgroundHex" type="text" value="#ffffff" maxlength="7" spellcheck="false" class="w-full border rounded-md p-1.5 bg-white font-mono text-[10px]" aria-label="Card background hex color">
+                  </div>
+                </label>
+                <label class="text-[11px] text-slate-500">Margin (mm)
+                  <input id="studentBatchMargin" type="number" min="0" step="0.5" value="5" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                </label>
+                <label class="text-[11px] text-slate-500">Horizontal gap
+                  <input id="studentBatchGapX" type="number" min="0" step="0.5" value="3" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                </label>
+                <label class="text-[11px] text-slate-500">Vertical gap
+                  <input id="studentBatchGapY" type="number" min="0" step="0.5" value="3" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                </label>
+                <label class="text-[11px] text-slate-500 col-span-2">Copies/student
+                  <input id="studentBatchCopies" type="number" min="1" step="1" value="1" class="mt-0.5 w-full border rounded-md p-1.5 bg-white text-xs">
+                </label>
+              </div>
+              <div class="mt-2 text-[11px] text-slate-500"><i class="ph ph-calculator"></i> Layout: <strong id="studentBatchLayout">2 × 3 = 6 cards/page • portrait • 300 DPI</strong></div>
             </div>
-            <div class="mt-3 text-xs text-slate-500"><i class="ph ph-calculator"></i> Layout: <strong id="studentBatchLayout">2 × 3 = 6 cards/page • portrait • 300 DPI</strong></div>
-            <div class="mt-4 border border-slate-200 rounded-xl bg-white p-3">
-              <div class="flex items-center justify-between mb-2">
-                <div>
-                  <h4 class="text-xs font-bold text-slate-700">Batch Preview</h4>
-                  <p id="studentBatchPreviewStatus" class="text-[10px] text-slate-400">Live preview updates automatically as the template and layout settings change.</p>
-                </div>
-                <button onclick="JoesStudentBatch.previewBatch()" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-700"><i class="ph ph-eye mr-1"></i> Refresh Preview</button>
+          </div>
+
+          <section class="col-span-12 border border-slate-200 rounded-xl p-3 min-w-0">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1"><i class="ph ph-eye text-indigo-600"></i> Batch Preview</h4>
+                <p id="studentBatchPreviewStatus" class="text-[10px] text-slate-400">Live preview updates automatically as the template and layout settings change.</p>
               </div>
-              <div id="studentBatchPrintPreview" class="min-h-[260px] max-h-[620px] overflow-auto rounded-lg bg-slate-100 p-3 flex items-start justify-center">
-                <span class="text-[10px] text-slate-400 self-center">Your generated cards will appear here before PDF generation.</span>
-              </div>
+              <button onclick="JoesStudentBatch.previewBatch()" class="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-700"><i class="ph ph-eye mr-1"></i> Refresh</button>
+            </div>
+            <div id="studentBatchPrintPreview" class="min-h-[220px] max-h-[500px] overflow-auto rounded-lg bg-slate-100 p-3 flex items-start justify-center">
+              <span class="text-[10px] text-slate-400 self-center">Your generated cards will appear here before PDF generation.</span>
             </div>
           </section>
         </div>
