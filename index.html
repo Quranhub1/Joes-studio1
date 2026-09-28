@@ -929,9 +929,15 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
-                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">School name
-                      <input id="studentBatchSchoolName" type="text" maxlength="80" placeholder="School name" class="mt-1.5 w-full border border-slate-700 rounded-lg px-3 py-2.5 text-xs bg-slate-900 text-white focus:border-blue-500">
-                    </label>
+                    <div class="grid grid-cols-1 gap-3">
+                      <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">School name
+                        <input id="studentBatchSchoolName" type="text" maxlength="80" placeholder="School name" class="mt-1.5 w-full border border-slate-700 rounded-lg px-3 py-2.5 text-xs bg-slate-900 text-white focus:border-blue-500">
+                      </label>
+                      <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Examination card heading
+                        <input id="studentBatchCardTitle" type="text" maxlength="80" placeholder="EXAMINATION CARD" class="mt-1.5 w-full border border-slate-700 rounded-lg px-3 py-2.5 text-xs bg-slate-900 text-white focus:border-blue-500">
+                        <span class="block mt-1 text-[9px] normal-case tracking-normal text-slate-500">Changes the “EXAMINATION CARD” text on the selected card template.</span>
+                      </label>
+                    </div>
                     <div>
                       <div class="flex items-center justify-between mb-2">
                         <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">School badge / logo</label>
