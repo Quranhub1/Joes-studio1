@@ -10670,14 +10670,7 @@
               use.innerHTML = '<i class="ph ph-check-circle mr-1"></i> Use Badge';
               use.onclick = () => this.useBadge(badge.id);
 
-              const remove = document.createElement("button");
-              remove.type = "button";
-              remove.className = "px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50";
-              remove.innerHTML = '<i class="ph ph-trash mr-1"></i> Delete';
-              remove.onclick = () => this.deleteBadge(badge.id);
-
               actions.appendChild(use);
-              actions.appendChild(remove);
               card.appendChild(preview);
               card.appendChild(name);
               card.appendChild(actions);
