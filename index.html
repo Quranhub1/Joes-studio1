@@ -9291,7 +9291,7 @@
             const oldTxt = btn ? btn.innerHTML : "";
             if (btn) {
               btn.disabled = true;
-              btn.innerHTML = `<span class="joes-inline-loader" aria-hidden="true"><span class="loadingspinner"><span id="square1"></span><span id="square2"></span><span id="square3"></span><span id="square4"></span><span id="square5"></span></span></span> Processing...`;
+              btn.innerHTML = `<span class="joes-inline-loader" aria-hidden="true"><span class="loadingspinner"><span></span><span></span><span></span><span></span><span></span></span></span> Processing...`;
             }
 
             const originalIndex = App.state.currentDataIndex;
@@ -11366,7 +11366,12 @@
 @keyframes square5{0%{left:calc(3 * var(--offset));top:var(--offset)}50%{left:calc(3 * var(--offset));top:var(--offset)}58.33%{left:calc(3 * var(--offset));top:0}66.67%{left:calc(2 * var(--offset));top:0}75%{left:calc(2 * var(--offset));top:var(--offset)}100%{left:calc(2 * var(--offset));top:var(--offset)}}
 @keyframes squarefadein{0%{transform:scale(.75);opacity:0}100%{transform:scale(1);opacity:1}}
 .joes-inline-loader{display:inline-block;vertical-align:middle;transform:scale(.34);transform-origin:left center;width:40px;height:30px;margin:-2px -20px -2px 0}
-.joes-inline-loader .loadingspinner{margin:0}
+.joes-inline-loader .loadingspinner{margin:0}.joes-inline-loader .loadingspinner div,.joes-inline-loader .loadingspinner span{display:inline-block;background:darkorange;border:none;border-radius:2px;width:var(--square);height:var(--square);position:absolute;padding:0;margin:0}
+.joes-inline-loader .loadingspinner span:nth-child(1){left:0;top:0;animation:square1 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(1 * var(--in-delay)) var(--in-timing-function) both}
+.joes-inline-loader .loadingspinner span:nth-child(2){left:0;top:var(--offset);animation:square2 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(1 * var(--in-delay)) var(--in-timing-function) both}
+.joes-inline-loader .loadingspinner span:nth-child(3){left:var(--offset);top:var(--offset);animation:square3 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(2 * var(--in-delay)) var(--in-timing-function) both}
+.joes-inline-loader .loadingspinner span:nth-child(4){left:calc(2 * var(--offset));top:var(--offset);animation:square4 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(3 * var(--in-delay)) var(--in-timing-function) both}
+.joes-inline-loader .loadingspinner span:nth-child(5){left:calc(3 * var(--offset));top:var(--offset);animation:square5 var(--duration) var(--delay) var(--timing-function) infinite,squarefadein var(--in-duration) calc(4 * var(--in-delay)) var(--in-timing-function) both}
 @media(prefers-reduced-motion:reduce){.loadingspinner div{animation-play-state:paused}}
 </style>
 <style id="joes-get-started-ui">
