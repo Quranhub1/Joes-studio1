@@ -28,10 +28,12 @@ export default async function handler(req,res){
       const reference=String(body.reference||"").trim().slice(0,120);
       const config=await paymentConfig();
       const amount=String(body.amount||config.proPrice||"").trim().slice(0,40);
+      const requestedDuration=String(body.duration||"monthly").toLowerCase();
+      const duration=["weekly","monthly","quarterly","yearly"].includes(requestedDuration)?requestedDuration:"monthly";
       if(!reference) return json(res,400,{error:"Payment reference is required"});
       const id=crypto.randomUUID();
       const now=new Date().toISOString();
-      const item={id,userId:user.id,email:user.email,name:user.name,plan:"pro",amount,currency:config.currency,reference,status:"pending",notes:String(body.notes||"").slice(0,500),createdAt:now,updatedAt:now};
+      const item={id,userId:user.id,email:user.email,name:user.name,plan:"pro",duration,amount,currency:config.currency,reference,status:"pending",notes:String(body.notes||"").slice(0,500),createdAt:now,updatedAt:now};
       await redis("set","joes:payment:"+id,JSON.stringify(item));
       await redis("sadd","joes:payments",id);
       return json(res,201,{ok:true,payment:item});
