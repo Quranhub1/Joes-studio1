@@ -1,4 +1,4 @@
-import {cors,json,requireOrigin,getSession,getUser,publicUser,currentPeriodKey,FREE_BATCH_LIMIT,evalRedis} from "./_auth.mjs";
+import {cors,json,requireOrigin,getSession,getUser,publicUser,currentPeriodKey,FREE_BATCH_LIMIT,evalRedis,redis} from "./_auth.mjs";
 export default async function handler(req,res){
   cors(req,res);
   if(req.method==="OPTIONS") return res.status(204).end();
