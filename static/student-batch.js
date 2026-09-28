@@ -225,7 +225,7 @@
         "#studentBatchWorkspace details{display:block !important}",
         "#studentBatchWorkspace details[open] > div{display:block !important}",
         "#studentBatchWorkspace .student-batch-card{width:100% !important;max-height:none !important;overflow:visible !important}",
-        "#studentBatchPrintPreview{max-height:none !important;overflow:visible !important}",
+        "#studentBatchPrintPreview{height:520px !important;max-height:520px !important;overflow:auto !important;overscroll-behavior:contain !important;padding:12px !important;box-sizing:border-box;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px}",
         ".student-batch-section-title{font-size:15px;font-weight:850;color:#1e293b;margin-bottom:12px}",
         ".student-batch-section-sub{font-size:10px;color:#94a3b8;margin-top:-8px;margin-bottom:12px}",
         ".student-batch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
