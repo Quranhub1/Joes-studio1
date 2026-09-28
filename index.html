@@ -25,6 +25,7 @@
     <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/browser/umd/upscaler.min.js"></script>
     <script src="./static/student-photo-enhancer.js?v=20260928-upscaler"></script>
     <script src="./static/student-batch.js?v=20260928-template-print"></script>
+    <script>var App;</script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
       /* Hide base scrollbar */
@@ -2867,7 +2868,7 @@
           };
         },
       };
-      window.App = {
+      window.App = App = {
         canvas: null,
         state: {
           currentPaper: {
