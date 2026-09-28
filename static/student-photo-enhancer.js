@@ -3,68 +3,75 @@
   const E={
     async process(src,opt={}){
       const im=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src;});
-      // Preserve enough pixels for card-sized 300 DPI output. Downscaling is only
-      // used for unusually huge source photos to keep browser memory reasonable.
       const max=Math.max(1200,Math.min(2400,Number(opt.maxSide)||2400));
       const scale=Math.min(1,max/Math.max(im.naturalWidth||im.width,im.naturalHeight||im.height));
       const w=Math.max(1,Math.round((im.naturalWidth||im.width)*scale)),h=Math.max(1,Math.round((im.naturalHeight||im.height)*scale));
       const c=document.createElement("canvas");c.width=w;c.height=h;
       const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(im,0,0,w,h);
-      const srcData=ctx.getImageData(0,0,w,h), mask=this.mask(srcData.data,w,h);
+      const srcData=ctx.getImageData(0,0,w,h),mask=this.mask(srcData.data,w,h);
       const stats=this.stats(srcData.data,w,h,mask);
-      const v=this.calculate(stats,String(opt.strength||"balanced"));
+      const auto=this.calculate(stats,String(opt.strength||"balanced"));
+      const m=opt.manual||{};
+      const n=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
+      const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+      const manualActive=Object.keys(m).some(k=>n(m[k],0)!==0 && k!=="cropScale");
+      const v={
+        exposure:auto.exposure+(n(m.exposure)/100)*.65+(n(m.brightness)/100)*.75,
+        shadows:auto.shadows+(n(m.shadows)/100)*.55,
+        deepShadows:auto.deepShadows,
+        highlights:auto.highlights-(n(m.highlights)/100)*.55,
+        gamma:auto.gamma,
+        complexionLift:auto.complexionLift+(n(m.faceLighting)/100)*.22,
+        contrast:auto.contrast*(1+n(m.contrast)/100),
+        saturation:auto.saturation*(1+n(m.saturation)/100),
+        temperature:auto.temperature+(n(m.temperature)/100)*28,
+        sharpness:clamp(auto.sharpness+(n(m.sharpness)/100)*.42,0,.7)
+      };
       const out=new Uint8ClampedArray(srcData.data);
       for(let p=0;p<w*h;p++){
         const i=p*4,fg=1-mask[p];
         let r=srcData.data[i],g=srcData.data[i+1],b=srcData.data[i+2];
         const lum=(.2126*r+.7152*g+.0722*b)/255;
-        // Print media loses perceived brightness in the shadows. Lift dark
-        // midtones adaptively while protecting highlights and skin detail.
         const shadow=Math.max(0,(.68-lum)/.68);
         const deepShadow=Math.max(0,(.42-lum)/.42);
         const highlight=Math.max(0,(lum-.72)/.28);
-        // Extra foreground illumination is intentional for dark/brown complexions and
-        // underexposed portraits. It raises facial midtones without simply whitening
-        // the whole photo or clipping the highlights.
-        const complexionLift = (v.complexionLift || 0) * Math.max(0, (0.62-lum)/0.62) * fg;
-        const printLift=(v.exposure + shadow*v.shadows + deepShadow*v.deepShadows + complexionLift - highlight*v.highlights)*fg;
+        const complexionLift=(v.complexionLift||0)*Math.max(0,(.62-lum)/.62)*fg;
+        const printLift=(v.exposure+shadow*v.shadows+deepShadow*v.deepShadows+complexionLift-highlight*v.highlights)*fg;
         r+=255*printLift;g+=255*printLift;b+=255*printLift;
-        // Gentle gamma compensation improves dark paper reproduction without
-        // turning blacks into grey.
-        if (fg > .5) {
-          const gamma = v.gamma;
-          r=255*Math.pow(Math.max(0,r/255),gamma);
-          g=255*Math.pow(Math.max(0,g/255),gamma);
-          b=255*Math.pow(Math.max(0,b/255),gamma);
+        if(fg>.5){
+          r=255*Math.pow(Math.max(0,r/255),v.gamma);
+          g=255*Math.pow(Math.max(0,g/255),v.gamma);
+          b=255*Math.pow(Math.max(0,b/255),v.gamma);
         }
-        r=((r/255-.5)*v.contrast+.5)*255;g=((g/255-.5)*v.contrast+.5)*255;b=((b/255-.5)*v.contrast+.5)*255;
-        const mx=Math.max(r,g,b),mn=Math.min(r,g,b),delta=mx-mn;
-        if(delta>1){
-          const avg=(r+g+b)/3, sat=v.saturation;
-          r=avg+(r-avg)*sat;g=avg+(g-avg)*sat;b=avg+(b-avg)*sat;
-          const temp=v.temperature*fg;
-          r+=temp;b-=temp;
-        }
+        r=((r/255-.5)*v.contrast+.5)*255;
+        g=((g/255-.5)*v.contrast+.5)*255;
+        b=((b/255-.5)*v.contrast+.5)*255;
+        const avg=(r+g+b)/3,sat=v.saturation;
+        r=avg+(r-avg)*sat;g=avg+(g-avg)*sat;b=avg+(b-avg)*sat;
+        const temp=v.temperature*fg;r+=temp;b-=temp;
         if(opt.whiteBackground!==false){
-          const a=mask[p];
-          r=r*(1-a)+255*a;g=g*(1-a)+255*a;b=b*(1-a)+255*a;
+          const a=mask[p];r=r*(1-a)+255*a;g=g*(1-a)+255*a;b=b*(1-a)+255*a;
         }
-        out[i]=Math.max(0,Math.min(255,r));out[i+1]=Math.max(0,Math.min(255,g));out[i+2]=Math.max(0,Math.min(255,b));out[i+3]=srcData.data[i+3];
+        out[i]=clamp(r,0,255);out[i+1]=clamp(g,0,255);out[i+2]=clamp(b,0,255);
+        out[i+3]=clamp(srcData.data[i+3]*(n(m.opacity,100)/100),0,255);
       }
       ctx.putImageData(new ImageData(out,w,h),0,0);
       if(v.sharpness>0) this.sharpen(ctx,w,h,v.sharpness,mask);
+      const cropScale=clamp(n(m.cropScale,100)/100,1,2.5);
+      const posX=clamp(n(m.positionX,0),-50,50)/100;
+      const posY=clamp(n(m.positionY,0),-50,50)/100;
+      if(cropScale!==1||posX!==0||posY!==0) this.reframe(c,w,h,cropScale,posX,posY);
       return c.toDataURL("image/jpeg",.97);
     },
     calculate(s,mode){
       const natural=mode==="natural",strong=mode==="strong";
-      const target=.52, gap=target-s.mean;
+      const target=.52,gap=target-s.mean;
       return {
-        brightness:gap,
         exposure:Math.max(-.05,Math.min(.30,gap*.65+(s.darkFraction-.20)*.16))*(natural?.65:strong?1.15:1),
-        shadows:Math.max(0,Math.min(.48,(s.shadowMean<.46? .20: .10)+(s.darkFraction-.20)*.40))*(natural?.65:strong?1.18:1),
+        shadows:Math.max(0,Math.min(.48,(s.shadowMean<.46?.20:.10)+(s.darkFraction-.20)*.40))*(natural?.65:strong?1.18:1),
         deepShadows:Math.max(0,Math.min(.24,(s.darkFraction>.28?.055:.025)))*(natural?.7:strong?1.15:1),
-        gamma:(natural?.985:strong?.89:.95),
-        complexionLift:(natural?.025:strong?.105:.055),
+        gamma:natural?.985:strong?.89:.95,
+        complexionLift:natural?.025:strong?.105:.055,
         highlights:Math.max(.04,Math.min(.24,(s.highlightFraction*.30)+.05))*(natural?.7:strong?1.1:1),
         contrast:Math.max(.98,Math.min(1.10,1+(target-s.mean)*.16+(s.std<.16?.025:0)))*(natural?.75:strong?1.08:1),
         saturation:Math.max(.94,Math.min(1.10,1+(s.saturation<.30?.045:.015)))*(natural?.8:strong?1.05:1),
@@ -82,6 +89,16 @@
       const src=ctx.getImageData(0,0,w,h),d=src.data,o=new Uint8ClampedArray(d),a=Math.min(.42,amount);
       for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const p=y*w+x,i=p*4;if(mask[p]>.35)continue;for(let c=0;c<3;c++){const center=d[i+c],avg=(d[i-4+c]+d[i+4+c]+d[i-4*w+c]+d[i+4*w+c])/4;o[i+c]=Math.max(0,Math.min(255,center+(center-avg)*a));}}
       ctx.putImageData(new ImageData(o,w,h),0,0);
+    },
+    reframe(canvas,w,h,scale,posX,posY){
+      const temp=document.createElement("canvas");temp.width=w;temp.height=h;
+      const t=temp.getContext("2d");
+      const dw=w*scale,dh=h*scale;
+      const maxX=(dw-w)/2,maxY=(dh-h)/2;
+      const x=(w-dw)/2+posX*2*maxX,y=(h-dh)/2+posY*2*maxY;
+      t.drawImage(canvas,x,y,dw,dh);
+      canvas.getContext("2d").clearRect(0,0,w,h);
+      canvas.getContext("2d").drawImage(temp,0,0);
     },
     mask(data,W,H){
       const s=Math.max(1,Math.ceil(Math.max(W,H)/180)),w=Math.ceil(W/s),h=Math.ceil(H/s),rgb=new Float32Array(w*h*3),edge=[];
