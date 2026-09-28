@@ -10386,38 +10386,64 @@
           },
 
           getSavedBadges: async function () {
-            let local = [];
-            try {
-              const db = await this.openBadgeDb();
-              local = await new Promise((resolve, reject) => {
-                const tx = db.transaction(this.badgeStoreName, "readonly");
-                const request = tx.objectStore(this.badgeStoreName).getAll();
-                request.onsuccess = () => { db.close(); resolve(request.result || []); };
-                request.onerror = () => { db.close(); reject(request.error); };
-              });
-            } catch (_) {
-              try {
-                const raw = localStorage.getItem(this.badgeFallbackKey);
-                const items = raw ? JSON.parse(raw) : [];
-                local = Array.isArray(items) ? items : [];
-              } catch (_) { local = []; }
-            }
-
+            // The central templates/badges folder is the source of truth.
+            // IndexedDB/localStorage is intentionally not merged into the picker.
             const remote = await this.getRemoteBadges();
-            const merged = [...local];
-            remote.forEach(file => {
-              if (!merged.some(item => item.remotePath === file.path)) {
-                merged.push({
-                  id: "github-badge-" + file.name,
-                  name: file.name,
-                  dataUrl: file.download_url || file.html_url,
-                  updatedAt: Date.now(),
-                  remote: true,
-                  remotePath: file.path
-                });
+            return remote.map(file => ({
+              id: "github-badge-" + file.name,
+              name: file.name,
+              dataUrl: file.download_url || file.html_url,
+              updatedAt: Date.now(),
+              remote: true,
+              remotePath: file.path
+            }));
+          },
+
+          async _badgeCacheFingerprint(dataUrl) {
+            const raw = String(dataUrl || "").trim();
+            if (!raw) return "";
+            try {
+              if (window.crypto?.subtle) {
+                const bytes = new TextEncoder().encode(raw);
+                const digest = await crypto.subtle.digest("SHA-256", bytes);
+                return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
               }
-            });
-            return merged.sort((a,b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0));
+            } catch (_) {}
+            let hash = 2166136261;
+            for (let i = 0; i < raw.length; i++) {
+              hash ^= raw.charCodeAt(i);
+              hash = Math.imul(hash, 16777619);
+            }
+            return "fnv-" + (hash >>> 0).toString(16);
+          },
+
+          _getBadgeRemoteCache() {
+            try {
+              const raw = localStorage.getItem("joesStudio.badgeRemoteCache.v1");
+              const value = raw ? JSON.parse(raw) : {};
+              return value && typeof value === "object" ? value : {};
+            } catch (_) {
+              return {};
+            }
+          },
+
+          _rememberBadgeRemoteCache(fingerprint, item) {
+            if (!fingerprint || !item?.id) return;
+            try {
+              const cache = this._getBadgeRemoteCache();
+              cache[fingerprint] = {
+                id: item.id,
+                name: item.name,
+                path: item.path || item.remotePath || "",
+                dataUrl: item.dataUrl || "",
+                updatedAt: Date.now()
+              };
+              const entries = Object.entries(cache).slice(-200);
+              localStorage.setItem(
+                "joesStudio.badgeRemoteCache.v1",
+                JSON.stringify(Object.fromEntries(entries))
+              );
+            } catch (_) {}
           },
 
           saveBadgeToLibrary: async function (name, dataUrl, selectAfterSave = true) {
@@ -10425,69 +10451,52 @@
             const cleanData = String(dataUrl || "").trim();
             if (!cleanData) return null;
 
-            const now = Date.now();
-            let existing = null;
-            const current = await this.getSavedBadges();
-            existing = current.find(item => item.dataUrl === cleanData) || null;
+            const fingerprint = await this._badgeCacheFingerprint(cleanData);
+            const cache = this._getBadgeRemoteCache();
+            const cached = fingerprint ? cache[fingerprint] : null;
 
-            const item = existing
-              ? { ...existing, name: cleanName, updatedAt: now }
-              : {
-                  id: "badge-" + now + "-" + Math.random().toString(36).slice(2, 9),
-                  name: cleanName,
-                  dataUrl: cleanData,
-                  createdAt: now,
-                  updatedAt: now
-                };
-
-            try {
-              const db = await this.openBadgeDb();
-              await new Promise((resolve, reject) => {
-                const tx = db.transaction(this.badgeStoreName, "readwrite");
-                tx.objectStore(this.badgeStoreName).put(item);
-                tx.oncomplete = () => { db.close(); resolve(); };
-                tx.onerror = () => { db.close(); reject(tx.error); };
-              });
-
-              const after = (await this.getSavedBadges())
-                .sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0));
-              const remove = after.slice(50);
-              if (remove.length) {
-                const db2 = await this.openBadgeDb();
-                await new Promise((resolve, reject) => {
-                  const tx = db2.transaction(this.badgeStoreName, "readwrite");
-                  const store = tx.objectStore(this.badgeStoreName);
-                  remove.forEach(entry => store.delete(entry.id));
-                  tx.oncomplete = () => { db2.close(); resolve(); };
-                  tx.onerror = () => { db2.close(); reject(tx.error); };
-                });
+            // Local cache is only a duplicate-prevention index. It is never
+            // treated as a badge-library source and never shown in the picker.
+            if (cached?.id && cached?.dataUrl) {
+              const item = {
+                id: cached.id,
+                name: cached.name || cleanName,
+                path: cached.path || "",
+                remotePath: cached.path || "",
+                remote: true,
+                dataUrl: cached.dataUrl
+              };
+              if (selectAfterSave) {
+                try { localStorage.setItem(this.selectedBadgeKey, item.id); } catch (_) {}
+                if (window.JoesStudentBatch?.useSavedBadge) {
+                  window.JoesStudentBatch.useSavedBadge(item.name, item.dataUrl, item.id);
+                }
               }
-            } catch (_) {
-              try {
-                const fallback = (await this.getSavedBadges()).filter(entry => entry.dataUrl !== cleanData);
-                fallback.unshift(item);
-                localStorage.setItem(this.badgeFallbackKey, JSON.stringify(fallback.slice(0, 20)));
-              } catch (e) {
-                console.warn("Could not persist template badge locally.", e);
-              }
+              return item;
             }
 
             try {
               const remote = await this.saveBadgeToGitHub(cleanName, cleanData);
-              if (remote) item = { ...item, ...remote };
-            } catch (e) {
-              console.error("GitHub badge sync failed", e);
-              Utils.toast("Badge saved locally, but GitHub sync failed: " + (e.message || "Unknown error"), "error");
-            }
+              if (!remote?.id) throw new Error("Badge was not registered in the central library.");
 
-            if (selectAfterSave) {
-              try { localStorage.setItem(this.selectedBadgeKey, item.id); } catch (_) {}
-              if (window.JoesStudentBatch?.useSavedBadge) {
-                window.JoesStudentBatch.useSavedBadge(item.name, item.dataUrl, item.id);
+              const item = {
+                ...remote,
+                dataUrl: remote.dataUrl || cleanData
+              };
+              this._rememberBadgeRemoteCache(fingerprint, item);
+
+              if (selectAfterSave) {
+                try { localStorage.setItem(this.selectedBadgeKey, item.id); } catch (_) {}
+                if (window.JoesStudentBatch?.useSavedBadge) {
+                  window.JoesStudentBatch.useSavedBadge(item.name, item.dataUrl, item.id);
+                }
               }
+              return item;
+            } catch (e) {
+              console.error("Central badge sync failed", e);
+              Utils.toast("Badge could not be saved to the central badge folder: " + (e.message || "Unknown error"), "error");
+              return null;
             }
-
-            return item;
           },
 
           useBadge: async function (id) {
