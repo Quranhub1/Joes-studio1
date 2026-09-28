@@ -135,7 +135,7 @@ export async function verifyPassword(password,record){
   const derived=await new Promise((resolve,reject)=>crypto.scrypt(String(password),salt,64,{N:32768,r:8,p:3,maxmem:128*1024*1024},(e,d)=>e?reject(e):resolve(d)));
   return safeEqual(Buffer.from(derived).toString("base64url"),record.hash);
 }
-function tokenHash(token){return crypto.createHash("sha256").update(token).digest("hex")}
+function tokenHash(token){return crypto.createHmac("sha256",String(process.env.USER_SESSION_SECRET||"")).update(token).digest("hex")}
 export async function createSession(userId,type="user"){
   const token=crypto.randomBytes(32).toString("base64url");
   const key="joes:session:"+type+":"+tokenHash(token);
