@@ -10589,7 +10589,7 @@
                   // Gallery previews are static and isolated in a Shadow DOM.
                   // Remove scripts and document-level wrappers so template code cannot
                   // execute or leak styles/events into the editor page.
-                  html = html.replace(/<script[\\s\\S]*?<\\/script>/gi, "");
+                  html = html.replace(/<script[\s\S]*?<\/script>/gi, "");
                   const parsed = new DOMParser().parseFromString(html, "text/html");
                   parsed.querySelectorAll("script").forEach(el => el.remove());
                   parsed.querySelectorAll("meta, link, base").forEach(el => el.remove());
