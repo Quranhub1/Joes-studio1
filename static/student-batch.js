@@ -1537,6 +1537,44 @@
         }
       }
 
+      // Apply a subtle JOES STUDIO watermark to every generated card.
+      // It is deliberately low-contrast so it identifies the studio without
+      // competing with student data, photos, badges, QR codes, or print text.
+      if (!body.querySelector(".joes-studio-watermark")) {
+        const watermark = body.ownerDocument.createElement("div");
+        watermark.className = "joes-studio-watermark";
+        watermark.textContent = "JOES STUDIO";
+        watermark.setAttribute("aria-hidden", "true");
+        watermark.style.cssText = [
+          "position:absolute",
+          "left:50%",
+          "top:53%",
+          "transform:translate(-50%,-50%) rotate(-16deg)",
+          "z-index:0",
+          "pointer-events:none",
+          "user-select:none",
+          "white-space:nowrap",
+          "font-family:Georgia, 'Times New Roman', serif",
+          "font-size:20px",
+          "font-weight:700",
+          "font-style:italic",
+          "letter-spacing:2.8px",
+          "line-height:1",
+          "color:rgba(29,53,87,.11)",
+          "text-shadow:0 1px 0 rgba(255,255,255,.28)",
+          "mix-blend-mode:multiply"
+        ].join(";");
+        body.style.position = body.style.position || "relative";
+        body.insertBefore(watermark, body.firstChild);
+      }
+      const watermark = body.querySelector(".joes-studio-watermark");
+      if (watermark) {
+        watermark.style.zIndex = "0";
+        Array.from(body.children).forEach(child => {
+          if (child !== watermark && !child.style.zIndex) child.style.position = child.style.position || "relative";
+        });
+      }
+
       // Final guard: no unresolved image placeholder may reach the DOM.
       this.sanitizePlaceholderImages(body);
       this.proxyExternalPreviewImages(body);
