@@ -3,6 +3,7 @@ import {cors,json,requireOrigin,redis,safeEqual,createSession,getSession,destroy
 
 const ADMIN_USERNAME=process.env.ADMIN_USERNAME||"";
 const ADMIN_PASSWORD=process.env.ADMIN_PASSWORD||"";
+const ADMIN_EMAIL=String(process.env.ADMIN_EMAIL||"").trim().toLowerCase();
 
 function plans(){
   return {
@@ -60,6 +61,16 @@ export default async function handler(req,res){
   try{
     const url=new URL(req.url,"https://admin.local");
     const action=url.searchParams.get("action")||"";
+    if((req.method==="GET"||req.method==="POST")&&action==="sync"){
+      const {getSession}=await import("./_auth.mjs");
+      const userSession=await getSession(req,"user");
+      if(!userSession) return json(res,401,{error:"Unauthorized"});
+      const user=await getUser(userSession.userId);
+      if(!user||!ADMIN_EMAIL||String(user.email||"").trim().toLowerCase()!==ADMIN_EMAIL) return json(res,403,{error:"Not an admin"});
+      const token=await createSession("admin:"+(ADMIN_USERNAME||ADMIN_EMAIL),"admin");
+      res.setHeader("Set-Cookie",cookieHeader(ADMIN_COOKIE,token,8*60*60));
+      return json(res,200,{ok:true});
+    }
     if(req.method==="POST"&&action==="login"){
       if(!ADMIN_USERNAME||!ADMIN_PASSWORD) return json(res,503,{error:"Admin credentials are not configured"});
       const body=req.body||{};
