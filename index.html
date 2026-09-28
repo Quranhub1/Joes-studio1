@@ -9147,7 +9147,8 @@
 
 <style id="joes-auth-ui">
 #joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
-#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}\n#joesAuthOverlay.required{z-index:99999;background:rgba(15,23,42,.82)}
+#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}
+#joesAuthOverlay.required{z-index:99999;background:rgba(15,23,42,.82)}
 #joesAuthOverlay.open{display:flex}
 .joes-auth-card{width:min(430px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
 .joes-auth-card input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;margin-top:8px}
@@ -9193,7 +9194,11 @@
 <script>
 (function(){
   const API=window.JOES_API_BASE||"";
-  let mode="login",user=null,authRequired=false;\n  const GUEST_GRACE_MINUTES=Math.max(1,Number(window.JOES_GUEST_GRACE_MINUTES)||30);\n  const GUEST_STARTED_KEY="joes_guest_started_at_v1";\n  function guestDeadline(){let v=Number(localStorage.getItem(GUEST_STARTED_KEY));if(!v){v=Date.now();localStorage.setItem(GUEST_STARTED_KEY,String(v));}return v+GUEST_GRACE_MINUTES*60000;}\n  function guestExpired(){return Date.now()>=guestDeadline();}
+  let mode="login",user=null,authRequired=false;
+  const GUEST_GRACE_MINUTES=Math.max(1,Number(window.JOES_GUEST_GRACE_MINUTES)||30);
+  const GUEST_STARTED_KEY="joes_guest_started_at_v1";
+  function guestDeadline(){let v=Number(localStorage.getItem(GUEST_STARTED_KEY));if(!v){v=Date.now();localStorage.setItem(GUEST_STARTED_KEY,String(v));}return v+GUEST_GRACE_MINUTES*60000;}
+  function guestExpired(){return Date.now()>=guestDeadline();}
   const $=id=>document.getElementById(id);
   async function api(path,opts={}){
     const r=await fetch(API+path,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
@@ -9225,8 +9230,16 @@
     try{const d=await api("/api/payments");const p=d.payment||{};$("joesPaymentDetails").textContent=(p.accountNumber&&p.accountName?"You are sending money to "+p.accountNumber+" • "+p.accountName+". Send your Pro payment there, then enter the transaction reference below."+(p.proPrice?" • "+p.currency+" "+p.proPrice:""):(p.method||"")+" • Payment details are not configured yet.")}
     catch(e){$("joesPaymentDetails").textContent="Payment details unavailable."}
   }
+  function scheduleGuestExpiry(){
+    const remaining=guestDeadline()-Date.now();
+    if(remaining<=0){if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}return;}
+    setTimeout(()=>{if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}},remaining);
+  }
   async function refresh(){
     try{user=(await api("/api/auth?action=me")).user}catch(_){user=null}
+    if(user){authRequired=false;localStorage.removeItem(GUEST_STARTED_KEY);close();}
+    else if(guestExpired()){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}
+    else scheduleGuestExpiry();
     render();
   }
   $("joesAuthButton").onclick=open;
