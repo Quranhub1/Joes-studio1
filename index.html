@@ -10455,16 +10455,30 @@
             const cache = this._getBadgeRemoteCache();
             const cached = fingerprint ? cache[fingerprint] : null;
 
+            // Validate the cache against the central folder before reusing it.
+            // A stale browser cache must never resurrect a badge that no
+            // longer exists in templates/badges.
+            let cachedRemote = null;
+            if (cached?.id && cached?.dataUrl) {
+              try {
+                const remote = await this.getSavedBadges();
+                cachedRemote = remote.find(item =>
+                  String(item.id || "") === String(cached.id || "") ||
+                  String(item.remotePath || "") === String(cached.path || "")
+                ) || null;
+              } catch (_) {}
+            }
+
             // Local cache is only a duplicate-prevention index. It is never
             // treated as a badge-library source and never shown in the picker.
-            if (cached?.id && cached?.dataUrl) {
+            if (cachedRemote?.id && cachedRemote?.dataUrl) {
               const item = {
-                id: cached.id,
-                name: cached.name || cleanName,
-                path: cached.path || "",
-                remotePath: cached.path || "",
+                id: cachedRemote.id,
+                name: cachedRemote.name || cached.name || cleanName,
+                path: cachedRemote.path || cached.path || "",
+                remotePath: cachedRemote.remotePath || cached.path || "",
                 remote: true,
-                dataUrl: cached.dataUrl
+                dataUrl: cachedRemote.dataUrl || cached.dataUrl
               };
               if (selectAfterSave) {
                 try { localStorage.setItem(this.selectedBadgeKey, item.id); } catch (_) {}
