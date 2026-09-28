@@ -1,113 +1,125 @@
 import crypto from "node:crypto";
+import {cors,json,requireOrigin,redis,safeEqual,createSession,getSession,destroySession,getUser,saveUser,normalizeUser,publicUser,ADMIN_COOKIE,cookieHeader,clearCookie,evalRedis,FREE_BATCH_LIMIT} from "./_auth.mjs";
 
-const COOKIE = "joes_admin_session";
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const ADMIN_USERNAME=process.env.ADMIN_USERNAME||"";
+const ADMIN_PASSWORD=process.env.ADMIN_PASSWORD||"";
 
-function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
-  res.end(JSON.stringify(body));
-}
-function cors(res) {
-  res.setHeader("Cache-Control", "no-store");
-  res.setHeader("X-Content-Type-Options", "nosniff");
-}
-function safeEqual(a, b) { const aa = Buffer.from(String(a)); const bb = Buffer.from(String(b)); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
-function sign(value) {
-  return crypto.createHmac("sha256", process.env.ADMIN_SESSION_SECRET || "").update(value).digest("base64url");
-}
-function cookieValue(req) {
-  const raw = req.headers.cookie || "";
-  const hit = raw.split(";").map(x => x.trim()).find(x => x.startsWith(COOKIE + "="));
-  return hit ? decodeURIComponent(hit.slice(COOKIE.length + 1)) : "";
-}
-function authenticated(req) {
-  if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.ADMIN_SESSION_SECRET) return false;
-  const v = cookieValue(req);
-  if (!v) return false;
-  const [u, exp, sig] = v.split(".");
-  if (!u || !exp || !sig || Number(exp) < Date.now()) return false;
-  const expected = sign(u + "." + exp);
-  return safeEqual(sig, expected);
-}
-async function redis(command, ...args) {
-  if (!REDIS_URL || !REDIS_TOKEN) throw new Error("Redis storage is not configured");
-  const r = await fetch(REDIS_URL, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + REDIS_TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify([command, ...args])
-  });
-  if (!r.ok) throw new Error("Redis request failed");
-  const data = await r.json();
-  return data.result;
-}
-async function listSubscriptions() {
-  const keys = await redis("smembers", "joes:subscriptions");
-  if (!keys?.length) return [];
-  const values = await Promise.all(keys.map(k => redis("get", "joes:subscription:" + k)));
-  return values.filter(Boolean).map(v => typeof v === "string" ? JSON.parse(v) : v)
-    .sort((a,b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
-}
-async function getSubscription(id) {
-  const v = await redis("get", "joes:subscription:" + id);
-  return v ? (typeof v === "string" ? JSON.parse(v) : v) : null;
-}
-function clean(input = {}) {
-  const now = new Date().toISOString();
-  const id = String(input.id || crypto.randomUUID());
+function plans(){
   return {
-    id,
-    name: String(input.name || "").trim().slice(0,120),
-    email: String(input.email || "").trim().toLowerCase().slice(0,200),
-    plan: String(input.plan || "monthly").slice(0,40),
-    status: ["pending","active","expired","cancelled"].includes(input.status) ? input.status : "pending",
-    startAt: input.startAt ? new Date(input.startAt).toISOString() : now,
-    endAt: input.endAt ? new Date(input.endAt).toISOString() : null,
-    banned: Boolean(input.banned),
-    bannedAt: input.banned ? (input.bannedAt || now) : null,
-    notes: String(input.notes || "").slice(0,1000),
-    updatedAt: now
+    free:{id:"free",name:"Free",batchLimit:FREE_BATCH_LIMIT,price:"0",currency:process.env.PAYMENT_CURRENCY||"UGX"},
+    pro:{id:"pro",name:"Pro",batchLimit:Number.MAX_SAFE_INTEGER,price:process.env.PRO_PRICE||"",currency:process.env.PAYMENT_CURRENCY||"UGX"}
   };
 }
-export default async function handler(req, res) {
-  cors(res);
-  try {
-    if (req.method === "POST" && new URL(req.url, "https://admin.local").searchParams.get("action") === "login") {
-      const body = req.body || {};
-      const usernameOk = safeEqual(body.username || "", process.env.ADMIN_USERNAME || "");
-      const passwordOk = safeEqual(body.password || "", process.env.ADMIN_PASSWORD || "");
-      const ok = usernameOk && passwordOk;
-      if (!ok) return json(res, 401, { error: "Invalid admin credentials" });
-      const exp = Date.now() + 8 * 60 * 60 * 1000;
-      const value = process.env.ADMIN_USERNAME + "." + exp;
-      const token = value + "." + sign(value);
-      res.setHeader("Set-Cookie", `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=28800`);
-      return json(res, 200, { ok: true });
-    }
-    if (req.method === "POST" && new URL(req.url, "https://admin.local").searchParams.get("action") === "logout") {
-      res.setHeader("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
-      return json(res, 200, { ok: true });
-    }
-    if (!authenticated(req)) return json(res, 401, { error: "Unauthorized" });
-
-    if (req.method === "GET") return json(res, 200, { subscriptions: await listSubscriptions() });
-
-    if (req.method === "PUT" || req.method === "POST") {
-      const item = clean(req.body || {});
-      await redis("set", "joes:subscription:" + item.id, JSON.stringify(item));
-      await redis("sadd", "joes:subscriptions", item.id);
-      return json(res, 200, item);
-    }
-
-    if (req.method === "DELETE") {
-      const id = new URL(req.url, "https://admin.local").searchParams.get("id");
-      if (!id) return json(res, 400, { error: "Missing id" });
-      await redis("del", "joes:subscription:" + id);
-      await redis("srem", "joes:subscriptions", id);
-      return json(res, 200, { ok: true });
-    }
-    return json(res, 405, { error: "Method not allowed" });
-  } catch (e) {
-    return json(res, 500, { error: e.message || "Server error" });
+function adminAuthed(session){return !!session?.userId&&session.userId.startsWith("admin:")}
+async function listUsers(){
+  const ids=await redis("smembers","joes:users")||[];
+  const users=await Promise.all(ids.map(async id=>{try{return await getUser(id)}catch(_){return null}}));
+  return users.filter(Boolean).map(publicUser).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+async function listPayments(){
+  const ids=await redis("smembers","joes:payments")||[];
+  const values=await Promise.all(ids.map(id=>redis("get","joes:payment:"+id).catch(()=>null)));
+  return values.filter(Boolean).map(v=>typeof v==="string"?JSON.parse(v):v).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+function durationEnd(duration){
+  const d=new Date();
+  if(duration==="weekly") d.setDate(d.getDate()+7);
+  else if(duration==="monthly") d.setMonth(d.getMonth()+1);
+  else if(duration==="quarterly") d.setMonth(d.getMonth()+3);
+  else if(duration==="yearly"||duration==="annual") d.setFullYear(d.getFullYear()+1);
+  else d.setMonth(d.getMonth()+1);
+  return d.toISOString();
+}
+async function approvePayment(payment,approve=true){
+  const user=await getUser(payment.userId);
+  if(!user) throw new Error("User no longer exists");
+  const now=new Date().toISOString();
+  const updatedPayment={...payment,status:approve?"approved":"rejected",approvedAt:approve?now:null,updatedAt:now};
+  if(approve){
+    const start=now,end=durationEnd(String(payment.duration||"monthly"));
+    user.plan={tier:"pro",status:"active",startAt:start,endAt:end,renewalAt:end};
+    user.usage={...(user.usage||{}),batchLimit:Number.MAX_SAFE_INTEGER};
   }
+  user.updatedAt=now;
+  const result=await evalRedis(`#!lua
+local user=ARGV[1]
+local payment=ARGV[2]
+redis.call('SET',KEYS[1],user)
+redis.call('SET',KEYS[2],payment)
+return 1`,["joes:user:"+user.id,"joes:payment:"+payment.id],[JSON.stringify(normalizeUser(user)),JSON.stringify(updatedPayment)]);
+  if(Number(result)!==1) throw new Error("Approval transaction failed");
+  return {payment:updatedPayment,user:normalizeUser(user)};
+}
+export default async function handler(req,res){
+  cors(req,res);
+  if(req.method==="OPTIONS") return res.status(204).end();
+  if(!requireOrigin(req)) return json(res,403,{error:"Origin not allowed"});
+  try{
+    const url=new URL(req.url,"https://admin.local");
+    const action=url.searchParams.get("action")||"";
+    if(req.method==="POST"&&action==="login"){
+      if(!ADMIN_USERNAME||!ADMIN_PASSWORD) return json(res,503,{error:"Admin credentials are not configured"});
+      const body=req.body||{};
+      if(!safeEqual(body.username||"",ADMIN_USERNAME)||!safeEqual(body.password||"",ADMIN_PASSWORD)) return json(res,401,{error:"Invalid admin credentials"});
+      const token=await createSession("admin:"+ADMIN_USERNAME,"admin");
+      res.setHeader("Set-Cookie",cookieHeader(ADMIN_COOKIE,token,8*60*60));
+      return json(res,200,{ok:true});
+    }
+    if(req.method==="POST"&&action==="logout"){
+      await destroySession(req,"admin");res.setHeader("Set-Cookie",clearCookie(ADMIN_COOKIE));return json(res,200,{ok:true});
+    }
+    const session=await getSession(req,"admin");
+    if(!adminAuthed(session)) return json(res,401,{error:"Unauthorized"});
+
+    if(req.method==="GET"){
+      const [users,payments,storedPlans]=await Promise.all([listUsers(),listPayments(),redis("get","joes:plans").catch(()=>null)]);
+      return json(res,200,{users,payments,plans:storedPlans?(typeof storedPlans==="string"?JSON.parse(storedPlans):storedPlans):plans()});
+    }
+
+    if(req.method==="PUT"){
+      const body=req.body||{};
+      if(action==="payment"){
+        const id=String(body.id||"");const raw=await redis("get","joes:payment:"+id);
+        if(!raw)return json(res,404,{error:"Payment not found"});
+        const payment=typeof raw==="string"?JSON.parse(raw):raw;
+        if(payment.status!=="pending")return json(res,409,{error:"Payment already resolved"});
+        const result=await approvePayment(payment,body.status==="approved");
+        return json(res,200,{ok:true,...result});
+      }
+      if(action==="plans"){
+        const current=plans();
+        const next={free:{...current.free,...(body.free||{})},pro:{...current.pro,...(body.pro||{})}};
+        next.free.batchLimit=Math.max(0,Math.floor(Number(next.free.batchLimit)||FREE_BATCH_LIMIT));
+        await redis("set","joes:plans",JSON.stringify(next));
+        return json(res,200,{plans:next});
+      }
+      if(action==="user"){
+        const id=String(body.id||body.userId||"");if(!id)return json(res,400,{error:"User id required"});
+        const user=await getUser(id);if(!user)return json(res,404,{error:"User not found"});
+        if(Object.prototype.hasOwnProperty.call(body,"name"))user.name=String(body.name||"").slice(0,120);
+        if(Object.prototype.hasOwnProperty.call(body,"banned")){user.banned=!!body.banned;user.bannedAt=user.banned?new Date().toISOString():null;user.bannedReason=String(body.bannedReason||"").slice(0,500)}
+        if(body.tier){
+          const tier=String(body.tier).toLowerCase();
+          if(tier==="pro"){const start=new Date().toISOString();const end=body.endAt||durationEnd(body.duration||"monthly");user.plan={tier:"pro",status:"active",startAt:start,endAt:end,renewalAt:end};user.usage.batchLimit=Number.MAX_SAFE_INTEGER}
+          else {user.plan={tier:"free",status:"active",startAt:user.createdAt,endAt:null,renewalAt:null};user.usage.batchLimit=FREE_BATCH_LIMIT}
+        }
+        if(body.status) user.plan.status=String(body.status).toLowerCase();
+        if(body.resetUsage) user.usage={periodKey:new Date().toISOString().slice(0,7),batchesUsed:0,batchLimit:user.plan.tier==="pro"?Number.MAX_SAFE_INTEGER:FREE_BATCH_LIMIT};
+        user.updatedAt=new Date().toISOString();
+        const saved=await saveUser(user);
+        return json(res,200,{user:publicUser(saved)});
+      }
+    }
+
+    if(req.method==="DELETE"){
+      const id=String(url.searchParams.get("id")||"");if(!id)return json(res,400,{error:"User id required"});
+      const user=await getUser(id);if(!user)return json(res,404,{error:"User not found"});
+      const sessions=await redis("smembers","joes:user:sessions:"+id)||[];
+      await Promise.all(sessions.map(hash=>redis("del","joes:session:user:"+hash).catch(()=>null)));
+      await redis("del","joes:user:"+id,"joes:user:email:"+user.email,"joes:user:sessions:"+id);
+      await redis("srem","joes:users",id);
+      return json(res,200,{ok:true});
+    }
+    return json(res,405,{error:"Method not allowed"});
+  }catch(e){console.error("Admin error:",e);return json(res,500,{error:e.message||"Server error"});}
 }
