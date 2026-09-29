@@ -1257,7 +1257,7 @@
         <button onclick="App.ui.toggleFullScreen()" class="flex items-center gap-1 px-3 py-1.5 rounded hover:bg-gray-100 text-md font-medium transition text-gray-600" title="Fullscreen Mode">
           <i id="fsIcon" class="ph ph-corners-out text-lg"></i>
         </button>
-        <button onclick="JoesStudentBatch.open()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition" title="Generate student cards from Excel"><i class="ph ph-identification-card text-lg"></i> Student Batch</button><button onclick="App.io.exportPDF()" class="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition">
+        <button onclick="JoesStudentBatch.open()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition" title="Generate student cards from Excel"><i class="ph ph-identification-card text-lg"></i> Student Batch</button><button onclick="App.design.exportPNG(false)" class="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition" title="Export current design as PNG"><i class="ph ph-image text-lg"></i> PNG</button><button onclick="App.io.exportPDF()" class="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded flex items-center gap-1 shadow-sm transition">
           <i class="ph ph-file-pdf text-lg"></i> Export PDF
         </button>
       </div>
@@ -1266,6 +1266,22 @@
     <div class="flex-1 flex overflow-hidden">
       <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-20 overflow-y-auto no-scrollbar text-xs">
         <div class="p-4 space-y-6">
+          <section class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <h3 class="font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1 text-sm"><i class="ph ph-paint-brush"></i> Design Studio</h3>
+            <p class="text-[10px] text-slate-400 mb-3">Choose a format, then design it on the same canvas.</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="App.design.preset('certificate')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-certificate text-red-500"></i> Certificate</button>
+              <button type="button" onclick="App.design.preset('logo')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-seal text-red-500"></i> Logo</button>
+              <button type="button" onclick="App.design.preset('banner')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-panorama text-red-500"></i> Banner</button>
+              <button type="button" onclick="App.design.preset('poster')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-image text-red-500"></i> Poster</button>
+              <button type="button" onclick="App.design.preset('business-card')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-identification-card text-red-500"></i> Business Card</button>
+              <button type="button" onclick="App.design.preset('badge')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-student text-red-500"></i> Badge</button>
+            </div>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button type="button" onclick="App.design.exportPNG(false)" class="px-2 py-1.5 rounded-md bg-slate-800 text-white hover:bg-slate-900 text-[10px] font-semibold"><i class="ph ph-image"></i> Export PNG</button>
+              <button type="button" onclick="App.design.exportPNG(true)" class="px-2 py-1.5 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-[10px] font-semibold"><i class="ph ph-checkerboard"></i> Transparent PNG</button>
+            </div>
+          </section>
           <section>
             <h3 class="font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1 text-sm"><i class="ph ph-files"></i> Paper Options</h3>
             <div class="space-y-3" id="paperOptions">
@@ -4229,6 +4245,58 @@
               return null;
             }
           },
+        },
+
+        design: {
+          presets: {
+            certificate: { name: "Certificate", w: 297, h: 210, landscape: true },
+            logo: { name: "Logo", w: 100, h: 100, landscape: false },
+            banner: { name: "Banner", w: 900, h: 300, landscape: true },
+            poster: { name: "Poster", w: 210, h: 297, landscape: false },
+            "business-card": { name: "Business Card", w: 90, h: 55, landscape: true },
+            badge: { name: "Badge", w: 86, h: 54, landscape: true }
+          },
+          preset: function(type) {
+            const p = this.presets[type] || this.presets.certificate;
+            const size = document.getElementById("paperSize");
+            const customW = document.getElementById("customW");
+            const customH = document.getElementById("customH");
+            const orientation = document.getElementById("paperOrientation");
+            const bg = document.getElementById("paperBgColor");
+            if (size) size.value = "CUSTOM";
+            if (customW) customW.value = p.w;
+            if (customH) customH.value = p.h;
+            if (orientation) orientation.checked = !!p.landscape;
+            if (bg) bg.value = "#ffffff";
+            App.state.designType = type;
+            App.state.designName = p.name;
+            App.paper.updateSize();
+            if (type === "logo") {
+              App.canvas.setBackgroundColor("rgba(0,0,0,0)", App.canvas.requestRenderAll.bind(App.canvas));
+            }
+            if (window.Utils?.toast) Utils.toast(p.name + " canvas ready");
+          },
+          exportPNG: async function(transparent) {
+            if (!App.canvas) return;
+            const name = (App.state.designName || "Joes-Design").replace(/[^a-z0-9_-]+/gi, "-");
+            const oldBg = App.canvas.backgroundColor;
+            try {
+              if (transparent) App.canvas.setBackgroundColor("rgba(0,0,0,0)", App.canvas.requestRenderAll.bind(App.canvas));
+              const dataUrl = App.canvas.toDataURL({ format: "png", multiplier: 300 / 96, enableRetinaScaling: true });
+              const a = document.createElement("a");
+              a.href = dataUrl;
+              a.download = name + "-300dpi-" + Date.now() + ".png";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              if (window.Utils?.toast) Utils.toast("PNG exported");
+            } catch (e) {
+              console.error("PNG export failed", e);
+              if (window.Utils?.toast) Utils.toast("PNG export failed", "error");
+            } finally {
+              if (!transparent) App.canvas.setBackgroundColor(oldBg, App.canvas.requestRenderAll.bind(App.canvas));
+            }
+          }
         },
 
         paper: {
