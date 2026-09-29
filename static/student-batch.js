@@ -507,7 +507,9 @@
             remote.tree
               .filter(item => item.type === "blob" && /^templates\//i.test(item.path || "") && /\.(?:html|htm)$/i.test(item.path || ""))
               .forEach(item => {
-                const name = item.path.split("/").pop() || item.path;
+                const parts = String(item.path || "").split("/");
+                const name = parts.pop() || item.path;
+                const category = parts[1] || "other";
                 const url = "https://raw.githubusercontent.com/Quranhub1/Joes-studio1/main/" + item.path.split("/").map(encodeURIComponent).join("/");
                 if (!templates.some(t => t.url === url || (t.name === name && t.source === "templates"))) {
                   templates.push({
@@ -515,6 +517,8 @@
                     name,
                     type: "html",
                     url,
+                    path: item.path,
+                    category,
                     source: "templates"
                   });
                 }
@@ -536,7 +540,7 @@
           <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
             <div>
               <h3 class="text-sm font-bold text-white">Choose Existing Template</h3>
-              <p class="text-[10px] text-slate-400 mt-1">Templates stored in the templates folder are available here. Import Custom remains available for your own HTML files.</p>
+              <p class="text-[10px] text-slate-400 mt-1">Templates are loaded recursively from templates/ and grouped by subfolder. Search matches the name, category or path.</p>
             </div>
             <button type="button" data-close class="w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800"><i class="ph ph-x"></i></button>
           </div>
@@ -592,7 +596,11 @@
 
       const render = async () => {
         const query = String(search?.value || "").trim().toLowerCase();
-        const filtered = templates.filter(item => String(item.name || "").toLowerCase().includes(query));
+        const filtered = templates.filter(item => {
+          const haystack = [item.name, item.category, item.path, item.description]
+            .map(value => String(value || "").toLowerCase()).join(" ");
+          return haystack.includes(query);
+        });
         if (!filtered.length) {
           grid.innerHTML = `
             <div class="col-span-full rounded-xl border border-dashed border-slate-700 p-8 text-center">
@@ -610,7 +618,7 @@
             </div>
             <div class="mt-2 flex items-center justify-between gap-2">
               <span class="text-[10px] font-semibold text-white truncate" title="${safeText(item.name)}">${safeText(item.name || "Template")}</span>
-              <span class="text-[8px] text-slate-500 shrink-0">${item.source === "templates" ? "templates/" : "Saved"}</span>
+              <span class="text-[8px] text-slate-500 shrink-0">${item.source === "templates" ? safeText(item.category || "templates") + " • templates/" : "Saved"}</span>
             </div>
           </button>`).join("");
 
