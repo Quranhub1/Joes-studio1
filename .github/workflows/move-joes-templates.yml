@@ -1,0 +1,87 @@
+name: Move JOES staging templates
+
+on:
+  push:
+    paths:
+      - 'static/JOES/**'
+      - '.github/workflows/move-joes-templates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  move:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Move JOES files into templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p templates
+
+          shopt -s nullglob
+          moved=0
+
+          for file in static/JOES/*; do
+            [ -f "$file" ] || continue
+            name="$(basename "$file")"
+
+            case "$name" in
+              *.html|*.htm)
+                target="templates/$name"
+                ;;
+              *.zip)
+                stem="${name%.zip}"
+                work=".joes-work/$stem"
+                rm -rf "$work"
+                mkdir -p "$work"
+                unzip -q "$file" -d "$work"
+
+                html="$(find "$work" -type f \( -iname '*.html' -o -iname '*.htm' \) | head -n 1 || true)"
+                if [ -z "$html" ]; then
+                  echo "No HTML file found in $name; leaving it in static/JOES."
+                  continue
+                fi
+
+                # Put the selected HTML and its package assets together under
+                # templates so relative image/font paths remain usable.
+                target_dir="templates/$stem"
+                rm -rf "$target_dir"
+                mkdir -p "$target_dir"
+                cp -a "$(dirname "$html")"/. "$target_dir"/
+                rm -f "$file"
+                moved=1
+                continue
+                ;;
+              *)
+                continue
+                ;;
+            esac
+
+            if [ -e "$target" ]; then
+              base="${target%.html}"
+              ext=".html"
+              n=2
+              while [ -e "${base}-$n$ext" ]; do n=$((n+1)); done
+              target="${base}-$n$ext"
+            fi
+            mv "$file" "$target"
+            moved=1
+          done
+
+          rm -rf .joes-work
+
+          if [ "$moved" -eq 0 ]; then
+            echo "No JOES files needed moving."
+            exit 0
+          fi
+
+          git config user.name "Joes Studio"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A static/JOES templates
+          git diff --cached --quiet && exit 0
+          git commit -m "Move JOES staging templates into templates"
+          git push
