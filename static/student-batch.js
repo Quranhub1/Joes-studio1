@@ -118,7 +118,7 @@
         return '<button type="button" class="relative h-12 rounded-lg overflow-hidden border ' +
           (active ? 'border-amber-300 ring-2 ring-amber-300/30' : 'border-slate-700') +
           '" style="background:' + p.css + '" ' +
-          (disabled ? 'disabled aria-disabled="true"' : 'onclick="JoesStudentBatch.setBackgroundPreset(\\'' + p.id + '\\')"' ) +
+                    (disabled ? 'disabled aria-disabled="true"' : 'onclick="JoesStudentBatch.setBackgroundPreset(&quot;' + p.id + '&quot;)"' ) +
           ' title="' + p.name + (disabled ? ' • Pro only' : '') + '">' +
           '<span class="absolute inset-x-1 bottom-1 rounded bg-black/45 px-1 py-0.5 text-[8px] font-semibold text-white">' +
           p.name + '</span>' + (!pro ? '<span class="absolute right-1 top-1 text-[9px]">🔒</span>' : '') +
