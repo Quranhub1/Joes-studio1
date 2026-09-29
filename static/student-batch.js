@@ -103,7 +103,13 @@
         { id:"sunset", name:"Sunset", image:base+"sunset.svg" },
         { id:"rose", name:"Rose", image:base+"rose.svg" },
         { id:"aqua", name:"Aqua Glass", image:base+"aqua-glass.svg" },
-        { id:"gold", name:"Midnight Gold", image:base+"midnight-gold.svg" }
+        { id:"gold", name:"Midnight Gold", image:base+"midnight-gold.svg" },
+        { id:"joes-16159", name:"JOES 16159", image:base+"16159.jpg" },
+        { id:"joes-2276", name:"JOES 2276", image:base+"2276.jpg" },
+        { id:"blue-wall", name:"Blue Wall", image:base+"blue-wall-background.jpg" },
+        { id:"ombre-blue", name:"Ombre Blue", image:base+"ombre-blue-curve-light-blue-background-vector.jpg" },
+        { id:"joes-3d", name:"3D Message Board", image:base+"vecteezy_vector-background-dimension-3d-graphic-message-board-for_10008086.jpg" },
+        { id:"joes-orange", name:"Orange Geometry", image:base+"vecteezy_white-background-with-orange-geometric_11171111-1.jpg" }
       ];
     },
 
