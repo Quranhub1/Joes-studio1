@@ -1271,16 +1271,35 @@
             <p class="text-[10px] text-slate-400 mb-3">Choose a format, then design it on the same canvas.</p>
             <div class="grid grid-cols-2 gap-2">
               <button type="button" onclick="App.design.preset('certificate')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-certificate text-red-500"></i> Certificate</button>
+              <button type="button" onclick="App.design.preset('diploma')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-scroll text-red-500"></i> Diploma</button>
               <button type="button" onclick="App.design.preset('logo')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-seal text-red-500"></i> Logo</button>
               <button type="button" onclick="App.design.preset('banner')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-panorama text-red-500"></i> Banner</button>
+              <button type="button" onclick="App.design.preset('roll-up')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-flag"></i> Roll-up</button>
               <button type="button" onclick="App.design.preset('poster')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-image text-red-500"></i> Poster</button>
+              <button type="button" onclick="App.design.preset('flyer')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-flyer"></i> Flyer</button>
+              <button type="button" onclick="App.design.preset('invitation')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-envelope-open"></i> Invitation</button>
               <button type="button" onclick="App.design.preset('business-card')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-identification-card text-red-500"></i> Business Card</button>
-              <button type="button" onclick="App.design.preset('badge')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-student text-red-500"></i> Badge</button>
+              <button type="button" onclick="App.design.preset('id-card')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-identification-badge"></i> ID Card</button>
+              <button type="button" onclick="App.design.preset('badge')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-student"></i> Badge</button>
+              <button type="button" onclick="App.design.preset('social-post')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-instagram-logo"></i> Social</button>
+              <button type="button" onclick="App.design.preset('facebook-cover')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-facebook-logo"></i> Cover</button>
+              <button type="button" onclick="App.design.preset('youtube-banner')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-youtube-logo"></i> YouTube</button>
+              <button type="button" onclick="App.design.preset('menu')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-list"></i> Menu</button>
+              <button type="button" onclick="App.design.preset('letterhead')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-note"></i> Letterhead</button>
+              <button type="button" onclick="App.design.preset('invoice')" class="px-2 py-2 rounded-lg bg-white border border-slate-200 hover:border-red-300 hover:bg-red-50 text-[11px] font-semibold text-slate-700"><i class="ph ph-receipt"></i> Invoice</button>
             </div>
             <div class="mt-2 grid grid-cols-2 gap-2">
               <button type="button" onclick="App.design.exportPNG(false)" class="px-2 py-1.5 rounded-md bg-slate-800 text-white hover:bg-slate-900 text-[10px] font-semibold"><i class="ph ph-image"></i> Export PNG</button>
               <button type="button" onclick="App.design.exportPNG(true)" class="px-2 py-1.5 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-[10px] font-semibold"><i class="ph ph-checkerboard"></i> Transparent PNG</button>
+            </div>            <div class="mt-3 pt-3 border-t border-slate-200">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Graphics inspiration</div>
+              <div class="grid grid-cols-2 gap-2">
+                <a href="https://graphicsfamily.com/downloads/free-certificate-design-psd-download/" target="_blank" rel="noopener noreferrer" class="px-2 py-1.5 rounded-md bg-white border border-slate-200 text-[10px] text-slate-600 hover:bg-slate-100">Certificates</a>
+                <a href="https://graphicsfamily.com/downloads/" target="_blank" rel="noopener noreferrer" class="px-2 py-1.5 rounded-md bg-white border border-slate-200 text-[10px] text-slate-600 hover:bg-slate-100">More resources</a>
+              </div>
+              <p class="text-[9px] text-slate-400 mt-2">External resources remain on their original site. Joes Studio uses them as inspiration/reference rather than republishing third-party source files.</p>
             </div>
+
           </section>
           <section>
             <h3 class="font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1 text-sm"><i class="ph ph-files"></i> Paper Options</h3>
@@ -4250,11 +4269,22 @@
         design: {
           presets: {
             certificate: { name: "Certificate", w: 297, h: 210, landscape: true },
+            diploma: { name: "Diploma", w: 297, h: 210, landscape: true },
             logo: { name: "Logo", w: 100, h: 100, landscape: false },
             banner: { name: "Banner", w: 900, h: 300, landscape: true },
+            "roll-up": { name: "Roll-up Banner", w: 850, h: 2000, landscape: false },
             poster: { name: "Poster", w: 210, h: 297, landscape: false },
+            flyer: { name: "Flyer", w: 210, h: 297, landscape: false },
+            invitation: { name: "Invitation", w: 148, h: 210, landscape: false },
             "business-card": { name: "Business Card", w: 90, h: 55, landscape: true },
-            badge: { name: "Badge", w: 86, h: 54, landscape: true }
+            "id-card": { name: "ID Card", w: 85.6, h: 54, landscape: true },
+            badge: { name: "Badge", w: 86, h: 54, landscape: true },
+            "social-post": { name: "Social Post", w: 1080, h: 1080, landscape: false },
+            "facebook-cover": { name: "Facebook Cover", w: 1640, h: 856, landscape: true },
+            "youtube-banner": { name: "YouTube Banner", w: 2560, h: 1440, landscape: true },
+            menu: { name: "Menu", w: 210, h: 297, landscape: false },
+            letterhead: { name: "Letterhead", w: 210, h: 297, landscape: false },
+            invoice: { name: "Invoice", w: 210, h: 297, landscape: false }
           },
           preset: function(type) {
             const p = this.presets[type] || this.presets.certificate;
