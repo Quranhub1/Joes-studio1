@@ -159,7 +159,7 @@ export function base64DataUrl(dataUrl) {
   return match[1].replace(/\s/g, "");
 }
 
-export async function updateTemplateManifest(fileName) {
+export async function updateTemplateManifest(templatePath) {\n  const fileName = String(templatePath || "").split("/").pop() || "";
   const path = "templates/templates.json";
   const current = await getFile(path);
   let entries = [];
@@ -184,7 +184,7 @@ export async function updateTemplateManifest(fileName) {
     id,
     name: fileName,
     type: "html",
-    url: "./templates/" + fileName,
+    url: "./" + String(templatePath || "").replace(/^\\.?\\//, ""),
     source: "github",
   };
 
