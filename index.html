@@ -558,7 +558,7 @@
             </div>
             <div class="space-y-4">
               <div class="joes-get-started-wrap">
-                <button type="button" onclick="App.ui.showModal('welcomeModal'); App.templates.setStartTab('templates')" class="joes-get-started" aria-label="Get started with a blank paper">
+                <button type="button" onclick="App.templates.load('blank_a4')" class="joes-get-started" aria-label="Get started with a blank paper">
                   <span class="joes-get-started-text">Get started</span>
                   <span class="joes-get-started-icon" aria-hidden="true">
                     <svg class="joes-get-started-svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" focusable="false">
@@ -598,21 +598,13 @@
         <div class="w-2/3 p-8 bg-gray-50 flex flex-col">
           <div class="flex items-center justify-between gap-4 mb-4">
             <h2 id="startFromTemplateTitle" class="text-lg font-bold text-slate-800">Start from Template</h2>
-            <div class="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
-              <button
-                id="templateStartTab"
-                type="button"
-                onclick="App.templates.setStartTab('templates')"
-                class="px-3 py-1.5 rounded-md bg-slate-800 text-white text-xs font-semibold transition">
-                <i class="ph ph-files mr-1"></i> Templates
-              </button>
-              <button
-                id="templateBadgeTab"
-                type="button"
-                onclick="App.templates.setStartTab('badges')"
-                class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold transition">
-                <i class="ph ph-images mr-1"></i> Template Badges
-              </button>
+            <div id="templateStartTabs" class="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-lg shadow-sm max-w-[70%] overflow-x-auto">
+              <button id="templateStartTab" type="button" onclick="App.templates.setStartTab('templates')" class="px-3 py-1.5 rounded-md bg-slate-800 text-white text-xs font-semibold whitespace-nowrap transition"><i class="ph ph-files mr-1"></i> All Templates</button>
+              <button id="templateIdTab" type="button" onclick="App.templates.setStartTab('ID Cards & Examination Cards')" class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold whitespace-nowrap transition"><i class="ph ph-identification-card mr-1"></i> ID Cards & Exams</button>
+              <button id="templateCertificateTab" type="button" onclick="App.templates.setStartTab('Certificates & Diplomas')" class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold whitespace-nowrap transition"><i class="ph ph-certificate mr-1"></i> Certificates</button>
+              <button id="templateBusinessTab" type="button" onclick="App.templates.setStartTab('Business Cards')" class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold whitespace-nowrap transition"><i class="ph ph-address-book mr-1"></i> Business Cards</button>
+              <button id="templateDesignTab" type="button" onclick="App.templates.setStartTab('other-categories')" class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold whitespace-nowrap transition"><i class="ph ph-grid-four mr-1"></i> More Designs</button>
+              <button id="templateBadgeTab" type="button" onclick="App.templates.setStartTab('badges')" class="px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold whitespace-nowrap transition"><i class="ph ph-images mr-1"></i> Template Badges</button>
             </div>
           </div>
           <div id="templateGrid" class="grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar"></div>
@@ -10728,25 +10720,45 @@
           },
 
           setStartTab: async function (tab) {
-            this.activeStartTab = tab === "badges" ? "badges" : "templates";
-            const title = document.getElementById("startFromTemplateTitle");
-            if (title) title.textContent = this.activeStartTab === "badges" ? "Template Badges" : "Start from Template";
+            const validCategories = [
+              "ID Cards & Examination Cards",
+              "Certificates & Diplomas",
+              "Logos & Branding",
+              "Business Cards",
+              "Banners & Roll-ups",
+              "Flyers & Posters",
+              "Invitations & Events",
+              "Social Media",
+              "Letterheads & Documents",
+              "Menus & Stationery",
+              "Other Templates"
+            ];
+            this.activeStartTab = tab === "badges" ? "badges" : (validCategories.includes(tab) ? tab : "templates");
 
-            const templateBtn = document.getElementById("templateStartTab");
-            const badgeBtn = document.getElementById("templateBadgeTab");
-            templateBtn?.classList.toggle("bg-slate-800", this.activeStartTab === "templates");
-            templateBtn?.classList.toggle("text-white", this.activeStartTab === "templates");
-            templateBtn?.classList.toggle("bg-white", this.activeStartTab !== "templates");
-            templateBtn?.classList.toggle("text-slate-600", this.activeStartTab !== "templates");
-            badgeBtn?.classList.toggle("bg-slate-800", this.activeStartTab === "badges");
-            badgeBtn?.classList.toggle("text-white", this.activeStartTab === "badges");
-            badgeBtn?.classList.toggle("bg-white", this.activeStartTab !== "badges");
-            badgeBtn?.classList.toggle("text-slate-600", this.activeStartTab !== "badges");
+            const title = document.getElementById("startFromTemplateTitle");
+            if (title) {
+              title.textContent = this.activeStartTab === "badges"
+                ? "Template Badges"
+                : (this.activeStartTab === "templates" ? "Start from Template" : this.activeStartTab);
+            }
+
+            const tabIds = {
+              "templates": "templateStartTab",
+              "ID Cards & Examination Cards": "templateIdTab",
+              "Certificates & Diplomas": "templateCertificateTab",
+              "Business Cards": "templateBusinessTab",
+              "badges": "templateBadgeTab"
+            };
+            document.querySelectorAll("#templateStartTabs button").forEach(button => {
+              const active = button.id === tabIds[this.activeStartTab];
+              button.className = active
+                ? "px-3 py-1.5 rounded-md bg-slate-800 text-white text-xs font-semibold whitespace-nowrap transition"
+                : "px-3 py-1.5 rounded-md bg-white text-slate-600 text-xs font-semibold whitespace-nowrap transition";
+            });
 
             if (this.activeStartTab === "badges") await this.renderBadgeLibrary();
             else await this.renderHistory();
           },
-
           renderHistory: async function () {
             const grid = document.getElementById("templateGrid");
             if (!grid) return;
@@ -11148,7 +11160,11 @@
                 button.onclick = () => draw(button.dataset.category);
               });
 
-              await draw("all");
+              await draw(
+                ["ID Cards & Examination Cards","Certificates & Diplomas","Business Cards"].includes(this.activeStartTab)
+                  ? this.activeStartTab
+                  : "all"
+              );
             }
 
             if (saved.length) {
