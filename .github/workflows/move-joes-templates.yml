@@ -16,12 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Move JOES files into templates
+      - name: Move JOES files into their proper libraries
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p templates
-
+          mkdir -p templates static/fonts static/design-assets
           shopt -s nullglob
           moved=0
 
@@ -32,85 +31,82 @@ jobs:
             case "$name" in
               *.html|*.htm)
                 target="templates/$name"
+                if [ -e "$target" ]; then
+                  base="${target%.*}"
+                  ext="${target##*.}"
+                  n=2
+                  while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
+                  target="${base}-$n.$ext"
+                fi
+                mv "$file" "$target"
+                moved=1
                 ;;
-              *.zip)
-                stem="${name%.zip}"
+
+              *.zip|*.ZIP)
+                stem="${name%.*}"
                 work=".joes-work/$stem"
                 rm -rf "$work"
                 mkdir -p "$work"
                 unzip -q "$file" -d "$work"
 
-      # Route everything from a staging ZIP to its real library by file type.
-      # HTML templates go to templates/. Fonts go to static/fonts/. Other
-      # design assets go to static/design-assets/<package>/ so the original
-      # source material remains available without polluting the HTML library.
-      found=0
-      while IFS= read -r src; do
-        [ -f "$src" ] || continue
-        rel="${src#"$work"/}"
-        name="$(basename "$src")"
-        lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+                found=0
+                while IFS= read -r src; do
+                  [ -f "$src" ] || continue
+                  rel="${src#"$work"/}"
+                  base_name="$(basename "$src")"
+                  lower="$(printf '%s' "$base_name" | tr '[:upper:]' '[:lower:]')"
 
-        case "$lower" in
-          *.html|*.htm)
-            target="templates/$name"
-            if [ -e "$target" ]; then
-              base="${target%.*}"
-              ext="${target##*.}"
-              n=2
-              while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
-              target="${base}-$n.$ext"
-            fi
-            mkdir -p "$(dirname "$target")"
-            cp -f "$src" "$target"
-            found=1
-            ;;
-          *.ttf|*.otf|*.woff|*.woff2)
-            target="static/fonts/$name"
-            if [ -e "$target" ]; then
-              base="${target%.*}"
-              ext="${target##*.}"
-              n=2
-              while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
-              target="${base}-$n.$ext"
-            fi
-            mkdir -p "$(dirname "$target")"
-            cp -f "$src" "$target"
-            found=1
-            ;;
-          *.psd|*.psb|*.ai|*.eps|*.svg|*.png|*.jpg|*.jpeg|*.webp|*.gif|*.bmp|*.tif|*.tiff|*.pdf|*.cdr|*.indd|*.idml)
-            target="static/design-assets/$stem/$rel"
-            mkdir -p "$(dirname "$target")"
-            cp -f "$src" "$target"
-            found=1
-            ;;
-        esac
-      done < <(find "$work" -type f -print)
+                  case "$lower" in
+                    *.html|*.htm)
+                      target="templates/$base_name"
+                      if [ -e "$target" ]; then
+                        base="${target%.*}"
+                        ext="${target##*.}"
+                        n=2
+                        while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
+                        target="${base}-$n.$ext"
+                      fi
+                      mkdir -p "$(dirname "$target")"
+                      cp -f "$src" "$target"
+                      found=1
+                      ;;
 
-      if [ "$found" -eq 0 ]; then
-        echo "No supported template/design assets found in $name; leaving it in static/JOES."
-        rm -rf "$work"
-        continue
-      fi
+                    *.ttf|*.otf|*.woff|*.woff2)
+                      target="static/fonts/$base_name"
+                      if [ -e "$target" ]; then
+                        base="${target%.*}"
+                        ext="${target##*.}"
+                        n=2
+                        while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
+                        target="${base}-$n.$ext"
+                      fi
+                      mkdir -p "$(dirname "$target")"
+                      cp -f "$src" "$target"
+                      found=1
+                      ;;
 
-      rm -f "$file"
-                moved=1
-                continue
+                    *.psd|*.psb|*.ai|*.eps|*.svg|*.png|*.jpg|*.jpeg|*.webp|*.gif|*.bmp|*.tif|*.tiff|*.pdf|*.cdr|*.indd|*.idml|*.abr)
+                      target="static/design-assets/$stem/$rel"
+                      mkdir -p "$(dirname "$target")"
+                      cp -f "$src" "$target"
+                      found=1
+                      ;;
+                  esac
+                done < <(find "$work" -type f -print)
+
+                if [ "$found" -eq 1 ]; then
+                  rm -f "$file"
+                  moved=1
+                else
+                  echo "No supported assets found in $name; leaving archive in static/JOES."
+                fi
+                rm -rf "$work"
                 ;;
+
               *)
-                continue
+                echo "Leaving unsupported staging file: $name"
                 ;;
             esac
-
-            if [ -e "$target" ]; then
-              base="${target%.html}"
-              ext=".html"
-              n=2
-              while [ -e "${base}-$n$ext" ]; do n=$((n+1)); done
-              target="${base}-$n$ext"
-            fi
-            mv "$file" "$target"
-            moved=1
           done
 
           rm -rf .joes-work
@@ -122,7 +118,7 @@ jobs:
 
           git config user.name "Joes Studio"
           git config user.email "actions@users.noreply.github.com"
-          git add -A static/JOES templates
+          git add -A static/JOES templates static/fonts static/design-assets
           git diff --cached --quiet && exit 0
-          git commit -m "Move JOES staging templates into templates"
+          git commit -m "Move JOES staging files into proper libraries"
           git push
