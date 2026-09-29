@@ -11313,19 +11313,19 @@
                 .filter(file =>
                   file &&
                   file.type === "blob" &&
-                  /^templates\\//i.test(String(file.path || "")) &&
-                  !/^templates\\/badges\\//i.test(String(file.path || "")) &&
-                  /\\.(?:html?|paper)$/i.test(String(file.path || ""))
+                  /^templates\//i.test(String(file.path || "")) &&
+                  !/^templates\/badges\//i.test(String(file.path || "")) &&
+                  /\.(?:html?|paper)$/i.test(String(file.path || ""))
                 )
                 .forEach(file => {
                   const path = String(file.path);
-                  const relative = path.replace(/^templates\\//i, "");
+                  const relative = path.replace(/^templates\//i, "");
                   const url = "./templates/" + relative.split("/").map(encodeURIComponent).join("/");
                   if (existing.has(url.toLowerCase())) return;
 
                   const baseName = relative.split("/").pop() || relative;
                   const cleanName = baseName
-                    .replace(/\\.(?:html?|paper)$/i, "")
+                    .replace(/\.(?:html?|paper)$/i, "")
                     .replace(/[-_]+/g, " ")
                     .replace(/\\b\\w/g, m => m.toUpperCase());
 
