@@ -3,7 +3,7 @@ import {
   options,
   putFile,
   getFile,
-  listDirectory,
+  listDirectory,\n  listTemplateFiles,
   updateTemplateManifest,
   safeFileName,
   base64Utf8,
@@ -20,13 +20,13 @@ function blobSha(content) {
 
 function safeTemplatePath(value) {
   const raw = String(value || "").trim();
-  if (!raw || raw.includes("..") || !/^templates\/[a-zA-Z0-9._-]+\.html$/i.test(raw)) return "";
+  if (!raw || raw.includes("..") || !/^templates\/[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+\.html$/i.test(raw)) return "";
   return raw;
 }
 
 async function findIdenticalTemplate(content) {
   const wanted = blobSha(content);
-  const files = await listDirectory("templates");
+  const files = await listTemplateFiles();
   if (!Array.isArray(files)) return null;
   return files.find(file =>
     file?.type === "file" &&
@@ -40,7 +40,7 @@ export async function POST(request) {
     const body = await request.json();
     const name = String(body?.name || "").trim();
     const content = String(body?.content || "");
-    const existingPath = safeTemplatePath(body?.existingPath);
+    const requestedCategory = safeFileName(body?.category || "saved", "saved");\n    const existingPath = safeTemplatePath(body?.existingPath);
 
     if (!name || !content.trim()) {
       return json({ ok: false, error: "Template name and HTML content are required." }, 400, request);
@@ -60,12 +60,12 @@ export async function POST(request) {
         // of failing the user's upload.
       } else if (current.sha === contentSha) {
         const fileName = existingPath.split("/").pop();
-        const entry = await updateTemplateManifest(fileName);
+        const entry = await updateTemplateManifest(existingPath);
         return json({ ok: true, updated: false, duplicate: true, path: existingPath, fileName, entry }, 200, request);
       } else {
         const fileName = existingPath.split("/").pop();
         await putFile(existingPath, base64Utf8(content), "Joes Studio: update HTML template " + fileName);
-        const entry = await updateTemplateManifest(fileName);
+        const entry = await updateTemplateManifest(existingPath);
         return json({ ok: true, updated: true, duplicate: false, path: existingPath, fileName, entry }, 200, request);
       }
     }
@@ -73,7 +73,7 @@ export async function POST(request) {
     // If this exact HTML already exists under another filename, reuse it.
     const duplicate = await findIdenticalTemplate(content);
     if (duplicate) {
-      const entry = await updateTemplateManifest(duplicate.name);
+      const entry = await updateTemplateManifest(duplicate.path);
       return json({
         ok: true,
         updated: false,
@@ -89,7 +89,7 @@ export async function POST(request) {
       "saved_template"
     ) + ".html";
 
-    const requestedPath = "templates/" + fileName;
+    const requestedPath = "templates/" + requestedCategory + "/" + fileName;
     const current = await getFile(requestedPath);
 
     // Never overwrite a different template just because two users chose the
@@ -98,7 +98,7 @@ export async function POST(request) {
     if (current && current.sha !== contentSha) {
       const base = fileName.replace(/\.html$/i, "");
       for (let n = 2; n <= 999; n++) {
-        const candidate = "templates/" + base + "-" + n + ".html";
+        const candidate = "templates/" + requestedCategory + "/" + base + "-" + n + ".html";
         const existing = await getFile(candidate);
         if (!existing || existing.sha === contentSha) {
           path = candidate;
@@ -109,7 +109,7 @@ export async function POST(request) {
 
     const finalName = path.split("/").pop();
     await putFile(path, base64Utf8(content), "Joes Studio: save HTML template " + finalName);
-    const entry = await updateTemplateManifest(finalName);
+    const entry = await updateTemplateManifest(path);
 
     return json({
       ok: true,
