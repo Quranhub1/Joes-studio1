@@ -159,7 +159,8 @@ export function base64DataUrl(dataUrl) {
   return match[1].replace(/\s/g, "");
 }
 
-export async function updateTemplateManifest(templatePath) {\n  const fileName = String(templatePath || "").split("/").pop() || "";
+export async function updateTemplateManifest(templatePath) {
+  const fileName = String(templatePath || "").split("/").pop() || "";
   const path = "templates/templates.json";
   const current = await getFile(path);
   let entries = [];
