@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "name": "JOES Studio Template Library",
+  "sourceModel": "Original templates inspired by common professional graphic-template categories; not copies of third-party artwork.",
+  "categories": [
+    {
+      "id": "id-cards",
+      "name": "ID Cards",
+      "description": "Employee, school and organization identification cards",
+      "templates": [
+        "templates/id-cards/joes-corporate-id.html"
+      ]
+    },
+    {
+      "id": "certificates",
+      "name": "Certificates",
+      "description": "Academic, achievement, completion and recognition certificates",
+      "templates": [
+        "templates/certificates/joes-academic-certificate.html"
+      ]
+    },
+    {
+      "id": "business-cards",
+      "name": "Business Cards",
+      "description": "Professional personal and company cards",
+      "templates": [
+        "templates/business-cards/joes-modern-business-card.html"
+      ]
+    },
+    {
+      "id": "flyers",
+      "name": "Flyers",
+      "description": "Promotional and campaign flyers",
+      "templates": [
+        "templates/flyers/joes-promo-flyer.html"
+      ]
+    },
+    {
+      "id": "brochures",
+      "name": "Brochures",
+      "description": "Bi-fold and tri-fold information layouts",
+      "templates": [
+        "templates/brochures/joes-trifold-brochure.html"
+      ]
+    },
+    {
+      "id": "invitations",
+      "name": "Invitations",
+      "description": "Elegant event and ceremony invitations",
+      "templates": [
+        "templates/invitations/joes-elegant-invitation.html"
+      ]
+    },
+    {
+      "id": "resumes",
+      "name": "Resumes",
+      "description": "Professional CV and resume layouts",
+      "templates": [
+        "templates/resumes/joes-professional-resume.html"
+      ]
+    },
+    {
+      "id": "menus",
+      "name": "Menus",
+      "description": "Restaurant and service menus",
+      "templates": [
+        "templates/menus/joes-restaurant-menu.html"
+      ]
+    },
+    {
+      "id": "social-posts",
+      "name": "Social Posts",
+      "description": "Square social media graphics",
+      "templates": [
+        "templates/social-posts/joes-square-social-post.html"
+      ]
+    },
+    {
+      "id": "banners",
+      "name": "Banners",
+      "description": "Web and promotional banner layouts",
+      "templates": [
+        "templates/banners/joes-web-banner.html"
+      ]
+    },
+    {
+      "id": "calendars",
+      "name": "Calendars",
+      "description": "Printable calendar layouts",
+      "templates": [
+        "templates/calendars/joes-wall-calendar.html"
+      ]
+    },
+    {
+      "id": "invoices",
+      "name": "Invoices",
+      "description": "Business invoice documents",
+      "templates": [
+        "templates/invoices/joes-business-invoice.html"
+      ]
+    },
+    {
+      "id": "letterheads",
+      "name": "Letterheads",
+      "description": "Corporate correspondence layouts",
+      "templates": [
+        "templates/letterheads/joes-corporate-letterhead.html"
+      ]
+    },
+    {
+      "id": "posters",
+      "name": "Posters",
+      "description": "Event and promotional posters",
+      "templates": [
+        "templates/posters/joes-event-poster.html"
+      ]
+    },
+    {
+      "id": "announcements",
+      "name": "Announcements",
+      "description": "School and organization notices",
+      "templates": [
+        "templates/announcements/joes-school-announcement.html"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "path": "templates/id-cards/joes-corporate-id.html",
+      "name": "joes-corporate-id",
+      "category": "id-cards"
+    },
+    {
+      "path": "templates/certificates/joes-academic-certificate.html",
+      "name": "joes-academic-certificate",
+      "category": "certificates"
+    },
+    {
+      "path": "templates/business-cards/joes-modern-business-card.html",
+      "name": "joes-modern-business-card",
+      "category": "business-cards"
+    },
+    {
+      "path": "templates/flyers/joes-promo-flyer.html",
+      "name": "joes-promo-flyer",
+      "category": "flyers"
+    },
+    {
+      "path": "templates/brochures/joes-trifold-brochure.html",
+      "name": "joes-trifold-brochure",
+      "category": "brochures"
+    },
+    {
+      "path": "templates/invitations/joes-elegant-invitation.html",
+      "name": "joes-elegant-invitation",
+      "category": "invitations"
+    },
+    {
+      "path": "templates/resumes/joes-professional-resume.html",
+      "name": "joes-professional-resume",
+      "category": "resumes"
+    },
+    {
+      "path": "templates/menus/joes-restaurant-menu.html",
+      "name": "joes-restaurant-menu",
+      "category": "menus"
+    },
+    {
+      "path": "templates/social-posts/joes-square-social-post.html",
+      "name": "joes-square-social-post",
+      "category": "social-posts"
+    },
+    {
+      "path": "templates/banners/joes-web-banner.html",
+      "name": "joes-web-banner",
+      "category": "banners"
+    },
+    {
+      "path": "templates/calendars/joes-wall-calendar.html",
+      "name": "joes-wall-calendar",
+      "category": "calendars"
+    },
+    {
+      "path": "templates/invoices/joes-business-invoice.html",
+      "name": "joes-business-invoice",
+      "category": "invoices"
+    },
+    {
+      "path": "templates/letterheads/joes-corporate-letterhead.html",
+      "name": "joes-corporate-letterhead",
+      "category": "letterheads"
+    },
+    {
+      "path": "templates/posters/joes-event-poster.html",
+      "name": "joes-event-poster",
+      "category": "posters"
+    },
+    {
+      "path": "templates/announcements/joes-school-announcement.html",
+      "name": "joes-school-announcement",
+      "category": "announcements"
+    }
+  ]
+}
