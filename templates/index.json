@@ -122,6 +122,11 @@
       "templates": [
         "templates/announcements/joes-school-announcement.html"
       ]
+    },
+    {
+      "id": "exam-cards",
+      "name": "Exam Cards",
+      "description": "Examination and assessment identity cards."
     }
   ],
   "templates": [
@@ -199,6 +204,116 @@
       "path": "templates/announcements/joes-school-announcement.html",
       "name": "joes-school-announcement",
       "category": "announcements"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-template1.html",
+      "name": "kshs-examination-card-template1",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-template2.html",
+      "name": "kshs-examination-card-template2",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-01.html",
+      "name": "kshs-examination-card-01",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-02.html",
+      "name": "kshs-examination-card-02",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-03.html",
+      "name": "kshs-examination-card-03",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-04.html",
+      "name": "kshs-examination-card-04",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-05.html",
+      "name": "kshs-examination-card-05",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-06.html",
+      "name": "kshs-examination-card-06",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-07.html",
+      "name": "kshs-examination-card-07",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-08.html",
+      "name": "kshs-examination-card-08",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-09.html",
+      "name": "kshs-examination-card-09",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-10.html",
+      "name": "kshs-examination-card-10",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-11.html",
+      "name": "kshs-examination-card-11",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-12.html",
+      "name": "kshs-examination-card-12",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-13.html",
+      "name": "kshs-examination-card-13",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-14.html",
+      "name": "kshs-examination-card-14",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-15.html",
+      "name": "kshs-examination-card-15",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-16.html",
+      "name": "kshs-examination-card-16",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-17.html",
+      "name": "kshs-examination-card-17",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-18.html",
+      "name": "kshs-examination-card-18",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-19.html",
+      "name": "kshs-examination-card-19",
+      "category": "exam-cards"
+    },
+    {
+      "path": "templates/exam-cards/kshs-examination-card-20.html",
+      "name": "kshs-examination-card-20",
+      "category": "exam-cards"
     }
   ]
 }
