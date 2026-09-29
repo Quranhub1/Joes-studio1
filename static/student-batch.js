@@ -106,6 +106,30 @@
       ];
     },
 
+    renderBackgroundAlbum() {
+      const host = document.getElementById("studentBatchBackgroundAlbum");
+      const lock = document.getElementById("studentBatchBackgroundLock");
+      if (!host) return;
+      const pro = this.isProUser();
+      const presets = this.getBackgroundPresets();
+      host.innerHTML = presets.map(p => {
+        const active = this.state.backgroundPreset === p.id;
+        const disabled = !pro;
+        return '<button type="button" class="relative h-12 rounded-lg overflow-hidden border ' +
+          (active ? 'border-amber-300 ring-2 ring-amber-300/30' : 'border-slate-700') +
+          '" style="background:' + p.css + '" ' +
+          (disabled ? 'disabled aria-disabled="true"' : 'onclick="JoesStudentBatch.setBackgroundPreset(\\'' + p.id + '\\')"' ) +
+          ' title="' + p.name + (disabled ? ' • Pro only' : '') + '">' +
+          '<span class="absolute inset-x-1 bottom-1 rounded bg-black/45 px-1 py-0.5 text-[8px] font-semibold text-white">' +
+          p.name + '</span>' + (!pro ? '<span class="absolute right-1 top-1 text-[9px]">🔒</span>' : '') +
+          '</button>';
+      }).join("");
+      if (lock) {
+        lock.textContent = pro ? "Pro unlocked • premium print-ready backgrounds" : "🔒 Premium backgrounds are available to Pro users only.";
+        lock.className = pro ? "mt-2 text-[9px] text-emerald-300" : "mt-2 text-[9px] text-amber-300";
+      }
+    },
+
     setBackgroundPreset(id) {
       if (!this.isProUser()) {
         this.notify("Premium backgrounds are available to Pro users only.", "error");
@@ -135,6 +159,7 @@
     },
 
     setCardBackground(value) {
+      this.state.backgroundPreset = "none";
       this.state.cardBackground = this.normalizeCardColor(value);
       const color = this.state.cardBackground;
 
@@ -2597,6 +2622,7 @@
       const bgValue = this.normalizeCardColor(this.state.cardBackground);
       if (bgInput && bgInput.value !== bgValue) bgInput.value = bgValue;
       if (bgHexInput && bgHexInput.value.toLowerCase() !== bgValue) bgHexInput.value = bgValue;
+      this.renderBackgroundAlbum();
 
       if (fileEl) fileEl.textContent = this.state.templateName || "No template selected";
       if (excelEl) excelEl.textContent = this.state.rows.length ? "Excel data loaded" : "No Excel file selected";
