@@ -797,54 +797,96 @@
       const seen = new Set();
 
       const add = value => {
-        const field = String(value || "").trim();
+        const field = String(value || "")
+          .trim()
+          .replace(/^\{\{\s*|\s*\}\}$/g, "")
+          .replace(/^\[\[\s*|\s*\]\]$/g, "")
+          .replace(/^\$\{\s*|\s*\}$/g, "")
+          .replace(/^%\{\s*|\s*\}$/g, "")
+          .trim();
         if (!field) return;
+
         const key = this.normalize(field);
+        if (!key) return;
 
         // These are visual placeholder labels, not data fields.
         if (
           key === "photoplaceholder" ||
           key === "passportphotoplaceholder" ||
-          key === "badgeplaceholder"
+          key === "badgeplaceholder" ||
+          key === "logoplaceholder" ||
+          key === "imageplaceholder"
         ) return;
 
-        if (key && !seen.has(key)) {
+        if (!seen.has(key)) {
           seen.add(key);
           found.push(field);
         }
       };
 
-      const mustache = /{{\s*([^{}]+?)\s*}}/g;
-      let m;
-      while ((m = mustache.exec(text))) add(m[1]);
+      // Explicit placeholder syntaxes supported by uploaded HTML templates.
+      const placeholderPatterns = [
+        /{{\s*([^{}]+?)\s*}}/g,
+        /\[\[\s*([^\[\]]+?)\s*\]\]/g,
+        /\$\{\s*([^{}]+?)\s*\}/g,
+        /%\{\s*([^{}]+?)\s*\}/g
+      ];
+      for (const pattern of placeholderPatterns) {
+        let m;
+        while ((m = pattern.exec(text))) add(m[1]);
+      }
 
       try {
         const doc = new DOMParser().parseFromString(text, "text/html");
 
+        // Explicit binding/editability attributes are the most reliable
+        // declaration and work for text, images, QR/barcodes and custom
+        // template components.
         doc.querySelectorAll(
-          "[data-bind],[data-field],[data-bind-src],[data-bind-qr],[data-bind-barcode]"
+          "[data-bind],[data-field],[data-template-field],[data-editable-field]," +
+          "[data-bind-src],[data-bind-qr],[data-bind-barcode],[data-editable]"
         ).forEach(el => {
           [
             "data-bind",
             "data-field",
+            "data-template-field",
+            "data-editable-field",
             "data-bind-src",
             "data-bind-qr",
             "data-bind-barcode"
           ].forEach(attr => {
             const value = el.getAttribute(attr);
-            if (value) add(value.replace(/^{{\s*|\s*}}$/g, ""));
+            if (value && value.toLowerCase() !== "true") add(value);
           });
+
+          if (el.hasAttribute("data-editable")) {
+            const editable = String(el.getAttribute("data-editable") || "").trim();
+            if (editable && editable.toLowerCase() !== "true") add(editable);
+          }
         });
 
+        // contenteditable elements are explicitly intended for editing. Use
+        // their declared field/name/id rather than treating arbitrary text as
+        // student data.
+        doc.querySelectorAll("[contenteditable='true'],[contenteditable='']").forEach(el => {
+          add(
+            el.getAttribute("data-field") ||
+            el.getAttribute("data-template-field") ||
+            el.getAttribute("name") ||
+            el.getAttribute("aria-label") ||
+            el.id ||
+            el.className
+          );
+        });
+
+        // Existing id conventions remain supported.
         doc.querySelectorAll("[id]").forEach(el => {
           const id = String(el.id || "").trim();
 
           const outMatch = id.match(/^out[-_](.+)$/i);
           if (outMatch) {
             const name = outMatch[1].replace(/[-_]+/g, " ");
-            if (!/^(photo[-_]?placeholder|badge[-_]?placeholder)$/i.test(name)) {
-              add(name);
-            }
+            if (!/^(photo[-_]?placeholder|badge[-_]?placeholder)$/i.test(name)) add(name);
             return;
           }
 
@@ -868,6 +910,76 @@
             if (!isControl && (isDataInput || isOutputPaired || tag === "select" || tag === "textarea")) {
               add(name);
             }
+          }
+        });
+
+        // Image fields can now be discovered without requiring a mustache
+        // placeholder. Only semantic field names are accepted so decorative
+        // background images are not accidentally mapped to Excel.
+        doc.querySelectorAll("img").forEach(img => {
+          const src = String(img.getAttribute("src") || "");
+          const bind = img.getAttribute("data-bind-src") || "";
+          if (src.includes("{{")) {
+            const match = src.match(/{{\s*([^{}]+?)\s*}}/);
+            if (match) add(match[1]);
+          }
+          if (bind) add(bind);
+
+          const semantic = [
+            img.getAttribute("data-field"),
+            img.getAttribute("data-template-field"),
+            img.getAttribute("aria-label"),
+            img.getAttribute("alt"),
+            img.id,
+            typeof img.className === "string" ? img.className : ""
+          ].filter(Boolean).join(" ");
+
+          if (/(student[-_ ]*)?(photo|picture|image|avatar|passport)/i.test(semantic) ||
+              /(badge|logo|crest|emblem|seal|signature)/i.test(semantic)) {
+            const explicit =
+              img.getAttribute("data-field") ||
+              img.getAttribute("data-template-field") ||
+              img.getAttribute("data-bind-src");
+            if (explicit) add(explicit);
+            else {
+              const source = img.id || img.getAttribute("alt") || img.className || "";
+              const cleaned = String(source)
+                .replace(/^(student[-_ ]*)?(photo|picture|image|avatar|passport)[-_ ]?/i, "")
+                .trim();
+              add(cleaned || source);
+            }
+          }
+        });
+
+        // Common semantic field names are useful for templates that were
+        // authored without binding attributes. This deliberately uses a small
+        // whitelist instead of turning every visible label into an Excel field.
+        const semanticNames = [
+          "student name","name","full name","first name","last name",
+          "admission number","admission no","registration number","registration no",
+          "student number","student id","reg no","reg number",
+          "class","stream","section","grade","level","course","programme","program",
+          "gender","sex","date of birth","dob","age",
+          "exam title","card title","school name","institution name",
+          "year","academic year","term","session","issued by"
+        ];
+        const semanticKeys = new Map(semanticNames.map(name => [this.normalize(name), name]));
+
+        doc.querySelectorAll("[class],[name],[aria-label],[placeholder]").forEach(el => {
+          const candidates = [
+            el.getAttribute("data-field"),
+            el.getAttribute("data-template-field"),
+            el.getAttribute("name"),
+            el.getAttribute("aria-label"),
+            el.getAttribute("placeholder"),
+            el.id,
+            typeof el.className === "string" ? el.className : ""
+          ].filter(Boolean);
+
+          for (const candidate of candidates) {
+            const words = String(candidate).replace(/[.#_-]+/g, " ").trim();
+            const key = this.normalize(words);
+            if (semanticKeys.has(key)) add(semanticKeys.get(key));
           }
         });
       } catch (_) {}
