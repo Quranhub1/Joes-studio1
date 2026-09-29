@@ -10764,7 +10764,7 @@
               .filter(Boolean);
 
             const saved = await this.getSavedTemplates();
-            const htmlLibrary = this.data.filter(t => String(t.type || "").toLowerCase() === "html");
+            const htmlLibrary = this.data.filter(t => ["html", "paper"].includes(String(t.type || "").toLowerCase()) && t.url);
             this.savedTemplates = saved;
             this.history = used.map((t) => t.id);
 
@@ -10991,12 +10991,164 @@
             }
 
             const available = htmlLibrary.filter(t => !used.some(u => u.id === t.id));
-            if (available.length) {
-              appendHeading("Examination Card Designs");
-              for (const t of available) {
-                await appendBuiltIn(t, "Printable examination card");
-                if (renderToken !== this.galleryRenderToken) return;
-              }
+
+            // Categorise every repository template so the library stays useful as
+            // more HTML/Paper files are added. Humans do eventually produce enough
+            // files to require folders. Nature apparently required us to invent them.
+            const categoryMap = new Map();
+            available.forEach(t => {
+              const category = this.getTemplateCategory(t);
+              if (!categoryMap.has(category.name)) categoryMap.set(category.name, { ...category, items: [] });
+              categoryMap.get(category.name).items.push(t);
+            });
+
+            const categories = Array.from(categoryMap.values())
+              .sort((a, b) => {
+                const preferred = [
+                  "ID Cards & Examination Cards",
+                  "Certificates & Diplomas",
+                  "Logos & Branding",
+                  "Business Cards",
+                  "Banners & Roll-ups",
+                  "Flyers & Posters",
+                  "Invitations & Events",
+                  "Social Media",
+                  "Letterheads & Documents",
+                  "Menus & Stationery",
+                  "Other Templates"
+                ];
+                const ai = preferred.indexOf(a.name);
+                const bi = preferred.indexOf(b.name);
+                if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+                if (ai === -1) return 1;
+                if (bi === -1) return -1;
+                return ai - bi;
+              });
+
+            if (categories.length) {
+              const filterBar = document.createElement("div");
+              filterBar.id = "templateCategoryFilters";
+              filterBar.className = "col-span-2 flex gap-2 overflow-x-auto pb-1 no-scrollbar sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm";
+
+              const renderCategory = async (selected) => {
+                grid.querySelectorAll("[data-template-category-section]").forEach(el => el.remove());
+                for (const category of categories) {
+                  if (selected !== "all" && category.name !== selected) continue;
+
+                  const section = document.createElement("div");
+                  section.dataset.templateCategorySection = category.name;
+                  section.className = "col-span-2";
+
+                  const heading = document.createElement("div");
+                  heading.className = "flex items-center justify-between gap-3 px-1 py-2";
+                  heading.innerHTML =
+                    '<div class="flex items-center gap-2">' +
+                      '<span class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"><i class="ph ph-' + category.icon + ' text-sm"></i></span>' +
+                      '<div><h3 class="text-xs font-extrabold text-slate-700">' + category.name + '</h3>' +
+                      '<p class="text-[10px] text-slate-400">' + category.items.length + ' template' + (category.items.length === 1 ? '' : 's') + '</p></div>' +
+                    '</div>';
+                  section.appendChild(heading);
+
+                  const cards = document.createElement("div");
+                  cards.className = "grid grid-cols-2 gap-4";
+                  section.appendChild(cards);
+                  grid.appendChild(section);
+
+                  const previousGrid = grid;
+                  const originalAppend = grid.appendChild;
+                  // Render cards into a temporary host so the existing preview
+                  // builder can remain unchanged.
+                  const fragmentHost = document.createElement("div");
+                  fragmentHost.className = "grid grid-cols-2 gap-4";
+                  section.appendChild(fragmentHost);
+
+                  const originalAppendChild = grid.appendChild.bind(grid);
+                  const tempGrid = grid;
+                  const oldAppend = tempGrid.appendChild;
+                  tempGrid.appendChild = function(node) {
+                    if (node?.classList?.contains("template-card")) return fragmentHost.appendChild(node);
+                    return oldAppend.call(tempGrid, node);
+                  };
+                  for (const t of category.items) {
+                    await appendBuiltIn(t, category.name);
+                    if (renderToken !== this.galleryRenderToken) return;
+                  }
+                  tempGrid.appendChild = oldAppend;
+                  cards.remove();
+                  fragmentHost.className = "grid grid-cols-2 gap-4";
+                }
+              };
+
+              const allButton = document.createElement("button");
+              allButton.type = "button";
+              allButton.className = "px-3 py-1.5 rounded-full bg-slate-800 text-white text-[10px] font-bold whitespace-nowrap";
+              allButton.textContent = "All";
+              filterBar.appendChild(allButton);
+
+              categories.forEach(category => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[10px] font-semibold whitespace-nowrap hover:border-slate-300";
+                button.textContent = category.name;
+                button.dataset.category = category.name;
+                filterBar.appendChild(button);
+              });
+
+              grid.appendChild(filterBar);
+
+              // Reuse the existing card renderer but direct its cards into the
+              // selected category section.
+              const renderFiltered = async (selected) => {
+                grid.querySelectorAll("[data-template-category-section]").forEach(el => el.remove());
+                const matching = selected === "all" ? categories : categories.filter(c => c.name === selected);
+                for (const category of matching) {
+                  const section = document.createElement("div");
+                  section.dataset.templateCategorySection = category.name;
+                  section.className = "col-span-2";
+                  const heading = document.createElement("div");
+                  heading.className = "flex items-center justify-between gap-3 px-1 py-2";
+                  heading.innerHTML =
+                    '<div class="flex items-center gap-2"><span class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"><i class="ph ph-' + category.icon + ' text-sm"></i></span><div><h3 class="text-xs font-extrabold text-slate-700">' + category.name + '</h3><p class="text-[10px] text-slate-400">' + category.items.length + ' template' + (category.items.length === 1 ? '' : 's') + '</p></div></div>';
+                  const cards = document.createElement("div");
+                  cards.className = "grid grid-cols-2 gap-4";
+                  section.append(heading, cards);
+                  grid.appendChild(section);
+
+                  const originalGridAppend = grid.appendChild.bind(grid);
+                  const originalGrid = grid;
+                  const oldAppend = originalGrid.appendChild;
+                  originalGrid.appendChild = function(node) {
+                    if (node?.classList?.contains("template-card")) return cards.appendChild(node);
+                    return oldAppend.call(originalGrid, node);
+                  };
+                  for (const t of category.items) {
+                    await appendBuiltIn(t, category.name);
+                    if (renderToken !== this.galleryRenderToken) return;
+                  }
+                  originalGrid.appendChild = oldAppend;
+                }
+              };
+
+              const updateFilterState = (selected) => {
+                filterBar.querySelectorAll("button").forEach(button => {
+                  const active = (selected === "all" && !button.dataset.category) || button.dataset.category === selected;
+                  button.className = active
+                    ? "px-3 py-1.5 rounded-full bg-slate-800 text-white text-[10px] font-bold whitespace-nowrap"
+                    : "px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-[10px] font-semibold whitespace-nowrap hover:border-slate-300";
+                });
+              };
+
+              const draw = async selected => {
+                updateFilterState(selected);
+                await renderFiltered(selected);
+              };
+
+              allButton.onclick = () => draw("all");
+              filterBar.querySelectorAll("button[data-category]").forEach(button => {
+                button.onclick = () => draw(button.dataset.category);
+              });
+
+              await draw("all");
             }
 
             if (saved.length) {
@@ -11103,38 +11255,91 @@
             });
           },
 
-          discoverRepositoryHtmlTemplates: async function () {
+          getTemplateCategory: function (template) {
+            const haystack = [
+              template?.name || "",
+              template?.id || "",
+              template?.repoPath || "",
+              template?.url || ""
+            ].join(" ").toLowerCase();
+
+            const rules = [
+              { name: "ID Cards & Examination Cards", icon: "identification-card", terms: ["id-card","id card","identity","access-id","student_card","student card","examination-card","exam-card","exam card","badge card"] },
+              { name: "Certificates & Diplomas", icon: "certificate", terms: ["certificate","diploma","award","achievement","completion","training certificate"] },
+              { name: "Logos & Branding", icon: "seal", terms: ["logo","logos","brand","branding","lettermark","monogram"] },
+              { name: "Business Cards", icon: "address-book", terms: ["business-card","business card","visiting-card","visiting card"] },
+              { name: "Banners & Roll-ups", icon: "flag-banner", terms: ["banner","roll-up","rollup","backdrop","billboard"] },
+              { name: "Flyers & Posters", icon: "newspaper", terms: ["flyer","poster","leaflet","brochure"] },
+              { name: "Invitations & Events", icon: "envelope-open", terms: ["invitation","wedding","event","ticket"] },
+              { name: "Social Media", icon: "instagram-logo", terms: ["social","instagram","facebook","youtube","post","cover"] },
+              { name: "Letterheads & Documents", icon: "file-text", terms: ["letterhead","invoice","receipt","report","document","standard_a4","red_head","text_"] },
+              { name: "Menus & Stationery", icon: "notebook", terms: ["menu","stationery","calendar"] }
+            ];
+
+            const match = rules.find(rule => rule.terms.some(term => haystack.includes(term)));
+            return match || { name: "Other Templates", icon: "files", terms: [] };
+          },
+
+          discoverRepositoryTemplates: async function () {
             try {
-              const api = "https://api.github.com/repos/Quranhub1/Joes-studio1/contents/templates?ref=main&ts=" + Date.now();
-              const response = await fetch(api, { cache: "no-store", headers: { "Accept": "application/vnd.github+json" } });
-              if (!response.ok) throw new Error("Template directory HTTP " + response.status);
-              const files = await response.json();
-              if (!Array.isArray(files)) return;
-              const existing = new Set((this.data || []).map(t => String(t.url || "").toLowerCase()));
-              files.filter(file => file && file.type === "file" && /\.html?$/i.test(file.name || "")).forEach(file => {
-                const path = "templates/" + file.name;
-                const url = "./templates/" + file.name.split("/").map(encodeURIComponent).join("/");
-                if (existing.has(url.toLowerCase())) return;
-                const id = "repo_html_" + path.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "").toLowerCase();
-                if ((this.data || []).some(t => t.id === id)) return;
-                this.data.push({
-                  id,
-                  name: file.name.replace(/\.html?$/i, "").replace(/[-_]+/g, " ").replace(/\b\w/g, m => m.toUpperCase()),
-                  desc: "HTML template • stored in templates/",
-                  type: "html",
-                  url,
-                  repoPath: path,
-                  source: "repository"
-                });
+              const api = "https://api.github.com/repos/" + this.githubConfig.owner + "/" + this.githubConfig.repo +
+                "/git/trees/" + encodeURIComponent(this.githubConfig.branch) + "?recursive=1&ts=" + Date.now();
+              const response = await fetch(api, {
+                cache: "no-store",
+                headers: { "Accept": "application/vnd.github+json" }
               });
+              if (!response.ok) throw new Error("Template tree HTTP " + response.status);
+              const payload = await response.json();
+              const files = Array.isArray(payload?.tree) ? payload.tree : [];
+
+              const existing = new Set((this.data || []).map(t => String(t.url || "").toLowerCase()));
+              files
+                .filter(file =>
+                  file &&
+                  file.type === "blob" &&
+                  /^templates\\//i.test(String(file.path || "")) &&
+                  !/^templates\\/badges\\//i.test(String(file.path || "")) &&
+                  /\\.(?:html?|paper)$/i.test(String(file.path || ""))
+                )
+                .forEach(file => {
+                  const path = String(file.path);
+                  const relative = path.replace(/^templates\\//i, "");
+                  const url = "./templates/" + relative.split("/").map(encodeURIComponent).join("/");
+                  if (existing.has(url.toLowerCase())) return;
+
+                  const baseName = relative.split("/").pop() || relative;
+                  const cleanName = baseName
+                    .replace(/\\.(?:html?|paper)$/i, "")
+                    .replace(/[-_]+/g, " ")
+                    .replace(/\\b\\w/g, m => m.toUpperCase());
+
+                  const id = "repo_template_" + path
+                    .replace(/[^a-z0-9]+/gi, "_")
+                    .replace(/^_+|_+$/g, "")
+                    .toLowerCase();
+
+                  if ((this.data || []).some(t => t.id === id)) return;
+                  this.data.push({
+                    id,
+                    name: cleanName,
+                    desc: String(file.path).toLowerCase().endsWith(".html")
+                      ? "HTML template • stored in templates/"
+                      : "Editable paper template • stored in templates/",
+                    type: String(file.path).toLowerCase().endsWith(".html") ? "html" : "paper",
+                    url,
+                    repoPath: path,
+                    source: "repository"
+                  });
+                });
             } catch (error) {
-              console.warn("Could not discover HTML templates in templates/:", error);
+              console.warn("Could not discover templates in templates/:", error);
             }
           },
+
           init: async function () {
             try {
               this.data = await (await fetch("./templates/templates.json?ts=" + Date.now())).json();
-              await this.discoverRepositoryHtmlTemplates();
+              await this.discoverRepositoryTemplates();
               this.syncGitHubStatus();
               await this.setStartTab("templates");
             } catch {
