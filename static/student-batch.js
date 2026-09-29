@@ -94,15 +94,16 @@
     },
 
     getBackgroundPresets() {
+      const base = "./static/backgrounds/";
       return [
-        { id:"none", name:"Clean White", css:"linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)" },
-        { id:"royal", name:"Royal Blue", css:"linear-gradient(135deg,#0f172a 0%,#1d4ed8 52%,#38bdf8 100%)" },
-        { id:"emerald", name:"Emerald", css:"linear-gradient(135deg,#022c22 0%,#047857 52%,#6ee7b7 100%)" },
-        { id:"violet", name:"Violet", css:"linear-gradient(135deg,#2e1065 0%,#7c3aed 52%,#c4b5fd 100%)" },
-        { id:"sunset", name:"Sunset", css:"linear-gradient(135deg,#431407 0%,#ea580c 48%,#fbbf24 100%)" },
-        { id:"rose", name:"Rose", css:"linear-gradient(135deg,#4c0519 0%,#be123c 52%,#fda4af 100%)" },
-        { id:"aqua", name:"Aqua Glass", css:"linear-gradient(135deg,#083344 0%,#0891b2 52%,#a5f3fc 100%)" },
-        { id:"gold", name:"Midnight Gold", css:"linear-gradient(135deg,#111827 0%,#334155 58%,#d4af37 100%)" }
+        { id:"none", name:"Clean White", image:"" },
+        { id:"royal", name:"Royal Blue", image:base+"royal-blue.svg" },
+        { id:"emerald", name:"Emerald", image:base+"emerald.svg" },
+        { id:"violet", name:"Violet", image:base+"violet.svg" },
+        { id:"sunset", name:"Sunset", image:base+"sunset.svg" },
+        { id:"rose", name:"Rose", image:base+"rose.svg" },
+        { id:"aqua", name:"Aqua Glass", image:base+"aqua-glass.svg" },
+        { id:"gold", name:"Midnight Gold", image:base+"midnight-gold.svg" }
       ];
     },
 
@@ -117,7 +118,7 @@
         const disabled = !pro;
         return '<button type="button" class="relative h-12 rounded-lg overflow-hidden border ' +
           (active ? 'border-amber-300 ring-2 ring-amber-300/30' : 'border-slate-700') +
-          '" style="background:' + p.css + '" ' +
+          '" style="background-image:url(' + p.image + ');background-size:cover;background-position:center" ' +
                     (disabled ? 'disabled aria-disabled="true"' : 'onclick="JoesStudentBatch.setBackgroundPreset(&quot;' + p.id + '&quot;)"' ) +
           ' title="' + p.name + (disabled ? ' • Pro only' : '') + '">' +
           '<span class="absolute inset-x-1 bottom-1 rounded bg-black/45 px-1 py-0.5 text-[8px] font-semibold text-white">' +
@@ -146,7 +147,7 @@
       if (!root) return;
       const preset = this.getBackgroundPresets().find(x => x.id === this.state.backgroundPreset);
       if (preset && preset.id !== "none" && this.isProUser()) {
-        root.style.setProperty("background-image", preset.css, "important");
+        root.style.setProperty("background-image", "url(" + preset.image + ")", "important");
         root.style.setProperty("background-size", "cover", "important");
         root.style.setProperty("background-position", "center", "important");
         root.style.setProperty("background-color", "#ffffff", "important");
