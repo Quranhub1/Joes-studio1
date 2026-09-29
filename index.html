@@ -558,7 +558,7 @@
             </div>
             <div class="space-y-4">
               <div class="joes-get-started-wrap">
-                <button type="button" onclick="App.templates.load('blank_a4')" class="joes-get-started" aria-label="Get started with a blank paper">
+                <button type="button" onclick="App.ui.showModal('welcomeModal'); App.templates.setStartTab('templates')" class="joes-get-started" aria-label="Get started with a blank paper">
                   <span class="joes-get-started-text">Get started</span>
                   <span class="joes-get-started-icon" aria-hidden="true">
                     <svg class="joes-get-started-svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" focusable="false">
@@ -10756,7 +10756,7 @@
             const renderToken = ++this.galleryRenderToken;
 
             // Refresh repository HTML templates whenever the gallery opens.
-            await this.discoverRepositoryHtmlTemplates();
+            await this.discoverRepositoryTemplates();
             if (renderToken !== this.galleryRenderToken) return;
 
             const used = this.getHistory()
