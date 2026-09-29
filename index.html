@@ -1154,6 +1154,7 @@
           <i class="ph ph-scroll text-2xl text-red-600"></i>
           <span class="font-bold tracking-tight">joes studio</span>
         </div>
+        <a id="joesAdminHeaderButton" href="./admin.html" aria-label="Open administrator dashboard"><i class="ph ph-gear"></i><span>Admin</span></a>
         <div class="flex items-center gap-1">
           <button
             onclick="document.getElementById('projectImportInput').click()"
@@ -11416,6 +11417,8 @@
 #joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:10px 15px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.72);color:#111827;font:700 12px system-ui,-apple-system,sans-serif;box-shadow:0 10px 30px rgba(17,24,39,.12);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:.2s ease}
 #joesAuthButton:hover{transform:translateY(-1px);background:rgba(255,255,255,.9);box-shadow:0 14px 36px rgba(17,24,39,.16)}
 #joesAdminButton{display:none!important;position:relative;right:auto;top:auto;z-index:1;padding:0;border:0;background:transparent;color:inherit;text-decoration:none;font:inherit;box-shadow:none;width:100%}
+#joesAdminHeaderButton{display:none;align-items:center;gap:6px;text-decoration:none;border:1px solid #cbd5e1;border-radius:9px;padding:6px 10px;background:#fff;color:#334155;font-weight:700;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+#joesAdminHeaderButton:hover{background:#f8fafc;border-color:#94a3b8}
 #joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;overflow:auto;background:
 radial-gradient(circle at 18% 18%,rgba(196,181,253,.42),transparent 32%),
 radial-gradient(circle at 82% 24%,rgba(125,211,252,.36),transparent 30%),
@@ -11550,32 +11553,35 @@ padding:28px 18px}
     setTimeout(()=>{if(!user){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}},remaining);
   }
   function showAdminButton(){
-    const adminButton=$("joesAdminButton");
-    if(!adminButton)return;
     adminAuthenticated=true;
-    adminButton.style.setProperty("display","flex","important");
-    adminButton.style.alignItems="center";
-    adminButton.style.justifyContent="center";
-    adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+    const adminButton=$("joesAdminButton");
+    if(adminButton){
+      adminButton.style.setProperty("display","flex","important");
+      adminButton.style.alignItems="center";
+      adminButton.style.justifyContent="center";
+      adminButton.style.gap="clamp(.7rem,2vw,1rem)";
+    }
+    const headerButton=$("joesAdminHeaderButton");
+    if(headerButton) headerButton.style.display="inline-flex";
   }
   async function refreshAdminAccess(){
     adminAuthenticated=false;
     const adminButton=$("joesAdminButton");
-    if(!adminButton)return;
-    adminButton.style.display="none";
+    const headerButton=$("joesAdminHeaderButton");
+    if(adminButton) adminButton.style.setProperty("display","none","important");
+    if(headerButton) headerButton.style.display="none";
     const params=new URLSearchParams(location.search);
     if(params.get("admin")==="1") showAdminButton();
     try{
-      await api("/api/admin?action=sync",{method:"POST",body:"{}"});
+      await api("/api/admin");
       showAdminButton();
       return;
     }catch(_){}
     try{
-      await api("/api/admin");
+      await api("/api/admin?action=sync",{method:"POST",body:"{}"});
       showAdminButton();
     }catch(_){}
-  }
-  async function refresh(){
+  }async function refresh(){
     try{user=(await api("/api/auth?action=me")).user}catch(_){user=null}
     if(user){authRequired=false;localStorage.removeItem(GUEST_STARTED_KEY);close();}
     else if(guestExpired()){authRequired=true;open(true);$("joesAuthError").textContent="Your guest access period has ended. Sign in or create an account to continue.";}
@@ -11611,7 +11617,7 @@ padding:28px 18px}
       user=d.user; authRequired=false; localStorage.removeItem(GUEST_STARTED_KEY); $("joesAuthPassword").value=""; render(); close(); window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user}}));
     }catch(err){$("joesAuthError").textContent=err.message}
   };
-  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;authRequired=true;adminAuthenticated=false;$("joesAdminButton").style.setProperty("display","none","important");render();open(true);window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
+  $("joesLogoutButton").onclick=async()=>{try{await api("/api/auth?action=logout",{method:"POST"})}finally{user=null;authRequired=true;adminAuthenticated=false;$("joesAdminButton").style.setProperty("display","none","important");if($("joesAdminHeaderButton"))$("joesAdminHeaderButton").style.display="none";render();open(true);window.dispatchEvent(new CustomEvent("joes-auth-changed",{detail:{user:null}}))}};
   $("joesPaymentSubmit").onclick=async()=>{
     try{
       const ref=$("joesPaymentReference").value.trim();if(!ref)throw new Error("Enter the payment reference.");
@@ -11626,10 +11632,7 @@ padding:28px 18px}
   }};
   refresh();
   const params=new URLSearchParams(location.search);
-  if(params.get("admin")==="1"){
-    const adminButton=$("joesAdminButton");
-    if(adminButton){adminAuthenticated=true;adminButton.style.setProperty("display","flex","important");adminButton.style.alignItems="center";adminButton.style.justifyContent="center";adminButton.style.gap="clamp(.7rem,2vw,1rem)";}
-  }
+  if(params.get("admin")==="1") showAdminButton();
   if(params.has("auth")||params.has("auth_error")){refresh().then(()=>{if(params.get("auth_error")){open();$("joesAuthError").textContent=params.get("auth_error").replace(/_/g," ")}history.replaceState({},document.title,location.pathname+location.hash)})}
 })();
 </script>
