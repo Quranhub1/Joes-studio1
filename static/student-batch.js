@@ -28,6 +28,7 @@
       cardWidthMm: 130,
       cardHeightMm: 60,
       cardBackground: "#ffffff",
+      backgroundPreset: "none",
       orientation: "landscape",
       cardsPerPage: 6,
       resolution: 300,
@@ -88,6 +89,51 @@
       return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : "#ffffff";
     },
 
+    isProUser() {
+      return String(window.JoesAuth?.getUser?.()?.plan?.tier || "").toLowerCase() === "pro";
+    },
+
+    getBackgroundPresets() {
+      return [
+        { id:"none", name:"Clean White", css:"linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)" },
+        { id:"royal", name:"Royal Blue", css:"linear-gradient(135deg,#0f172a 0%,#1d4ed8 52%,#38bdf8 100%)" },
+        { id:"emerald", name:"Emerald", css:"linear-gradient(135deg,#022c22 0%,#047857 52%,#6ee7b7 100%)" },
+        { id:"violet", name:"Violet", css:"linear-gradient(135deg,#2e1065 0%,#7c3aed 52%,#c4b5fd 100%)" },
+        { id:"sunset", name:"Sunset", css:"linear-gradient(135deg,#431407 0%,#ea580c 48%,#fbbf24 100%)" },
+        { id:"rose", name:"Rose", css:"linear-gradient(135deg,#4c0519 0%,#be123c 52%,#fda4af 100%)" },
+        { id:"aqua", name:"Aqua Glass", css:"linear-gradient(135deg,#083344 0%,#0891b2 52%,#a5f3fc 100%)" },
+        { id:"gold", name:"Midnight Gold", css:"linear-gradient(135deg,#111827 0%,#334155 58%,#d4af37 100%)" }
+      ];
+    },
+
+    setBackgroundPreset(id) {
+      if (!this.isProUser()) {
+        this.notify("Premium backgrounds are available to Pro users only.", "error");
+        return;
+      }
+      const preset = this.getBackgroundPresets().find(x => x.id === String(id)) || this.getBackgroundPresets()[0];
+      this.state.backgroundPreset = preset.id;
+      this.state.cardBackground = "#ffffff";
+      this.applyBackgroundToRoot(document.querySelector("[data-student-batch-background]"));
+      this.refresh();
+    },
+
+    applyBackgroundToRoot(root) {
+      if (!root) return;
+      const preset = this.getBackgroundPresets().find(x => x.id === this.state.backgroundPreset);
+      if (preset && preset.id !== "none" && this.isProUser()) {
+        root.style.setProperty("background-image", preset.css, "important");
+        root.style.setProperty("background-size", "cover", "important");
+        root.style.setProperty("background-position", "center", "important");
+        root.style.setProperty("background-color", "#ffffff", "important");
+      } else {
+        root.style.removeProperty("background-image");
+        root.style.removeProperty("background-size");
+        root.style.removeProperty("background-position");
+        root.style.setProperty("background-color", this.normalizeCardColor(this.state.cardBackground), "important");
+      }
+    },
+
     setCardBackground(value) {
       this.state.cardBackground = this.normalizeCardColor(value);
       const color = this.state.cardBackground;
@@ -105,6 +151,7 @@
       const color = this.normalizeCardColor(this.state.cardBackground);
       root.style.setProperty("background-color", color, "important");
       root.setAttribute("data-student-batch-background", color);
+      this.applyBackgroundToRoot(root);
     },
 
     getDefaultSchoolName() { return ""; },
