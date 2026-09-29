@@ -45,153 +45,175 @@
     "name": "Classic Crest Exam Card",
     "desc": "Traditional crest-led examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-template1.html"
+    "url": "./templates/exam-cards/kshs-examination-card-template1.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_2",
     "name": "Red Authority Exam Card",
     "desc": "Bold red institutional examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-template2.html"
+    "url": "./templates/exam-cards/kshs-examination-card-template2.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_01",
     "name": "Aurora Split Card",
     "desc": "Aurora split-panel examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-01.html"
+    "url": "./templates/exam-cards/kshs-examination-card-01.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_02",
     "name": "Emerald Sidebar Card",
     "desc": "Emerald sidebar examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-02.html"
+    "url": "./templates/exam-cards/kshs-examination-card-02.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_03",
     "name": "Midnight Ribbon Card",
     "desc": "Midnight ribbon examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-03.html"
+    "url": "./templates/exam-cards/kshs-examination-card-03.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_04",
     "name": "Coral Vertical Card",
     "desc": "Coral vertical-accent examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-04.html"
+    "url": "./templates/exam-cards/kshs-examination-card-04.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_05",
     "name": "Swiss Academic Card",
     "desc": "Swiss minimal examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-05.html"
+    "url": "./templates/exam-cards/kshs-examination-card-05.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_06",
     "name": "Diagonal Wave Card",
     "desc": "Diagonal wave examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-06.html"
+    "url": "./templates/exam-cards/kshs-examination-card-06.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_07",
     "name": "Glass Prism Card",
     "desc": "Glass prism examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-07.html"
+    "url": "./templates/exam-cards/kshs-examination-card-07.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_08",
     "name": "Academic Seal Card",
     "desc": "Academic seal examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-08.html"
+    "url": "./templates/exam-cards/kshs-examination-card-08.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_09",
     "name": "Bento Scholar Card",
     "desc": "Bento-grid examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-09.html"
+    "url": "./templates/exam-cards/kshs-examination-card-09.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_10",
     "name": "Editorial Mono Card",
     "desc": "Editorial monochrome examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-10.html"
+    "url": "./templates/exam-cards/kshs-examination-card-10.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_11",
     "name": "Royal Crest Card",
     "desc": "Royal crest examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-11.html"
+    "url": "./templates/exam-cards/kshs-examination-card-11.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_12",
     "name": "Sunset Orange Card",
     "desc": "Sunset orange examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-12.html"
+    "url": "./templates/exam-cards/kshs-examination-card-12.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_13",
     "name": "Navy Timeline Card",
     "desc": "Navy timeline examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-13.html"
+    "url": "./templates/exam-cards/kshs-examination-card-13.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_14",
     "name": "Lavender Bloom Card",
     "desc": "Lavender bloom examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-14.html"
+    "url": "./templates/exam-cards/kshs-examination-card-14.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_15",
     "name": "Mint Geometry Card",
     "desc": "Mint geometric examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-15.html"
+    "url": "./templates/exam-cards/kshs-examination-card-15.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_16",
     "name": "Photo Focus Card",
     "desc": "Photo-first examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-16.html"
+    "url": "./templates/exam-cards/kshs-examination-card-16.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_17",
     "name": "Corner Frame Card",
     "desc": "Corner-frame examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-17.html"
+    "url": "./templates/exam-cards/kshs-examination-card-17.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_18",
     "name": "Double Border Card",
     "desc": "Double-border examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-18.html"
+    "url": "./templates/exam-cards/kshs-examination-card-18.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_19",
     "name": "Dynamic Gradient Card",
     "desc": "Dynamic gradient examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-19.html"
+    "url": "./templates/exam-cards/kshs-examination-card-19.html",
+    "category": "exam-cards"
   },
   {
     "id": "kshs_exam_html_20",
     "name": "Modern Classic Card",
     "desc": "Modern classic examination card",
     "type": "html",
-    "url": "./templates/kshs-examination-card-20.html"
+    "url": "./templates/exam-cards/kshs-examination-card-20.html",
+    "category": "exam-cards"
   }
 ]
