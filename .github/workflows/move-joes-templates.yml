@@ -46,12 +46,13 @@ jobs:
                   continue
                 fi
 
-                # Put the selected HTML and its package assets together under
-                # templates so relative image/font paths remain usable.
+                # Preserve the complete extracted package. The HTML may reference
+                # assets elsewhere in the ZIP, so copying only the HTML's directory
+                # can silently break images, fonts, CSS, and other relative files.
                 target_dir="templates/$stem"
                 rm -rf "$target_dir"
                 mkdir -p "$target_dir"
-                cp -a "$(dirname "$html")"/. "$target_dir"/
+                cp -a "$work"/. "$target_dir"/
                 rm -f "$file"
                 moved=1
                 continue
