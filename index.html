@@ -11650,7 +11650,7 @@ padding:28px 18px}
     try{
       const ref=$("joesPaymentReference").value.trim();if(!ref)throw new Error("Enter the payment reference.");
       await api("/api/payments",{method:"POST",body:JSON.stringify({reference:ref,amount:$("joesPaymentAmount").value.trim()})});
-      $("joesPaymentReference").value="";$("joesPaymentAmount").value="";alert("Payment request submitted for admin approval.");
+      $("joesPaymentReference").value="";$("joesPaymentAmount").value="";await loadPaymentDetails();alert("Payment request submitted for admin approval.");
     }catch(e){alert(e.message)}
   };
   window.JoesAuth={getUser:()=>user,open,close,refresh,consumeBatch:async()=>{
