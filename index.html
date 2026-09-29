@@ -11412,66 +11412,76 @@
 @media(prefers-reduced-motion:reduce){.joes-get-started,.joes-get-started-icon{transition:none}}
 </style>
 <style id="joes-auth-ui">
-#joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:9px 13px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font:700 12px system-ui;box-shadow:0 8px 24px rgba(15,23,42,.12)}
-#joesAdminButton{display:none !important;position:relative;right:auto;top:auto;z-index:1;padding:0;border:0;background:transparent;color:inherit;text-decoration:none;font:inherit;box-shadow:none;width:100%}
-
-#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.62);backdrop-filter:blur(6px);padding:18px}
-#joesAuthOverlay.required{z-index:99999;background:rgba(15,23,42,.82)}
+:root{--joes-auth-ink:#111827;--joes-auth-muted:#667085;--joes-auth-line:rgba(17,24,39,.12);--joes-auth-accent:#111827}
+#joesAuthButton{position:fixed;right:18px;top:18px;z-index:180;padding:10px 15px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.72);color:#111827;font:700 12px system-ui,-apple-system,sans-serif;box-shadow:0 10px 30px rgba(17,24,39,.12);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:.2s ease}
+#joesAuthButton:hover{transform:translateY(-1px);background:rgba(255,255,255,.9);box-shadow:0 14px 36px rgba(17,24,39,.16)}
+#joesAdminButton{display:none!important;position:relative;right:auto;top:auto;z-index:1;padding:0;border:0;background:transparent;color:inherit;text-decoration:none;font:inherit;box-shadow:none;width:100%}
+#joesAuthOverlay{position:fixed;inset:0;z-index:190;display:none;align-items:center;justify-content:center;overflow:auto;background:
+radial-gradient(circle at 18% 18%,rgba(196,181,253,.42),transparent 32%),
+radial-gradient(circle at 82% 24%,rgba(125,211,252,.36),transparent 30%),
+radial-gradient(circle at 70% 88%,rgba(251,191,36,.20),transparent 28%),
+linear-gradient(135deg,#eef2ff 0%,#f8fafc 45%,#eefcfb 100%);
+padding:28px 18px}
+#joesAuthOverlay:before,#joesAuthOverlay:after{content:"";position:absolute;border-radius:999px;filter:blur(2px);pointer-events:none}
+#joesAuthOverlay:before{width:280px;height:280px;left:7%;top:52%;background:rgba(255,255,255,.5)}
+#joesAuthOverlay:after{width:230px;height:230px;right:9%;bottom:8%;background:rgba(255,255,255,.42)}
+#joesAuthOverlay.required{z-index:99999}
 #joesAuthOverlay.open{display:flex}
-.joes-auth-card{width:min(520px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
-.joes-auth-gear{display:flex;justify-content:center;margin:-4px auto 14px}
-.joes-auth-gear .gearbox{transform:scale(.62);transform-origin:center top;margin-bottom:-42px}
-@keyframes clockwise{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-@keyframes counter-clockwise{0%{transform:rotate(0deg)}100%{transform:rotate(-360deg)}}
-.gearbox{background:#111;height:150px;width:200px;position:relative;border:none;overflow:hidden;border-radius:6px;box-shadow:0 0 0 1px rgba(255,255,255,.1)}
-.gearbox .overlay{border-radius:6px;position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;box-shadow:inset 0 0 20px #000;background:transparent;transition:background .2s}
-.gear{position:absolute;height:60px;width:60px;box-shadow:0 -1px 0 #888,0 1px 0 #000;border-radius:30px}
-.gear.large{height:120px;width:120px;border-radius:60px}
-.gear.large:after{height:96px;width:96px;border-radius:48px;margin-left:-48px;margin-top:-48px}
-.gear.one{top:12px;left:10px}.gear.two{top:61px;left:60px}.gear.three{top:110px;left:10px}.gear.four{top:13px;left:128px}
-.gear:after{content:"";position:absolute;height:36px;width:36px;border-radius:36px;background:#111;top:50%;left:50%;margin-left:-18px;margin-top:-18px;z-index:3;box-shadow:0 0 10px rgba(255,255,255,.1),inset 0 0 10px rgba(0,0,0,.1),inset 0 2px 0 #090909,inset 0 -1px 0 #888}
-.gear-inner{position:relative;height:100%;width:100%;background:#555;border-radius:30px;border:1px solid rgba(255,255,255,.1)}
-.large .gear-inner{border-radius:60px}
-.gear-inner .bar{background:#555;height:16px;width:76px;position:absolute;left:50%;margin-left:-38px;top:50%;margin-top:-8px;border-radius:2px;border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)}
-.large .gear-inner .bar{margin-left:-68px;width:136px}
-.gear-inner .bar:nth-child(2){transform:rotate(60deg)}.gear-inner .bar:nth-child(3){transform:rotate(120deg)}.gear-inner .bar:nth-child(4){transform:rotate(90deg)}.gear-inner .bar:nth-child(5){transform:rotate(30deg)}.gear-inner .bar:nth-child(6){transform:rotate(150deg)}
-.gear.one .gear-inner{animation:counter-clockwise 3s infinite linear}.gear.two .gear-inner{animation:clockwise 3s infinite linear}.gear.three .gear-inner{animation:counter-clockwise 3s infinite linear}.gear.four .gear-inner{animation:counter-clockwise 6s infinite linear}
-.joes-auth-card input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;margin-top:8px}
-.joes-auth-card button{border:0;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
-.joes-auth-primary{background:#0f172a;color:#fff;width:100%;margin-top:12px}
-.joes-auth-google{background:#fff;color:#0f172a;border:1px solid #cbd5e1!important;width:100%;margin-top:8px}
-.joes-auth-muted{font:12px system-ui;color:#64748b}
-.joes-auth-error{font:12px system-ui;color:#b91c1c;min-height:18px;margin-top:8px}
+.joes-auth-card{position:relative;z-index:2;width:min(430px,100%);box-sizing:border-box;padding:30px;border:1px solid rgba(255,255,255,.72);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.86),rgba(255,255,255,.62));box-shadow:0 32px 90px rgba(15,23,42,.18),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);color:var(--joes-auth-ink)}
+.joes-auth-gear{display:none}
+.joes-auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.joes-auth-logo{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,#111827,#475467);color:#fff;font:800 14px system-ui;box-shadow:0 10px 24px rgba(17,24,39,.18)}
+.joes-auth-brand span{font:700 14px system-ui;color:#344054;letter-spacing:-.01em}
+.joes-auth-heading{padding-right:38px}
+.joes-auth-heading strong{display:block;font:800 30px/1.08 system-ui,-apple-system,sans-serif;letter-spacing:-.045em}
+.joes-auth-heading p{margin:9px 0 0;color:var(--joes-auth-muted);font:400 13px/1.55 system-ui}
+#joesAuthClose{position:absolute;right:22px;top:22px;width:36px;height:36px;padding:0!important;border:1px solid rgba(17,24,39,.08)!important;border-radius:50%!important;background:rgba(255,255,255,.58)!important;color:#667085;font-size:22px;line-height:1}
+#joesAuthClose:hover{background:#fff!important;color:#111827}
+#joesAuthForm{margin-top:24px}
+.joes-auth-field{display:block;margin-top:15px;color:#475467;font:600 11px system-ui;letter-spacing:.01em}
+.joes-auth-field:first-child{margin-top:0}
+.joes-auth-card input{width:100%;height:48px;box-sizing:border-box;border:1px solid var(--joes-auth-line);border-radius:14px;padding:0 14px;margin-top:7px;background:rgba(255,255,255,.7);color:#101828;font:500 14px system-ui;outline:none;box-shadow:0 2px 8px rgba(16,24,40,.03);transition:border-color .2s,box-shadow .2s,background .2s}
+.joes-auth-card input::placeholder{color:#98a2b3}
+.joes-auth-card input:focus{border-color:rgba(17,24,39,.38);background:#fff;box-shadow:0 0 0 4px rgba(17,24,39,.055)}
+.joes-auth-card button{border:0;border-radius:14px;padding:11px 13px;font-weight:700;cursor:pointer;font-family:system-ui}
+.joes-auth-primary{height:49px;background:#111827;color:#fff;width:100%;margin-top:15px;box-shadow:0 12px 24px rgba(17,24,39,.18);transition:transform .18s,box-shadow .18s,background .18s}
+.joes-auth-primary:hover{transform:translateY(-1px);background:#1f2937;box-shadow:0 15px 30px rgba(17,24,39,.22)}
+.joes-auth-google{height:48px;background:rgba(255,255,255,.72);color:#111827;border:1px solid rgba(17,24,39,.11)!important;width:100%;margin-top:10px;box-shadow:0 4px 12px rgba(16,24,40,.04)}
+.joes-auth-google:hover{background:#fff}
+.joes-auth-google:before{content:"G";display:inline-grid;place-items:center;width:20px;height:20px;margin-right:8px;border-radius:50%;font:800 13px Arial;color:#4285f4;background:#fff;vertical-align:-4px}
+.joes-auth-muted{font:12px/1.45 system-ui;color:var(--joes-auth-muted)}
+.joes-auth-error{font:12px/1.45 system-ui;color:#b42318;min-height:18px;margin-top:8px}
+.joes-auth-switch{display:flex;justify-content:center;margin-top:18px}
+#joesAuthMode{background:transparent!important;color:#667085!important;width:auto!important;margin:0!important;padding:5px 8px!important;font-size:12px!important;font-weight:600!important}
+#joesAuthMode:hover{color:#111827!important}
 .joes-auth-account{display:none;gap:8px;align-items:center}
 .joes-auth-account.open{display:flex}
-.joes-auth-plan{font-size:12px;color:#475569;margin-top:4px}
-.joes-auth-payment{margin-top:14px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
+.joes-auth-plan{font-size:12px;color:#475467;margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.5);border:1px solid rgba(17,24,39,.08)}
+.joes-auth-payment{margin-top:14px;padding:14px;border-radius:16px;background:rgba(255,255,255,.48);border:1px solid rgba(17,24,39,.08)}
+@media(max-width:520px){.joes-auth-card{padding:24px;border-radius:24px}.joes-auth-heading strong{font-size:27px}#joesAuthOverlay{padding:16px}.joes-auth-logo{width:36px;height:36px}}
+@media(prefers-reduced-motion:reduce){#joesAuthButton,.joes-auth-primary{transition:none}}
 </style>
 <button id="joesAuthButton" type="button">Sign in</button>
 <div id="joesAuthOverlay" aria-hidden="true">
   <div class="joes-auth-card">
-<div class="joes-auth-gear" aria-hidden="true">
-      <div class="gearbox">
-        <div class="overlay"></div>
-        <div class="gear one"><div class="gear-inner"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
-        <div class="gear two"><div class="gear-inner"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
-        <div class="gear three"><div class="gear-inner"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
-        <div class="gear four"><div class="gear-inner"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
-      </div>
+    <div class="joes-auth-brand">
+      <div class="joes-auth-logo" aria-hidden="true">JS</div>
+      <span>Joes Studio</span>
     </div>
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
-      <div><strong id="joesAuthTitle">Sign in to Joes Studio</strong><div class="joes-auth-muted">Your account controls batch limits and Pro access.</div></div>
-      <button id="joesAuthClose" type="button" style="background:#f1f5f9">×</button>
+    <button id="joesAuthClose" type="button" aria-label="Close">×</button>
+    <div class="joes-auth-heading">
+      <strong id="joesAuthTitle">Welcome back</strong>
+      <p id="joesAuthSubtitle">Sign in to continue creating papers, templates, and more.</p>
     </div>
     <form id="joesAuthForm">
-      <label class="joes-auth-muted">Name<input id="joesAuthName" autocomplete="name" placeholder="Your name"></label>
-      <label class="joes-auth-muted">Email<input id="joesAuthEmail" type="text" autocomplete="username" required></label>
-      <label class="joes-auth-muted">Password<input id="joesAuthPassword" type="password" autocomplete="current-password" minlength="8" required></label>
+      <label class="joes-auth-field" id="joesAuthNameLabel">Name<input id="joesAuthName" autocomplete="name" placeholder="Your name"></label>
+      <label class="joes-auth-field">Email<input id="joesAuthEmail" type="text" autocomplete="username" placeholder="you@example.com" required></label>
+      <label class="joes-auth-field">Password<input id="joesAuthPassword" type="password" autocomplete="current-password" minlength="8" placeholder="Enter your password" required></label>
       <div id="joesAuthError" class="joes-auth-error"></div>
       <button class="joes-auth-primary" type="submit" id="joesAuthSubmit">Sign in</button>
     </form>
     <button id="joesGoogleButton" class="joes-auth-google" type="button">Continue with Google</button>
-    <button id="joesAuthMode" type="button" style="background:transparent;color:#475569;width:100%;margin-top:8px">Create an account</button>
+    <div class="joes-auth-switch"><button id="joesAuthMode" type="button">Create an account</button></div>
     <div id="joesAccountPanel" style="display:none">
       <div class="joes-auth-plan" id="joesAccountPlan"></div>
       <div class="joes-auth-payment">
@@ -11516,11 +11526,12 @@
     $("joesGoogleButton").style.display=user?"none":"block";
     $("joesAuthMode").style.display=user?"none":"block";
     $("joesAccountPanel").style.display=user?"block":"none";
-    $("joesAuthTitle").textContent=user?"Account":"Sign in to Joes Studio";
+    $("joesAuthTitle").textContent=user?"Your account":(mode==="login"?"Welcome back":"Create your account");
+    $("joesAuthSubtitle").textContent=user?"Manage your Joes Studio access and Pro plan.":(mode==="login"?"Sign in to continue creating papers, templates, and more.":"Create an account to save your work and keep your usage linked to you.");
     if(!user){
       $("joesAuthMode").textContent=mode==="login"?"Create an account":"I already have an account";
       $("joesAuthSubmit").textContent=mode==="login"?"Sign in":"Create account";
-      $("joesAuthName").style.display=mode==="login"?"none":"block";
+      $("joesAuthNameLabel").style.display=mode==="login"?"none":"block";
     }else{
       const p=user.plan||{tier:"free"};
       const u=user.usage||{};
