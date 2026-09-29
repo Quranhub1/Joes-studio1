@@ -13,13 +13,33 @@ function plans(){
   };
 }
 function adminAuthed(session){return !!session?.userId&&session.userId.startsWith("admin:")}
+function protectedAdminId(){
+  return "admin:"+(ADMIN_USERNAME||ADMIN_EMAIL);
+}
+function protectedAdminUser(){
+  const now="2000-01-01T00:00:00.000Z";
+  return {
+    id:protectedAdminId(),
+    email:ADMIN_EMAIL||ADMIN_USERNAME,
+    name:"Administrator",
+    avatar:null,
+    plan:{tier:"pro",status:"active",startAt:now,endAt:null,renewalAt:null},
+    usage:{periodKey:currentPeriodKey(),batchesUsed:0,batchLimit:Number.MAX_SAFE_INTEGER},
+    banned:false,
+    createdAt:now,
+    protected:true,
+    role:"admin"
+  };
+}
 async function listUsers(){
   const ids=await redis("smembers","joes:users")||[];
   const users=await Promise.all(ids.map(async id=>{try{return await getUser(id)}catch(_){return null}}));
   const period=currentPeriodKey();
   const normalized=users.filter(Boolean);
   await Promise.all(normalized.map(async user=>{ const count=await redis("get","joes:usage:"+user.id+":"+period).catch(()=>null); if(count!==null&&count!==undefined){user.usage={periodKey:period,batchesUsed:Number(count)||0,batchLimit:user.plan?.tier==="pro"?Number.MAX_SAFE_INTEGER:FREE_BATCH_LIMIT};} }));
-  return normalized.map(publicUser).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  const result=normalized.map(publicUser);
+  if(ADMIN_USERNAME||ADMIN_EMAIL) result.push(protectedAdminUser());
+  return result.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 async function listPayments(){
   const ids=await redis("smembers","joes:payments")||[];
@@ -110,7 +130,9 @@ export default async function handler(req,res){
       }
       if(action==="user"){
         const id=String(body.id||body.userId||"");if(!id)return json(res,400,{error:"User id required"});
-        const user=await getUser(id);if(!user)return json(res,404,{error:"User not found"});
+        if(id===protectedAdminId()) return json(res,403,{error:"The administrator account is protected and cannot be modified"});
+        if(id===protectedAdminId()) return json(res,403,{error:"The administrator account is protected and cannot be deleted"});
+      const user=await getUser(id);if(!user)return json(res,404,{error:"User not found"});
         if(Object.prototype.hasOwnProperty.call(body,"name"))user.name=String(body.name||"").slice(0,120);
         if(Object.prototype.hasOwnProperty.call(body,"banned")){user.banned=!!body.banned;user.bannedAt=user.banned?new Date().toISOString():null;user.bannedReason=String(body.bannedReason||"").slice(0,500)}
         if(body.tier){
