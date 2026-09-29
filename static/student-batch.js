@@ -476,34 +476,6 @@
       }
     },
 
-    async loadHtmlFromJoesZip(url) {
-      if (!window.JSZip) throw new Error('ZIP template support is not loaded.');
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error('ZIP template returned HTTP ' + response.status);
-      const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
-      const htmlEntries = Object.values(zip.files).filter(entry => !entry.dir && /\.(?:html?|xhtml)$/i.test(entry.name) && !/(^|\/)__MACOSX(\/|$)/i.test(entry.name));
-      if (!htmlEntries.length) throw new Error('No HTML file was found inside this JOES template package.');
-      const preferred = htmlEntries.find(entry => /(^|\/)index\.html?$/i.test(entry.name)) || htmlEntries.sort((a,b) => a.name.length - b.name.length)[0];
-      const doc = new DOMParser().parseFromString(await preferred.async('text'), 'text/html');
-      const mimeFor = name => ({png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',svg:'image/svg+xml',ico:'image/x-icon'})[String(name).split('.').pop().toLowerCase()] || 'application/octet-stream';
-      const cache = new Map();
-      const asset = async raw => {
-        const ref = String(raw || '').trim().replace(/^['\"]|['\"]$/g, '').split('#')[0].split('?')[0];
-        if (!ref || /^(?:data:|https?:|blob:|javascript:|mailto:|tel:|#)/i.test(ref)) return raw;
-        const clean = ref.replace(/^\//, '');
-        const assetPath = this.resolveZipPath(preferred.name, clean);
-        const entry = zip.file(assetPath) || zip.file(clean);
-        if (!entry || entry.dir) return raw;
-        if (!cache.has(assetPath)) { const blob = await entry.async('blob'); cache.set(assetPath, await this.fileToDataUrl(blob)); }
-        return cache.get(assetPath) || raw;
-      };
-      for (const img of Array.from(doc.querySelectorAll('img[src],source[src],video[poster]'))) {
-        const attr = img.hasAttribute('src') ? 'src' : 'poster';
-        const next = await asset(img.getAttribute(attr));
-        if (next) img.setAttribute(attr, next);
-      }
-      return { html: '<!doctype html>\n' + doc.documentElement.outerHTML, entryName: preferred.name };
-    },
     async chooseSavedTemplate() {
       const library = window.App?.templates;
       if (!library) {
@@ -551,16 +523,6 @@
         console.warn("Could not read templates folder.", error);
       }
 
-      // Also expose the packaged designs stored in static/JOES.
-      try {
-        const response = await fetch("https://api.github.com/repos/Quranhub1/Joes-studio1/contents/static/JOES?ref=main", { headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10" } });
-        if (response.ok) {
-          const remote = await response.json();
-          if (Array.isArray(remote)) remote.filter(item => item.type === "file" && /\.zip$/i.test(item.name || "")).forEach(item => {
-            if (!templates.some(t => t.joesUrl === item.download_url || t.name === item.name)) templates.push({ id: "joes-package-" + item.name, name: item.name.replace(/\.zip$/i, ""), type: "zip-html", url: item.download_url, joesUrl: item.download_url, source: "JOES" });
-          });
-        }
-      } catch (error) { console.warn("Could not read static/JOES template packages.", error); }
       const existing = document.getElementById("studentBatchSavedTemplateModal");
       if (existing) existing.remove();
 
@@ -572,7 +534,7 @@
           <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
             <div>
               <h3 class="text-sm font-bold text-white">Choose Existing Template</h3>
-              <p class="text-[10px] text-slate-400 mt-1">Templates from templates/ and packaged JOES designs are available here. ZIP packages are opened automatically.</p>
+              <p class="text-[10px] text-slate-400 mt-1">Templates stored in the templates folder are available here. Import Custom remains available for your own HTML files.</p>
             </div>
             <button type="button" data-close class="w-8 h-8 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800"><i class="ph ph-x"></i></button>
           </div>
@@ -613,9 +575,7 @@
       const loadPreview = async (item, iframe) => {
         try {
           let html = item.content || "";
-          if (item.type === "zip-html" && item.url) {
-            html = (await this.loadHtmlFromJoesZip(item.url)).html;
-          } else if (!html && item.url) {
+          if (!html && item.url) {
             const response = await fetch(item.url, { cache: "no-store" });
             if (!response.ok) throw new Error("HTTP " + response.status);
             html = await response.text();
@@ -648,7 +608,7 @@
             </div>
             <div class="mt-2 flex items-center justify-between gap-2">
               <span class="text-[10px] font-semibold text-white truncate" title="${safeText(item.name)}">${safeText(item.name || "Template")}</span>
-              <span class="text-[8px] text-slate-500 shrink-0">${item.source === "templates" ? "templates/" : item.source === "JOES" ? "JOES" : "Saved"}</span>
+              <span class="text-[8px] text-slate-500 shrink-0">${item.source === "templates" ? "templates/" : "Saved"}</span>
             </div>
           </button>`).join("");
 
@@ -664,18 +624,14 @@
 
             try {
               let html = item.content || "";
-              let templateName = item.name || "template.html";
-              if (item.type === "zip-html" && item.url) {
-                html = (await this.loadHtmlFromJoesZip(item.url)).html;
-                templateName = (item.name || "JOES-template") + ".html";
-              } else if (!html && item.url) {
+              if (!html && item.url) {
                 const response = await fetch(item.url);
                 if (!response.ok) throw new Error("Template returned HTTP " + response.status);
                 html = await response.text();
               }
               if (!html) throw new Error("Template content is empty.");
 
-              const file = new File([html], templateName, {
+              const file = new File([html], item.name || "template.html", {
                 type: "text/html",
                 lastModified: Date.now()
               });
