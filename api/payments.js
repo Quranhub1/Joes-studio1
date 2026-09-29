@@ -18,7 +18,24 @@ export default async function handler(req,res){
   if(req.method==="OPTIONS") return res.status(204).end();
   if(!requireOrigin(req)) return json(res,403,{error:"Origin not allowed"});
   try{
-    if(req.method==="GET") return json(res,200,{payment:await paymentConfig()});
+    if(req.method==="GET"){
+      const payment=await paymentConfig();
+      let request=null;
+      const session=await getSession(req,"user").catch(()=>null);
+      if(session?.userId){
+        const ids=await redis("smembers","joes:payments").catch(()=>[]);
+        const own=[];
+        for(const id of (ids||[])){
+          const raw=await redis("get","joes:payment:"+id).catch(()=>null);
+          if(!raw) continue;
+          const item=typeof raw==="string"?JSON.parse(raw):raw;
+          if(item?.userId===session.userId) own.push(item);
+        }
+        own.sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+        request=own[0]||null;
+      }
+      return json(res,200,{payment,request});
+    }
     const session=await getSession(req,"user");
     if(!session) return json(res,401,{error:"Not authenticated"});
     const user=await getUser(session.userId);
