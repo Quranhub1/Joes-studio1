@@ -40,20 +40,60 @@ jobs:
                 mkdir -p "$work"
                 unzip -q "$file" -d "$work"
 
-                html="$(find "$work" -type f \( -iname '*.html' -o -iname '*.htm' \) | head -n 1 || true)"
-                if [ -z "$html" ]; then
-                  echo "No HTML file found in $name; leaving it in static/JOES."
-                  continue
-                fi
+      # Route everything from a staging ZIP to its real library by file type.
+      # HTML templates go to templates/. Fonts go to static/fonts/. Other
+      # design assets go to static/design-assets/<package>/ so the original
+      # source material remains available without polluting the HTML library.
+      found=0
+      while IFS= read -r src; do
+        [ -f "$src" ] || continue
+        rel="${src#"$work"/}"
+        name="$(basename "$src")"
+        lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
 
-                # Preserve the complete extracted package. The HTML may reference
-                # assets elsewhere in the ZIP, so copying only the HTML's directory
-                # can silently break images, fonts, CSS, and other relative files.
-                target_dir="templates/$stem"
-                rm -rf "$target_dir"
-                mkdir -p "$target_dir"
-                cp -a "$work"/. "$target_dir"/
-                rm -f "$file"
+        case "$lower" in
+          *.html|*.htm)
+            target="templates/$name"
+            if [ -e "$target" ]; then
+              base="${target%.*}"
+              ext="${target##*.}"
+              n=2
+              while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
+              target="${base}-$n.$ext"
+            fi
+            mkdir -p "$(dirname "$target")"
+            cp -f "$src" "$target"
+            found=1
+            ;;
+          *.ttf|*.otf|*.woff|*.woff2)
+            target="static/fonts/$name"
+            if [ -e "$target" ]; then
+              base="${target%.*}"
+              ext="${target##*.}"
+              n=2
+              while [ -e "${base}-$n.$ext" ]; do n=$((n+1)); done
+              target="${base}-$n.$ext"
+            fi
+            mkdir -p "$(dirname "$target")"
+            cp -f "$src" "$target"
+            found=1
+            ;;
+          *.psd|*.psb|*.ai|*.eps|*.svg|*.png|*.jpg|*.jpeg|*.webp|*.gif|*.bmp|*.tif|*.tiff|*.pdf|*.cdr|*.indd|*.idml)
+            target="static/design-assets/$stem/$rel"
+            mkdir -p "$(dirname "$target")"
+            cp -f "$src" "$target"
+            found=1
+            ;;
+        esac
+      done < <(find "$work" -type f -print)
+
+      if [ "$found" -eq 0 ]; then
+        echo "No supported template/design assets found in $name; leaving it in static/JOES."
+        rm -rf "$work"
+        continue
+      fi
+
+      rm -f "$file"
                 moved=1
                 continue
                 ;;
