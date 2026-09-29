@@ -94,6 +94,19 @@ export async function listDirectory(path) {
   return Array.isArray(result) ? result : [];
 }
 
+export async function listTemplateFiles() {
+  const tree = await github(
+    "/repos/" + OWNER + "/" + REPO + "/git/trees/" + encodeURIComponent(BRANCH) + "?recursive=1"
+  );
+  return Array.isArray(tree?.tree)
+    ? tree.tree.filter(item =>
+        item?.type === "blob" &&
+        /^templates\//i.test(String(item.path || "")) &&
+        /\.html?$/i.test(String(item.path || ""))
+      )
+    : [];
+}
+
 export async function putFile(path, contentBase64, message) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const current = await getFile(path);
