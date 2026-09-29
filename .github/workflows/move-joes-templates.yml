@@ -30,7 +30,28 @@ jobs:
 
             case "$name" in
               *.html|*.htm)
-                target="templates/$name"
+                lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+                case "$lower" in
+                  *certificate*) category="certificates" ;;
+                  *business*card*) category="business-cards" ;;
+                  *id*card*|*identity*) category="id-cards" ;;
+                  *exam*card*) category="exam-cards" ;;
+                  *flyer*) category="flyers" ;;
+                  *brochure*) category="brochures" ;;
+                  *invitation*) category="invitations" ;;
+                  *resume*|*cv*) category="resumes" ;;
+                  *menu*) category="menus" ;;
+                  *social*|*instagram*|*facebook*) category="social-posts" ;;
+                  *banner*) category="banners" ;;
+                  *calendar*) category="calendars" ;;
+                  *invoice*) category="invoices" ;;
+                  *letterhead*) category="letterheads" ;;
+                  *poster*) category="posters" ;;
+                  *announcement*) category="announcements" ;;
+                  *) category="other" ;;
+                esac
+                mkdir -p "templates/$category"
+                target="templates/$category/$name"
                 if [ -e "$target" ]; then
                   base="${target%.*}"
                   ext="${target##*.}"
