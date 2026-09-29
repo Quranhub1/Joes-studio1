@@ -494,25 +494,27 @@
         console.error("Could not load saved templates.", error);
       }
 
-      // Always include the actual templates/ folder so repository templates
-      // are available even when the local library has not seen them yet.
+      // Read the real templates tree recursively. JOES is only a staging area;
+      // once its files are moved, Start from Template reads only templates/.
       try {
         const response = await fetch(
-          "https://api.github.com/repos/Quranhub1/Joes-studio1/contents/templates?ref=main",
+          "https://api.github.com/repos/Quranhub1/Joes-studio1/git/trees/main?recursive=1",
           { headers: { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2026-03-10" } }
         );
         if (response.ok) {
           const remote = await response.json();
-          if (Array.isArray(remote)) {
-            remote
-              .filter(item => item.type === "file" && /\.(?:html|htm)$/i.test(item.name || ""))
+          if (Array.isArray(remote.tree)) {
+            remote.tree
+              .filter(item => item.type === "blob" && /^templates\//i.test(item.path || "") && /\.(?:html|htm)$/i.test(item.path || ""))
               .forEach(item => {
-                if (!templates.some(t => t.url === item.download_url || t.name === item.name)) {
+                const name = item.path.split("/").pop() || item.path;
+                const url = "https://raw.githubusercontent.com/Quranhub1/Joes-studio1/main/" + item.path.split("/").map(encodeURIComponent).join("/");
+                if (!templates.some(t => t.url === url || (t.name === name && t.source === "templates"))) {
                   templates.push({
-                    id: "github-template-" + item.name,
-                    name: item.name,
+                    id: "github-template-" + item.path,
+                    name,
                     type: "html",
-                    url: item.download_url,
+                    url,
                     source: "templates"
                   });
                 }
@@ -520,7 +522,7 @@
           }
         }
       } catch (error) {
-        console.warn("Could not read templates folder.", error);
+        console.warn("Could not read templates tree.", error);
       }
 
       const existing = document.getElementById("studentBatchSavedTemplateModal");
