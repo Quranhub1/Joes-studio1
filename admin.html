@@ -27,8 +27,8 @@ function renderUsers(){
     if(u.protected){
       return '<tr><td><b>'+esc(u.name||"Administrator")+'</b><br><span class="muted">'+esc(u.email)+'</span><br><span class="small muted">Protected system account</span></td><td><span class="badge">pro</span><br><span class="small muted">active · permanent</span></td><td>∞</td><td><span class="badge active">ACTIVE</span></td><td><span class="small muted">Protected · no ban, delete, plan or reset actions</span></td></tr>';
     }
-    const id=JSON.stringify(String(u.id));
-    const nextTier=JSON.stringify(p.tier==="pro"?"free":"pro");
+    const id=JSON.stringify(String(u.id)).replace(/"/g,"&quot;");
+    const nextTier=JSON.stringify(p.tier==="pro"?"free":"pro").replace(/"/g,"&quot;");
     const banned=JSON.stringify(!u.banned);
     return '<tr><td><b>'+esc(u.name||"Unnamed")+'</b><br><span class="muted">'+esc(u.email)+'</span></td><td><span class="badge">'+esc(p.tier)+'</span><br><span class="small muted">'+esc(p.status)+'</span></td><td>'+esc(usage.batchesUsed||0)+' / '+(p.tier==="pro"?"∞":esc(usage.batchLimit||data.plans.free?.batchLimit||3))+'</td><td><span class="badge '+(u.banned?"banned":"active")+'">'+(u.banned?"BANNED":"ACTIVE")+'</span></td><td class="row-actions"><button class="btn" onclick="togglePro('+id+','+nextTier+')">'+(p.tier==="pro"?"Free":"Pro")+'</button><button class="btn dark" onclick="toggleBan('+id+','+banned+')">'+(u.banned?"Unban":"Ban")+'</button><button class="btn dark" onclick="resetUsage('+id+')">Reset</button><button class="btn danger" onclick="deleteUser('+id+')">Delete</button></td></tr>';
   }).join("");
