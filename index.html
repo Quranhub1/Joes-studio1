@@ -11555,8 +11555,25 @@ padding:28px 18px}
     }
   }
   async function loadPaymentDetails(){
-    try{const d=await api("/api/payments");const p=d.payment||{};$("joesPaymentDetails").textContent=(p.accountNumber&&p.accountName?"You are sending money to "+p.accountNumber+" • "+p.accountName+". Send your Pro payment there, then enter the transaction reference below."+(p.proPrice?" • "+p.currency+" "+p.proPrice:""):(p.method||"")+" • Payment details are not configured yet.")}
-    catch(e){$("joesPaymentDetails").textContent="Payment details unavailable."}
+    try{
+      const d=await api("/api/payments");
+      const p=d.payment||{}, request=d.request;
+      let text="";
+      if(p.accountNumber&&p.accountName){
+        text="You are sending money to "+p.accountNumber+" • "+p.accountName+". Send your Pro payment there, then enter the transaction reference below."+(p.proPrice?" • "+p.currency+" "+p.proPrice:"");
+      }else{
+        text=(p.method||"")+" • Payment details are not configured yet.";
+      }
+      if(request){
+        const status=String(request.status||"pending").toLowerCase();
+        text+="<br><span style='display:inline-block;margin-top:7px;font-weight:700;color:"+
+          (status==="approved"?"#15803d":status==="rejected"?"#b91c1c":"#a16207")+"'>Latest request: "+
+          status.toUpperCase()+"</span>";
+      }
+      $("joesPaymentDetails").innerHTML=text;
+    }catch(e){
+      $("joesPaymentDetails").textContent="Payment details unavailable.";
+    }
   }
   function scheduleGuestExpiry(){
     const remaining=guestDeadline()-Date.now();
