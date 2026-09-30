@@ -2448,13 +2448,22 @@
               "overflow:hidden","box-sizing:border-box","background:#fff"
             ].join(";");
 
+            // Render the template root at its native physical size, then
+            // scale the entire card uniformly into the calculated slot.
+            // This prevents any child of the template from being clipped or
+            // stretched differently in X and Y.
+            const uniformScale = Math.min(
+              cardWidthPx / nativeCardWidth,
+              cardHeightPx / nativeCardHeight
+            );
+            const renderedW = nativeCardWidth * uniformScale;
+            const renderedH = nativeCardHeight * uniformScale;
             const cardStage = document.createElement("div");
             cardStage.style.cssText = [
               "position:absolute","left:0","top:0",
-              "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
+              "width:" + renderedW + "px","height:" + renderedH + "px",
               "transform-origin:top left",
-              "transform:scaleX(" + (cardWidthPx / nativeCardWidth) + ") scaleY(" + (cardHeightPx / nativeCardHeight) + ")",
-              "overflow:hidden",
+              "overflow:visible",
               "background:" + this.normalizeCardColor(this.state.cardBackground)
             ].join(";");
 
@@ -2463,9 +2472,29 @@
             cardStage.appendChild(style);
 
             const clone = builtCards[i].cloneNode(true);
-            this.sanitizePlaceholderImages(clone);
-            this.proxyExternalPreviewImages(clone);
-            cardStage.appendChild(clone);
+            clone.style.width = nativeCardWidth + "px";
+            clone.style.height = nativeCardHeight + "px";
+            clone.style.minWidth = "0";
+            clone.style.minHeight = "0";
+            clone.style.maxWidth = "none";
+            clone.style.maxHeight = "none";
+            clone.style.boxSizing = "border-box";
+            clone.style.overflow = "hidden";
+            clone.style.margin = "0";
+            clone.style.position = clone.style.position || "relative";
+
+            // The transform is applied to the complete template card, never
+            // to individual fields. The whole card therefore remains visible.
+            const scaleShell = document.createElement("div");
+            scaleShell.style.cssText = [
+              "position:absolute","left:0","top:0",
+              "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
+              "transform-origin:top left",
+              "transform:scale(" + uniformScale + ")",
+              "overflow:hidden"
+            ].join(";");
+            scaleShell.appendChild(clone);
+            cardStage.appendChild(scaleShell);
 
             frame.appendChild(cardStage);
             page.appendChild(frame);
