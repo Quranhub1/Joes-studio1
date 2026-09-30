@@ -2975,6 +2975,26 @@
         ].join("\n");
         printDoc.head.appendChild(style);
 
+        // Uploaded HTML templates can depend on Tailwind utility classes even
+        // when their own <style> block is preserved. The print document is a
+        // separate browsing context, so the app's already-loaded Tailwind
+        // runtime is not available inside it. Load the local copy before the
+        // cards are inserted so utilities such as flex, hidden, h-full,
+        // justify-between, etc. are generated for the template exactly as
+        // they are in the main app. This fixes cards whose contents appeared
+        // incomplete in Chrome's print preview.
+        const printTailwind = printDoc.createElement("script");
+        printTailwind.src = new URL("./static/tailwindcss.js", window.location.href).href;
+        await new Promise(resolve => {
+          printTailwind.onload = resolve;
+          printTailwind.onerror = () => {
+            console.warn("Local Tailwind runtime could not be loaded for print preview.");
+            resolve();
+          };
+          printDoc.head.appendChild(printTailwind);
+        });
+        await new Promise(resolve => setTimeout(resolve, 120));
+
         const waitForImages = async root => {
           const images = Array.from(root.querySelectorAll("img"));
           await Promise.all(images.map(img => new Promise(resolve => {
