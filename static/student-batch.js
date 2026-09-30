@@ -2593,10 +2593,6 @@
       this.refresh();
     },
 
-    cleanupPreview() {
-      const host = document.getElementById("studentBatchPrintPreview");
-      if (host) host.innerHTML = "";
-    },
   };
 
   function columnName(index) {
