@@ -2596,8 +2596,8 @@
           );
           const pageWidth = Math.round(layout.sheet.w * pageScale);
           const pageHeight = Math.round(layout.sheet.h * pageScale);
-          const nativeCardWidth = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
-          const nativeCardHeight = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
+          const nativeCardWidth = Math.max(1, Math.round((Number(this.state.templateNativeWidthMm) || Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
+          const nativeCardHeight = Math.max(1, Math.round((Number(this.state.templateNativeHeightMm) || Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
 
           const page = document.createElement("div");
           page.className = "student-batch-preview-page";
@@ -2627,7 +2627,7 @@
             frame.style.cssText = [
               "position:absolute","left:" + xPx + "px","top:" + yPx + "px",
               "width:" + cardWidthPx + "px","height:" + cardHeightPx + "px",
-              "overflow:hidden","box-sizing:border-box","background:#fff"
+              "overflow:visible","box-sizing:border-box","background:#fff"
             ].join(";");
 
             // Render the template root at its native physical size, then
