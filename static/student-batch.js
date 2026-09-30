@@ -1589,6 +1589,7 @@
       // Excel/photo data is available.
       this.sanitizePlaceholderImages(body);
       this.proxyExternalPreviewImages(body);
+      this.applyWatermark(body);
       body.style.margin = "0";
       body.style.boxSizing = "border-box";
       wrapper.appendChild(body);
