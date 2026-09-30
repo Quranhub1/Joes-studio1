@@ -41,7 +41,8 @@ export async function POST(request) {
     const body = await request.json();
     const name = String(body?.name || "").trim();
     const content = String(body?.content || "");
-    const requestedCategory = safeFileName(body?.category || "saved", "saved");\n    const existingPath = safeTemplatePath(body?.existingPath);
+    const requestedCategory = safeFileName(body?.category || "saved", "saved");
+    const existingPath = safeTemplatePath(body?.existingPath);
 
     if (!name || !content.trim()) {
       return json({ ok: false, error: "Template name and HTML content are required." }, 400, request);
