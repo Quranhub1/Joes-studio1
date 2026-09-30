@@ -42,6 +42,21 @@
         enabled: true,
         whiteBackground: true,
         strength: "strong",
+        manual: {
+          brightness: 0,
+          exposure: 0,
+          shadows: 0,
+          highlights: 0,
+          contrast: 0,
+          saturation: 0,
+          temperature: 0,
+          sharpness: 0,
+          faceLighting: 0,
+          cropScale: 100,
+          positionX: 0,
+          positionY: 0,
+          opacity: 100,
+        },
       },
       enhancedPhotoCache: new Map(),
     },
@@ -94,7 +109,7 @@
       const cached=this.state.enhancedPhotoCache.get(key); if(cached)return cached;
       try {
         if(window.JoesStudentPhotoEnhancer?.process){
-          const out=await window.JoesStudentPhotoEnhancer.process(dataUrl,{auto:this.state.photoEnhancement.enabled,strength:this.state.photoEnhancement.strength,whiteBackground:this.state.photoEnhancement.whiteBackground});
+          const out=await window.JoesStudentPhotoEnhancer.process(dataUrl,{auto:this.state.photoEnhancement.enabled,strength:this.state.photoEnhancement.strength,whiteBackground:this.state.photoEnhancement.whiteBackground,manual:this.state.photoEnhancement.manual});
           this.state.enhancedPhotoCache.set(key,out); return out;
         }
       } catch(e){console.warn("Photo enhancement failed; using original.",e);}
@@ -104,7 +119,7 @@
       if("enabled" in options)this.state.photoEnhancement.enabled=!!options.enabled;
       if("whiteBackground" in options)this.state.photoEnhancement.whiteBackground=!!options.whiteBackground;
       if(options.strength)this.state.photoEnhancement.strength=String(options.strength);
-      this.state.enhancedPhotoCache.clear(); this.syncPhotoEnhancementControls(); this.refresh();
+      this.state.enhancedPhotoCache.clear(); this.syncPhotoEnhancementControls(); this.syncPhotoManualControls(); this.refresh();
     },
     syncPhotoEnhancementControls() {
       const a=document.getElementById("studentBatchAutoEnhance"),w=document.getElementById("studentBatchWhiteBackground"),s=document.getElementById("studentBatchEnhancementStrength");
@@ -119,6 +134,91 @@
       document.getElementById("studentBatchWhiteBackground")?.addEventListener("change",e=>this.setPhotoEnhancement({whiteBackground:e.target.checked}));
       document.getElementById("studentBatchEnhancementStrength")?.addEventListener("change",e=>this.setPhotoEnhancement({strength:e.target.value}));
       this.syncPhotoEnhancementControls();
+    },
+
+    setPhotoManual(key, value) {
+      if (!(key in this.state.photoEnhancement.manual)) return;
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return;
+      const ranges = {
+        brightness: [-100, 100],
+        exposure: [-100, 100],
+        shadows: [-100, 100],
+        highlights: [-100, 100],
+        contrast: [-100, 100],
+        saturation: [-100, 100],
+        temperature: [-100, 100],
+        sharpness: [0, 100],
+        faceLighting: [0, 100],
+        cropScale: [100, 180],
+        positionX: [-35, 35],
+        positionY: [-35, 35],
+        opacity: [20, 100],
+      };
+      const range = ranges[key] || [-100, 100];
+      this.state.photoEnhancement.manual[key] = Math.min(range[1], Math.max(range[0], numeric));
+      this.state.enhancedPhotoCache.clear();
+      this.syncPhotoManualControls();
+      this.previewBatch();
+    },
+    resetPhotoManual() {
+      this.state.photoEnhancement.manual = {
+        brightness: 0, exposure: 0, shadows: 0, highlights: 0,
+        contrast: 0, saturation: 0, temperature: 0, sharpness: 0,
+        faceLighting: 0, cropScale: 100, positionX: 0, positionY: 0, opacity: 100
+      };
+      this.state.enhancedPhotoCache.clear();
+      this.syncPhotoManualControls();
+      this.previewBatch();
+    },
+    syncPhotoManualControls() {
+      const m = this.state.photoEnhancement.manual;
+      const labels = {
+        brightness: "Brightness", exposure: "Exposure", shadows: "Shadows",
+        highlights: "Highlights", contrast: "Contrast", saturation: "Saturation",
+        temperature: "Temperature", sharpness: "Sharpness", faceLighting: "Face lighting",
+        cropScale: "Crop / zoom", positionX: "Horizontal position",
+        positionY: "Vertical position", opacity: "Photo opacity"
+      };
+      Object.keys(m).forEach(key => {
+        const input = document.getElementById("studentBatchPhotoManual_" + key);
+        const value = document.getElementById("studentBatchPhotoManualValue_" + key);
+        if (input) input.value = String(m[key]);
+        if (value) value.textContent = key === "cropScale" ? m[key] + "%" : key === "opacity" ? m[key] + "%" : m[key];
+      });
+    },
+    ensurePhotoManualControls() {
+      const modal = document.getElementById("studentBatchModal");
+      if (!modal || modal.querySelector("#studentBatchManualEnhancementPanel")) return;
+      const panel = document.createElement("section");
+      panel.id = "studentBatchManualEnhancementPanel";
+      panel.className = "mx-4 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4";
+      const defs = [
+        ["brightness",-100,100,0,"Brightness"],["exposure",-100,100,0,"Exposure"],
+        ["shadows",-100,100,0,"Shadows"],["highlights",-100,100,0,"Highlights"],
+        ["contrast",-100,100,0,"Contrast"],["saturation",-100,100,0,"Saturation"],
+        ["temperature",-100,100,0,"Temperature"],["sharpness",0,100,0,"Sharpness"],
+        ["faceLighting",0,100,0,"Face lighting"],["cropScale",100,180,100,"Crop / zoom"],
+        ["positionX",-35,35,0,"Horizontal position"],["positionY",-35,35,0,"Vertical position"],
+        ["opacity",20,100,100,"Photo opacity"]
+      ];
+      const grid = defs.map(([key,min,max,val,label]) =>
+        '<label class="text-[10px] font-medium text-slate-600">' + label +
+        ' <span id="studentBatchPhotoManualValue_' + key + '" class="float-right text-slate-400">' + (key==="cropScale"||key==="opacity"?val+"%":val) + '</span>' +
+        '<input id="studentBatchPhotoManual_' + key + '" type="range" min="' + min + '" max="' + max + '" value="' + val + '" step="1" class="mt-2 w-full"></label>'
+      ).join("");
+      panel.innerHTML =
+        '<div class="flex items-center justify-between gap-3 mb-3"><div><div class="text-sm font-semibold text-slate-800">Manual Photo Enhancement</div><div class="text-[10px] text-slate-500">Fine-tune the selected student photo. Changes update the card preview.</div></div>' +
+        '<button id="studentBatchPhotoManualReset" type="button" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-semibold text-slate-700">Reset</button></div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-3">' + grid + '</div>';
+      const autoPanel = modal.querySelector("#studentBatchPhotoEnhancementPanel");
+      if (autoPanel) autoPanel.insertAdjacentElement("afterend", panel);
+      else modal.appendChild(panel);
+      defs.forEach(([key]) => {
+        document.getElementById("studentBatchPhotoManual_" + key)?.addEventListener("input", e => this.setPhotoManual(key, e.target.value));
+      });
+      document.getElementById("studentBatchPhotoManualReset")?.addEventListener("click", () => this.resetPhotoManual());
+      this.syncPhotoManualControls();
     },
 
     setWatermark(options = {}) {
@@ -1645,6 +1745,7 @@
       const photoEl = document.getElementById("studentBatchPhotoName");
       this.ensureWatermarkControls();
       this.ensurePhotoEnhancementControls();
+      this.ensurePhotoManualControls();
 
       const bgInput = document.getElementById("studentBatchCardBackground");
       const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
@@ -1982,6 +2083,7 @@
     document.getElementById("studentBatchOrientation")?.addEventListener("change", e => { Batch.state.orientation = e.target.value; Batch.refresh(); });
     document.getElementById("studentBatchCardsPerPage")?.addEventListener("input", e => { Batch.state.cardsPerPage = Math.max(1, Number(e.target.value) || 1); Batch.refresh(); });
     document.getElementById("studentBatchResolution")?.addEventListener("change", e => { Batch.state.resolution = Number(e.target.value) || 300; Batch.refresh(); });
+    Batch.syncPhotoManualControls();
     document.getElementById("studentBatchCardBackground")?.addEventListener("input", e => {
       Batch.setCardBackground(e.target.value);
     });
