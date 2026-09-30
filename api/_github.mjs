@@ -198,7 +198,7 @@ export async function updateTemplateManifest(templatePath) {
     id,
     name: fileName,
     type: "html",
-    url: "./" + String(templatePath || "").replace(/^\\.?\\//, ""),
+    url: "./" + String(templatePath || "").replace(/^\.?\//, ""),
     source: "github",
   };
 
