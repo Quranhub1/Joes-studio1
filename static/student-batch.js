@@ -42,6 +42,12 @@
       schoolNameCustomized: false,
       cardTitle: "EXAMINATION CARD",
       cardTitleCustomized: false,
+      customWatermarkText: "",
+      customWatermarkDataUrl: "",
+      customWatermarkName: "",
+      customWatermarkOpacity: 18,
+      customWatermarkRotation: -16,
+      customWatermarkScale: 100,
       // Student photos are automatically optimized for card printing.
       // This keeps faces readable on paper without altering the original
       // uploaded files.
@@ -94,6 +100,104 @@
     isProUser() {
       return String(window.JoesAuth?.getUser?.()?.plan?.tier || "").toLowerCase() === "pro";
     },
+
+    getBatchUsageCount() {
+      return Math.max(0, Number(window.JoesAuth?.getUser?.()?.usage?.batchesUsed || 0));
+    },
+
+    customWatermarkAccess(usage = null) {
+      if (this.isProUser()) return { allowed: true, pro: true, used: this.getBatchUsageCount(), remaining: Infinity };
+      const used = Math.max(0, Number(usage?.used ?? this.getBatchUsageCount()));
+      const remaining = Math.max(0, 3 - used);
+      return { allowed: remaining > 0, pro: false, used, remaining };
+    },
+
+    setCustomWatermarkText(value) {
+      this.state.customWatermarkText = String(value ?? "").trim().slice(0, 120);
+      this.refresh();
+    },
+
+    setCustomWatermarkOpacity(value) {
+      this.state.customWatermarkOpacity = Math.min(80, Math.max(5, Number(value) || 18));
+      this.refresh();
+    },
+
+    setCustomWatermarkRotation(value) {
+      this.state.customWatermarkRotation = Math.min(180, Math.max(-180, Number(value) || 0));
+      this.refresh();
+    },
+
+    setCustomWatermarkScale(value) {
+      this.state.customWatermarkScale = Math.min(220, Math.max(30, Number(value) || 100));
+      this.refresh();
+    },
+
+    clearCustomWatermark() {
+      this.state.customWatermarkText = "";
+      this.state.customWatermarkDataUrl = "";
+      this.state.customWatermarkName = "";
+      const input = document.getElementById("studentBatchWatermarkFile");
+      if (input) input.value = "";
+      this.refresh();
+      this.notify("Custom watermark cleared.");
+    },
+
+    async handleCustomWatermarkFile(file) {
+      if (!file) return;
+      const access = this.customWatermarkAccess();
+      if (!access.allowed) {
+        this.notify("The free custom-watermark trial has ended after 3 generated batches. Upgrade to Pro to continue.", "error");
+        return;
+      }
+      if (!/^image\\/(png|jpeg|jpg|webp|svg\\+xml)$/i.test(String(file.type || ""))) {
+        this.notify("Choose a PNG, JPG, WEBP, or SVG watermark image.", "error");
+        return;
+      }
+      if (file.size > 4 * 1024 * 1024) {
+        this.notify("Watermark image must be 4 MB or smaller.", "error");
+        return;
+      }
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(new Error("Could not read watermark image."));
+          reader.readAsDataURL(file);
+        });
+        this.state.customWatermarkDataUrl = dataUrl;
+        this.state.customWatermarkName = file.name;
+        this.refresh();
+        this.notify("Custom watermark loaded: " + file.name);
+      } catch (e) {
+        this.notify(e.message || "Could not load watermark.", "error");
+      }
+    },
+
+    renderCustomWatermarkSettings() {
+      const accessEl = document.getElementById("studentBatchWatermarkAccess");
+      const nameEl = document.getElementById("studentBatchWatermarkName");
+      const textEl = document.getElementById("studentBatchWatermarkText");
+      const opacityEl = document.getElementById("studentBatchWatermarkOpacity");
+      const rotationEl = document.getElementById("studentBatchWatermarkRotation");
+      const scaleEl = document.getElementById("studentBatchWatermarkScale");
+      const clearEl = document.getElementById("studentBatchWatermarkClear");
+      const access = this.customWatermarkAccess();
+      const hasCustom = Boolean(this.state.customWatermarkText || this.state.customWatermarkDataUrl);
+
+      if (accessEl) {
+        accessEl.textContent = access.pro
+          ? "PRO • Custom watermark enabled without batch limits."
+          : "FREE TRIAL • " + access.remaining + " custom-watermarked batch" + (access.remaining === 1 ? "" : "es") + " remaining.";
+        accessEl.className = access.allowed ? "mt-2 text-[9px] text-emerald-300" : "mt-2 text-[9px] text-amber-300";
+      }
+      if (nameEl) nameEl.textContent = this.state.customWatermarkName || (this.state.customWatermarkText ? "Custom text watermark" : "No custom watermark selected");
+      if (textEl && textEl.value !== this.state.customWatermarkText) textEl.value = this.state.customWatermarkText;
+      if (opacityEl) opacityEl.value = String(this.state.customWatermarkOpacity);
+      if (rotationEl) rotationEl.value = String(this.state.customWatermarkRotation);
+      if (scaleEl) scaleEl.value = String(this.state.customWatermarkScale);
+      if (clearEl) clearEl.disabled = !hasCustom;
+    },
+
 
     getBackgroundPresets() {
       const base = "./static/backgrounds/";
@@ -2083,38 +2187,63 @@
         }
       }
 
-      // Apply a subtle JOES STUDIO watermark to every generated card.
-      // It is deliberately low-contrast so it identifies the studio without
-      // competing with student data, photos, badges, QR codes, or print text.
-      const isPro = window.JoesAuth?.getUser?.()?.plan?.tier === "pro";
-      if (!isPro && !body.querySelector(".joes-studio-watermark")) {
+      // Watermark policy:
+      // - Pro users can use a custom text/image watermark.
+      // - Free users can use a custom watermark for their first 3 generated batches.
+      // - After that, free exports fall back to the standard JOES STUDIO watermark.
+      const watermarkAccess = this.customWatermarkAccess();
+      const customText = String(this.state.customWatermarkText || "").trim();
+      const customImage = String(this.state.customWatermarkDataUrl || "").trim();
+      const useCustom = watermarkAccess.allowed && (customText || customImage);
+      if ((useCustom || !this.isProUser()) && !body.querySelector(".joes-studio-watermark, .custom-studio-watermark")) {
         const watermark = body.ownerDocument.createElement("div");
-        watermark.className = "joes-studio-watermark";
-        watermark.textContent = "JOES STUDIO";
+        watermark.className = useCustom ? "custom-studio-watermark" : "joes-studio-watermark";
         watermark.setAttribute("aria-hidden", "true");
         watermark.style.cssText = [
           "position:absolute",
           "left:50%",
           "top:53%",
-          "transform:translate(-50%,-50%) rotate(-16deg)",
+          "transform:translate(-50%,-50%) rotate(" + Number(this.state.customWatermarkRotation || -16) + "deg)",
           "z-index:0",
           "pointer-events:none",
           "user-select:none",
-          "white-space:nowrap",
+          "display:flex",
+          "align-items:center",
+          "justify-content:center",
+          "width:78%",
+          "height:42%",
+          "overflow:hidden",
           "font-family:Georgia, 'Times New Roman', serif",
-          "font-size:20px",
+          "font-size:" + Math.round(20 * (Number(this.state.customWatermarkScale) || 100) / 100) + "px",
           "font-weight:700",
           "font-style:italic",
           "letter-spacing:2.8px",
           "line-height:1",
-          "color:rgba(29,53,87,.11)",
-          "text-shadow:0 1px 0 rgba(255,255,255,.28)",
+          "text-align:center",
+          "white-space:nowrap",
+          "opacity:" + (Math.max(5, Number(this.state.customWatermarkOpacity) || 18) / 100),
+          "color:#1d3557",
           "mix-blend-mode:multiply"
         ].join(";");
+        if (useCustom && customImage) {
+          const img = body.ownerDocument.createElement("img");
+          img.src = customImage;
+          img.alt = "";
+          img.style.cssText = "max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;";
+          watermark.appendChild(img);
+          if (customText) {
+            const label = body.ownerDocument.createElement("span");
+            label.textContent = customText;
+            label.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);";
+            watermark.appendChild(label);
+          }
+        } else {
+          watermark.textContent = useCustom ? customText : "JOES STUDIO";
+        }
         body.style.position = body.style.position || "relative";
         body.insertBefore(watermark, body.firstChild);
       }
-      const watermark = body.querySelector(".joes-studio-watermark");
+      const watermark = body.querySelector(".joes-studio-watermark, .custom-studio-watermark");
       if (watermark) {
         watermark.style.zIndex = "0";
         Array.from(body.children).forEach(child => {
@@ -2956,10 +3085,19 @@
         return;
       }
 
+      const requestedCustomWatermark = Boolean(this.state.customWatermarkText || this.state.customWatermarkDataUrl);
+      if (requestedCustomWatermark && !this.customWatermarkAccess().allowed) {
+        this.notify("Custom watermark access for free users ends after 3 generated batches. Upgrade to Pro to continue using it.", "error");
+        return;
+      }
+
       let usage;
       try {
         usage = await window.JoesAuth?.consumeBatch?.();
         if (!usage?.allowed) throw new Error("Your free batch limit has been reached. Upgrade to Pro to continue.");
+        if (requestedCustomWatermark && !this.isProUser() && Number(usage?.used || 0) > 3) {
+          throw new Error("The free custom-watermark trial is limited to the first 3 generated batches. Upgrade to Pro to continue.");
+        }
       } catch (e) {
         this.notify(e.message || "Please sign in before exporting.", "error");
         return;
@@ -3134,6 +3272,12 @@
     document.getElementById("studentBatchCardBackgroundHex")?.addEventListener("change", e => {
       Batch.setCardBackground(e.target.value);
     });
+    document.getElementById("studentBatchWatermarkText")?.addEventListener("input", e => Batch.setCustomWatermarkText(e.target.value));
+    document.getElementById("studentBatchWatermarkOpacity")?.addEventListener("input", e => Batch.setCustomWatermarkOpacity(e.target.value));
+    document.getElementById("studentBatchWatermarkRotation")?.addEventListener("input", e => Batch.setCustomWatermarkRotation(e.target.value));
+    document.getElementById("studentBatchWatermarkScale")?.addEventListener("input", e => Batch.setCustomWatermarkScale(e.target.value));
+    document.getElementById("studentBatchWatermarkFile")?.addEventListener("change", e => Batch.handleCustomWatermarkFile(e.target.files?.[0]));
+    document.getElementById("studentBatchWatermarkClear")?.addEventListener("click", () => Batch.clearCustomWatermark());
     ["studentBatchSheetSize", "studentBatchMargin", "studentBatchGapX", "studentBatchGapY", "studentBatchCopies"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", () => {
         const keyMap = {
