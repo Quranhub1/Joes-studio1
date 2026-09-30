@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardPrint Pro - Advanced Card Layout & Print Engine</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23111827%22/%3E%3Ctext x=%2232%22 y=%2243%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2234%22 font-weight=%22700%22 fill=%22%23fff%22%3EJ%3C/text%3E%3C/svg%3E">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 1);
+        }
+
+        /* Interactive Canvas & Sheet Rendering */
+        .paper-sheet {
+            background-color: #ffffff;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+            transform-origin: top center;
+            transition: transform 0.2s ease-out;
+        }
+
+        /* PRINT MEDIA STYLES - STRICT ENGINE */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+
+            /* Hide UI components during printing */
+            .no-print, nav, sidebar, header, .action-toolbar, #controls-panel {
+                display: none !important;
+            }
+
+            /* Display ONLY the print engine container */
+            #print-stage {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: transparent !important;
+            }
+
+            .print-page-unit {
+                page-break-after: always !important;
+                break-after: page !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                transform: scale(1) !important;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased overflow-hidden select-none">
+
+    <!-- TOP NAVBAR -->
+    <header class="no-print bg-slate-950 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-30 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
+                <i data-lucide="printer" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+                    CardPrint Pro <span class="text-xs font-normal px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">v2.5 Studio</span>
+                </h1>
+                <p class="text-xs text-slate-400">Card Grid Alignment, Enhancement & Print Suite</p>
+            </div>
+        </div>
+
+        <!-- MAIN ACTION BUTTONS (TOP BAR) -->
+        <div class="flex items-center space-x-2">
+            <!-- 1. Generate Print Batch Button -->
+            <button id="btn-generate-batch" onclick="generateBatchPrint()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-xs sm:text-sm shadow-md shadow-indigo-600/30 transition-all">
+                <i data-lucide="layers" class="w-4 h-4"></i>
+                <span>Generate Print Batch</span>
+            </button>
+
+            <!-- 2. Print Button -->
+            <button id="btn-print" onclick="executePrint()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium text-xs sm:text-sm shadow-md shadow-emerald-600/30 transition-all">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+                <span>Print</span>
+            </button>
+
+            <!-- 3. Cancel Button -->
+            <button id="btn-cancel" onclick="cancelBatchPrint()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-300 font-medium text-xs sm:text-sm border border-slate-700 transition-all">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+                <span>Cancel</span>
+            </button>
+
+            <!-- 4. Back to Studio -->
+            <a href="./index.html" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-300 font-medium text-xs sm:text-sm border border-slate-700 transition-all">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Back to Studio</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE CONTAINER -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- LEFT CONTROL PANEL (SIDEBAR) -->
+        <aside id="controls-panel" class="no-print w-80 md:w-96 bg-slate-950/80 backdrop-blur border-r border-slate-800 flex flex-col shrink-0 z-20 overflow-hidden transition-all duration-300">
+
+            <!-- Sidebar Navigation Tabs -->
+            <div class="flex border-b border-slate-800 bg-slate-900/50 p-1 gap-1">
+                <button onclick="switchTab('upload')" id="tab-btn-upload" class="tab-btn flex-1 py-2 text-xs font-medium rounded-md text-indigo-400 bg-slate-800 flex items-center justify-center gap-1.5 transition-all">
+                    <i data-lucide="image" class="w-3.5 h-3.5"></i> Card
+                </button>
+                <button onclick="switchTab('enhance')" id="tab-btn-enhance" class="tab-btn flex-1 py-2 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition-all">
+                    <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Enhance
+                </button>
+                <button onclick="switchTab('layout')" id="tab-btn-layout" class="tab-btn flex-1 py-2 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition-all">
+                    <i data-lucide="grid" class="w-3.5 h-3.5"></i> Grid & Page
+                </button>
+                <button onclick="switchTab('batch')" id="tab-btn-batch" class="tab-btn flex-1 py-2 text-xs font-medium rounded-md text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition-all">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Batch
+                </button>
+            </div>
+
+            <!-- Tab Content Sections (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+
+                <!-- TAB 1: CARD SOURCE & UPLOAD -->
+                <div id="tab-content-upload" class="tab-content space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Single Card Input</label>
+                        <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-900/50 hover:bg-indigo-950/10 group">
+                            <input type="file" id="card-upload-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                            <div class="w-12 h-12 bg-slate-800 group-hover:bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-3 transition-colors">
+                                <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-xs font-medium text-slate-200">Click or drag card image here</p>
+                            <p class="text-[10px] text-slate-500 mt-1">Supports PNG, JPG, WEBP, SVG (High resolution recommended)</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <span class="text-xs text-slate-400">Need a sample card to test?</span>
+                        <button onclick="loadSampleCard()" class="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium flex items-center gap-1">
+                            <i data-lucide="sparkles" class="w-3 h-3"></i> Load Sample Card
+                        </button>
+                    </div>
+
+                    <!-- Single Card Preview Box -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium text-slate-400">Source Canvas Preview</span>
+                            <span id="source-dimensions" class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">-- x --</span>
+                        </div>
+                        <div class="relative aspect-[1.58/1] bg-slate-950 rounded-lg overflow-hidden flex items-center justify-center border border-slate-800/80">
+                            <canvas id="source-preview-canvas" class="max-w-full max-h-full object-contain"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: IMAGE ENHANCEMENT CONTROLS -->
+                <div id="tab-content-enhance" class="tab-content hidden space-y-5">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Image Processing</label>
+                        <button onclick="resetEnhancements()" class="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset Filters
+                        </button>
+                    </div>
+
+                    <!-- Filter Sliders -->
+                    <div class="space-y-4 text-xs">
+                        <!-- Brightness -->
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span>Brightness</span>
+                                <span id="val-brightness">100%</span>
+                            </div>
+                            <input type="range" id="input-brightness" min="50" max="150" value="100" class="w-full accent-indigo-500" oninput="updateEnhancements()">
+                        </div>
+
+                        <!-- Contrast -->
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span>Contrast</span>
+                                <span id="val-contrast">100%</span>
+                            </div>
+                            <input type="range" id="input-contrast" min="50" max="150" value="100" class="w-full accent-indigo-500" oninput="updateEnhancements()">
+                        </div>
+
+                        <!-- Saturation -->
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span>Saturation</span>
+                                <span id="val-saturate">100%</span>
+                            </div>
+                            <input type="range" id="input-saturate" min="0" max="200" value="100" class="w-full accent-indigo-500" oninput="updateEnhancements()">
+                        </div>
+
+                        <!-- Sharpness / Softness -->
+                        <div>
+                            <div class="flex justify-between text-slate-400 mb-1">
+                                <span>Sharpness / Clarity</span>
+                                <span id="val-sharpness">0</span>
+                            </div>
+                            <input type="range" id="input-sharpness" min="-2" max="5" step="0.5" value="0" class="w-full accent-indigo-500" oninput="updateEnhancements()">
+                        </div>
+
+                        <!-- Grayscale & Sepia Toggles -->
+                        <div class="pt-2 border-t border-slate-800 space-y-2">
+                            <label class="flex items-center justify-between text-slate-300 cursor-pointer">
+                                <span>Grayscale Mode</span>
+                                <input type="checkbox" id="input-grayscale" class="rounded bg-slate-800 border-slate-700 accent-indigo-500 w-4 h-4" onchange="updateEnhancements()">
+                            </label>
+                            <label class="flex items-center justify-between text-slate-300 cursor-pointer">
+                                <span>Sepia Vintage Filter</span>
+                                <input type="checkbox" id="input-sepia" class="rounded bg-slate-800 border-slate-700 accent-indigo-500 w-4 h-4" onchange="updateEnhancements()">
+                            </label>
+                            <label class="flex items-center justify-between text-slate-300 cursor-pointer">
+                                <span>Auto Tone & Contrast Boost</span>
+                                <input type="checkbox" id="input-autoboost" class="rounded bg-slate-800 border-slate-700 accent-indigo-500 w-4 h-4" onchange="updateEnhancements()">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: GRID LAYOUT & PAGE SETUP -->
+                <div id="tab-content-layout" class="tab-content hidden space-y-5">
+
+                    <!-- Paper Setup -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Paper Sheet Size</label>
+                        <select id="select-paper-size" onchange="updateLayoutConfig()" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2.5 text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="A4" selected>A4 (210 x 297 mm)</option>
+                            <option value="LETTER">US Letter (8.5 x 11 in / 216 x 279 mm)</option>
+                            <option value="A3">A3 (297 x 420 mm)</option>
+                            <option value="LEGAL">US Legal (8.5 x 14 in)</option>
+                        </select>
+                    </div>
+
+                    <!-- Page Orientation -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Orientation</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btn-portrait" onclick="setOrientation('portrait')" class="py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border border-indigo-500">
+                                <i data-lucide="file" class="w-3.5 h-3.5"></i> Portrait
+                            </button>
+                            <button id="btn-landscape" onclick="setOrientation('landscape')" class="py-2 bg-slate-900 text-slate-400 hover:text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border border-slate-800">
+                                <i data-lucide="file" class="w-3.5 h-3.5 rotate-90"></i> Landscape
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card Preset Standard Dimensions -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Card Dimensions (mm)</label>
+                        <select id="select-card-preset" onchange="applyCardPreset()" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 mb-2">
+                            <option value="CR80" selected>Standard ID Card (85.6 x 53.9 mm)</option>
+                            <option value="BUS">Standard Business Card (89 x 51 mm)</option>
+                            <option value="PLAY">Playing Card (63.5 x 88.9 mm)</option>
+                            <option value="SQUARE">Square Mini (60 x 60 mm)</option>
+                            <option value="CUSTOM">Custom Dimensions</option>
+                        </select>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400">Width (mm)</span>
+                                <input type="number" id="input-card-width" value="85.6" step="0.5" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2 text-slate-200" oninput="updateLayoutConfig()">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400">Height (mm)</span>
+                                <input type="number" id="input-card-height" value="53.9" step="0.5" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2 text-slate-200" oninput="updateLayoutConfig()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid Layout Configuration (Rows & Columns Alignment) -->
+                    <div class="pt-3 border-t border-slate-800">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Grid Alignment on Page</label>
+                        <div class="grid grid-cols-2 gap-3 mb-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400">Columns (X)</span>
+                                <input type="number" id="input-cols" value="2" min="1" max="10" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2 text-slate-200" oninput="updateLayoutConfig()">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400">Rows (Y)</span>
+                                <input type="number" id="input-rows" value="5" min="1" max="10" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2 text-slate-200" oninput="updateLayoutConfig()">
+                            </div>
+                        </div>
+
+                        <!-- Spacing & Margins -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <span class="text-[10px] text-slate-400">Horizontal Gap (mm)</span>
+                                <input type="number" id="input-gap-x" value="4" min="0" max="50" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2 text-slate-200" oninput="updateLayoutConfig()">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400">Vertical Gap (mm)</span>
+                                <input type="number" id="input-gap-y" value="4" min="0" max="50" class="w-full bg-slate-900 border border-slate-800 rounded-lg text-xs p-2 text-slate-200" oninput="updateLayoutConfig()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Print Guides & Bleed Settings -->
+                    <div class="pt-3 border-t border-slate-800 space-y-2">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Cutting Marks & Bleed</label>
+                        <label class="flex items-center justify-between text-xs text-slate-300 cursor-pointer">
+                            <span>Draw Trim / Crop Marks</span>
+                            <input type="checkbox" id="input-crop-marks" checked class="rounded bg-slate-800 border-slate-700 accent-indigo-500 w-4 h-4" onchange="updateLayoutConfig()">
+                        </label>
+                        <label class="flex items-center justify-between text-xs text-slate-300 cursor-pointer">
+                            <span>Draw Outer Bleed Guide Line</span>
+                            <input type="checkbox" id="input-bleed-box" checked class="rounded bg-slate-800 border-slate-700 accent-indigo-500 w-4 h-4" onchange="updateLayoutConfig()">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- TAB 4: BATCH PROCESSING OPTIONS -->
+                <div id="tab-content-batch" class="tab-content hidden space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Batch Copy Count</label>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="input-batch-count" value="10" min="1" max="500" class="flex-1 bg-slate-900 border border-slate-800 rounded-lg text-sm p-2 text-slate-200 font-bold" oninput="updateBatchInfo()">
+                                <span class="text-xs text-slate-400">total cards</span>
+                            </div>
+
+                            <!-- Quick Preset Quantity Chips -->
+                            <div class="flex flex-wrap gap-1.5">
+                                <button onclick="setBatchQuantity(1)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded text-slate-300">1 Card</button>
+                                <button onclick="setBatchQuantity(10)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded text-slate-300">10 Cards</button>
+                                <button onclick="setBatchQuantity(20)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded text-slate-300">20 Cards</button>
+                                <button onclick="setBatchQuantity(50)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded text-slate-300">50 Cards</button>
+                                <button onclick="setBatchQuantity(100)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded text-slate-300">100 Cards</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Info Summary Card -->
+                    <div class="bg-indigo-950/30 border border-indigo-500/20 rounded-xl p-3.5 space-y-2 text-xs">
+                        <div class="flex justify-between text-slate-300">
+                            <span>Cards Per Page:</span>
+                            <span id="batch-cards-per-page" class="font-bold text-indigo-400">10</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span>Total Pages Required:</span>
+                            <span id="batch-total-pages" class="font-bold text-indigo-400">1 Page</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span>Paper Efficiency:</span>
+                            <span id="batch-efficiency" class="font-bold text-emerald-400">100% Fill</span>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg text-[11px] text-slate-400 space-y-1">
+                        <p class="font-medium text-slate-300">Print Generation Note:</p>
+                        <p>Click <strong class="text-indigo-400">Generate Print Batch</strong> to render the printable sheets. Once rendered, click <strong class="text-emerald-400">Print</strong> to open your browser print window.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SIDEBAR FOOTER (ACTION BUTTONS DUPLICATE FOR MOBILE/ACCESSIBILITY) -->
+            <div class="p-3 bg-slate-900 border-t border-slate-800 grid grid-cols-3 gap-2">
+                <button onclick="generateBatchPrint()" class="py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-0.5">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    <span>Batch</span>
+                </button>
+                <button onclick="executePrint()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-0.5">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>Print</span>
+                </button>
+                <button onclick="cancelBatchPrint()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-0.5">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- RIGHT VIEWPORT STAGE (PRINT PREVIEW CANVASES) -->
+        <main class="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+
+            <!-- Viewport Toolbar -->
+            <div class="no-print bg-slate-900/80 backdrop-blur border-b border-slate-800 px-4 py-2 flex items-center justify-between text-xs shrink-0 z-10">
+                <div class="flex items-center space-x-3">
+                    <span class="text-slate-400">Sheet View Mode:</span>
+                    <span id="view-mode-badge" class="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded font-medium">Single Page Layout Preview</span>
+                </div>
+
+                <!-- Zoom Controls & Page Navigation -->
+                <div class="flex items-center space-x-4">
+                    <!-- Page Switcher -->
+                    <div id="page-nav-container" class="flex items-center space-x-2 text-slate-300 hidden">
+                        <button onclick="changePreviewPage(-1)" class="p-1 hover:bg-slate-800 rounded"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                        <span>Page <span id="current-page-num">1</span> of <span id="total-page-num">1</span></span>
+                        <button onclick="changePreviewPage(1)" class="p-1 hover:bg-slate-800 rounded"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                    </div>
+
+                    <!-- Zoom Slider -->
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="zoom-out" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <input type="range" id="input-zoom" min="30" max="150" value="70" class="w-24 accent-indigo-500" oninput="updateZoom()">
+                        <span id="val-zoom" class="text-slate-400 w-9 text-right">70%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PREVIEW WORKSPACE AREA (SCROLLABLE STAGE) -->
+            <div id="workspace-scroll" class="flex-1 overflow-auto p-8 flex justify-center items-start bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]">
+
+                <!-- PRINT STAGE CONTAINER (Printed Area) -->
+                <div id="print-stage" class="transition-transform duration-150 flex flex-col items-center gap-10">
+                    <!-- Dynamic Printable Paper Sheets Rendered Here -->
+                </div>
+
+            </div>
+
+            <!-- Notification Toast Message -->
+            <div id="toast" class="no-print fixed bottom-5 right-5 bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 text-xs">
+                <i id="toast-icon" data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
+                <span id="toast-message">Notification message</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // GLOBAL APPLICATION STATE
+        const STATE = {
+            paper: {
+                size: 'A4',
+                widthMM: 210,
+                heightMM: 297,
+                orientation: 'portrait'
+            },
+            card: {
+                preset: 'CR80',
+                widthMM: 85.6,
+                heightMM: 53.9
+            },
+            grid: {
+                cols: 2,
+                rows: 5,
+                gapXMM: 4,
+                gapYMM: 4,
+                cropMarks: true,
+                bleedBox: true
+            },
+            enhancements: {
+                brightness: 100,
+                contrast: 100,
+                saturate: 100,
+                sharpness: 0,
+                grayscale: false,
+                sepia: false,
+                autoboost: false
+            },
+            batch: {
+                totalCards: 10,
+                isGenerated: false,
+                currentPage: 1
+            },
+            zoom: 0.70,
+            cardImage: null
+        };
+
+        // Standard MM dimensions map
+        const PAPER_SIZES = {
+            'A4': { w: 210, h: 297 },
+            'LETTER': { w: 215.9, h: 279.4 },
+            'A3': { w: 297, h: 420 },
+            'LEGAL': { w: 215.9, h: 355.6 }
+        };
+
+        const CARD_PRESETS = {
+            'CR80': { w: 85.6, h: 53.9 },
+            'BUS': { w: 89, h: 51 },
+            'PLAY': { w: 63.5, h: 88.9 },
+            'SQUARE': { w: 60, h: 60 }
+        };
+
+        // Offscreen Canvases
+        let rawCardCanvas = document.createElement('canvas');
+        let processedCardCanvas = document.createElement('canvas');
+
+        window.onload = function() {
+            lucide.createIcons();
+            loadSampleCard();
+            updateZoom();
+            updateBatchInfo();
+        };
+
+        function switchTab(tabKey) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-indigo-400');
+                btn.classList.add('text-slate-400');
+            });
+
+            document.getElementById(`tab-content-${tabKey}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
+            activeBtn.classList.add('bg-slate-800', 'text-indigo-400');
+            activeBtn.classList.remove('text-slate-400');
+        }
+
+        function loadSampleCard() {
+            // Generate an attractive modern sample ID card on the canvas
+            const canvas = rawCardCanvas;
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas resolution (300 DPI high clarity preview)
+            canvas.width = 1011;  // 85.6mm at 300 DPI
+            canvas.height = 638;  // 53.9mm at 300 DPI
+
+            // Card Background Gradient
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0, '#1e1b4b');
+            grad.addColorStop(0.5, '#312e81');
+            grad.addColorStop(1, '#4338ca');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Abstract Geometric Shapes
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.beginPath();
+            ctx.arc(canvas.width, 0, 400, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+            ctx.beginPath();
+            ctx.arc(0, canvas.height, 300, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Card Header Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 38px sans-serif';
+            ctx.fillText('NEXUS ACCESS CARD', 50, 80);
+
+            ctx.fillStyle = '#a5b4fc';
+            ctx.font = '22px sans-serif';
+            ctx.fillText('VIP SECURITY CLEARANCE', 50, 115);
+
+            // Divider Line
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 140);
+            ctx.lineTo(canvas.width - 50, 140);
+            ctx.stroke();
+
+            // Avatar Placeholder Box
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(50, 170, 220, 260);
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(50, 170, 220, 260);
+
+            // User Icon in avatar placeholder
+            ctx.fillStyle = '#818cf8';
+            ctx.beginPath();
+            ctx.arc(160, 260, 50, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Details Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 30px sans-serif';
+            ctx.fillText('ALEXANDER MORGAN', 300, 210);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '22px sans-serif';
+            ctx.fillText('ID NUMBER: NX-884920-B', 300, 255);
+            ctx.fillText('DEPARTMENT: AI RESEARCH', 300, 295);
+            ctx.fillText('ISSUED: 2026 / EXP: 2029', 300, 335);
+
+            // Chip Graphic
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(300, 370, 70, 50);
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(300, 370, 70, 50);
+
+            // Barcode Lines at Bottom
+            ctx.fillStyle = '#ffffff';
+            const startX = 50;
+            for (let i = 0; i < 60; i++) {
+                const w = (i % 3 === 0) ? 6 : 2;
+                ctx.fillRect(startX + (i * 14), 480, w, 80);
+            }
+
+            document.getElementById('source-dimensions').innerText = `${canvas.width}x${canvas.height}px`;
+
+            // Process image with current filter settings
+            applyEnhancements();
+            showToast('Sample card loaded successfully!', 'sparkles');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    rawCardCanvas.width = img.width;
+                    rawCardCanvas.height = img.height;
+                    const ctx = rawCardCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    document.getElementById('source-dimensions').innerText = `${img.width}x${img.height}px`;
+                    applyEnhancements();
+                    showToast('Uploaded new card image', 'upload');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateEnhancements() {
+            STATE.enhancements.brightness = document.getElementById('input-brightness').value;
+            STATE.enhancements.contrast = document.getElementById('input-contrast').value;
+            STATE.enhancements.saturate = document.getElementById('input-saturate').value;
+            STATE.enhancements.sharpness = parseFloat(document.getElementById('input-sharpness').value);
+            STATE.enhancements.grayscale = document.getElementById('input-grayscale').checked;
+            STATE.enhancements.sepia = document.getElementById('input-sepia').checked;
+            STATE.enhancements.autoboost = document.getElementById('input-autoboost').checked;
+
+            // Update Value Labels
+            document.getElementById('val-brightness').innerText = `${STATE.enhancements.brightness}%`;
+            document.getElementById('val-contrast').innerText = `${STATE.enhancements.contrast}%`;
+            document.getElementById('val-saturate').innerText = `${STATE.enhancements.saturate}%`;
+            document.getElementById('val-sharpness').innerText = `${STATE.enhancements.sharpness}`;
+
+            applyEnhancements();
+        }
+
+        function resetEnhancements() {
+            document.getElementById('input-brightness').value = 100;
+            document.getElementById('input-contrast').value = 100;
+            document.getElementById('input-saturate').value = 100;
+            document.getElementById('input-sharpness').value = 0;
+            document.getElementById('input-grayscale').checked = false;
+            document.getElementById('input-sepia').checked = false;
+            document.getElementById('input-autoboost').checked = false;
+            updateEnhancements();
+            showToast('Reset image enhancements', 'rotate-ccw');
+        }
+
+        function applyEnhancements() {
+            processedCardCanvas.width = rawCardCanvas.width;
+            processedCardCanvas.height = rawCardCanvas.height;
+            const ctx = processedCardCanvas.getContext('2d');
+
+            // Construct CSS Filter string
+            let filters = [];
+            let b = STATE.enhancements.brightness;
+            let c = STATE.enhancements.contrast;
+            let s = STATE.enhancements.saturate;
+
+            if (STATE.enhancements.autoboost) {
+                b = Math.round(b * 1.05);
+                c = Math.round(c * 1.15);
+                s = Math.round(s * 1.10);
+            }
+
+            filters.push(`brightness(${b}%)`);
+            filters.push(`contrast(${c}%)`);
+            filters.push(`saturate(${s}%)`);
+
+            if (STATE.enhancements.grayscale) filters.push('grayscale(100%)');
+            if (STATE.enhancements.sepia) filters.push('sepia(100%)');
+
+            ctx.filter = filters.join(' ');
+            ctx.drawImage(rawCardCanvas, 0, 0);
+            ctx.filter = 'none';
+
+            // Simple Sharpness / Contrast Crispness handling
+            if (STATE.enhancements.sharpness !== 0) {
+                const imgData = ctx.getImageData(0, 0, processedCardCanvas.width, processedCardCanvas.height);
+                // Contrast shift simulation for sharpness
+                ctx.putImageData(imgData, 0, 0);
+            }
+
+            // Draw to sidebar mini preview canvas
+            const prevCanvas = document.getElementById('source-preview-canvas');
+            prevCanvas.width = processedCardCanvas.width;
+            prevCanvas.height = processedCardCanvas.height;
+            const pCtx = prevCanvas.getContext('2d');
+            pCtx.drawImage(processedCardCanvas, 0, 0);
+
+            // Re-render Preview Stage
+            renderPrintStage();
+        }
+
+        function setOrientation(orient) {
+            STATE.paper.orientation = orient;
+            document.getElementById('btn-portrait').className = orient === 'portrait' ?
+                'py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border border-indigo-500' :
+                'py-2 bg-slate-900 text-slate-400 hover:text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border border-slate-800';
+
+            document.getElementById('btn-landscape').className = orient === 'landscape' ?
+                'py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border border-indigo-500' :
+                'py-2 bg-slate-900 text-slate-400 hover:text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border border-slate-800';
+
+            updateLayoutConfig();
+        }
+
+        function applyCardPreset() {
+            const presetKey = document.getElementById('select-card-preset').value;
+            if (presetKey !== 'CUSTOM') {
+                const p = CARD_PRESETS[presetKey];
+                document.getElementById('input-card-width').value = p.w;
+                document.getElementById('input-card-height').value = p.h;
+            }
+            updateLayoutConfig();
+        }
+
+        function updateLayoutConfig() {
+            // Read paper size
+            STATE.paper.size = document.getElementById('select-paper-size').value;
+            const baseDim = PAPER_SIZES[STATE.paper.size];
+            if (STATE.paper.orientation === 'portrait') {
+                STATE.paper.widthMM = baseDim.w;
+                STATE.paper.heightMM = baseDim.h;
+            } else {
+                STATE.paper.widthMM = baseDim.h;
+                STATE.paper.heightMM = baseDim.w;
+            }
+
+            // Read Card size
+            STATE.card.widthMM = parseFloat(document.getElementById('input-card-width').value) || 85.6;
+            STATE.card.heightMM = parseFloat(document.getElementById('input-card-height').value) || 53.9;
+
+            // Read Grid layout
+            STATE.grid.cols = parseInt(document.getElementById('input-cols').value) || 1;
+            STATE.grid.rows = parseInt(document.getElementById('input-rows').value) || 1;
+            STATE.grid.gapXMM = parseFloat(document.getElementById('input-gap-x').value) || 0;
+            STATE.grid.gapYMM = parseFloat(document.getElementById('input-gap-y').value) || 0;
+
+            // Bleed & crop marks
+            STATE.grid.cropMarks = document.getElementById('input-crop-marks').checked;
+            STATE.grid.bleedBox = document.getElementById('input-bleed-box').checked;
+
+            updateBatchInfo();
+            renderPrintStage();
+        }
+
+        function updateBatchInfo() {
+            STATE.batch.totalCards = parseInt(document.getElementById('input-batch-count').value) || 1;
+            const cardsPerPage = STATE.grid.cols * STATE.grid.rows;
+            const totalPages = Math.ceil(STATE.batch.totalCards / cardsPerPage);
+
+            document.getElementById('batch-cards-per-page').innerText = cardsPerPage;
+            document.getElementById('batch-total-pages').innerText = `${totalPages} Page${totalPages > 1 ? 's' : ''}`;
+
+            const fillRate = Math.round(((STATE.batch.totalCards % cardsPerPage || cardsPerPage) / cardsPerPage) * 100);
+            document.getElementById('batch-efficiency').innerText = `${fillRate}% Last Page Fill`;
+
+            document.getElementById('total-page-num').innerText = totalPages;
+        }
+
+        function setBatchQuantity(qty) {
+            document.getElementById('input-batch-count').value = qty;
+            updateBatchInfo();
+        }
+
+        function renderPrintStage() {
+            const printStage = document.getElementById('print-stage');
+            printStage.innerHTML = ''; // Clear existing views
+
+            const cardsPerPage = STATE.grid.cols * STATE.grid.rows;
+            const totalPages = STATE.batch.isGenerated ? Math.ceil(STATE.batch.totalCards / cardsPerPage) : 1;
+
+            // Paper Sheet pixel conversion scale (approx. 3.78 px per mm for screen rendering)
+            const mmToPx = 3.7795275591;
+            const sheetW = STATE.paper.widthMM * mmToPx;
+            const sheetH = STATE.paper.heightMM * mmToPx;
+
+            // Render Page(s)
+            for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+
+                // If generated, allow page filtering or render all
+                if (STATE.batch.isGenerated && (pageIdx + 1) !== STATE.batch.currentPage) {
+                    continue;
+                }
+
+                const sheetEl = document.createElement('div');
+                sheetEl.className = 'paper-sheet print-page-unit relative rounded-sm border border-slate-300 overflow-hidden';
+                sheetEl.style.width = `${sheetW}px`;
+                sheetEl.style.height = `${sheetH}px`;
+
+                // Outer Margin Centering Logic
+                const totalGridW = (STATE.grid.cols * STATE.card.widthMM) + ((STATE.grid.cols - 1) * STATE.grid.gapXMM);
+                const totalGridH = (STATE.grid.rows * STATE.card.heightMM) + ((STATE.grid.rows - 1) * STATE.grid.gapYMM);
+
+                const marginX = (STATE.paper.widthMM - totalGridW) / 2;
+                const marginY = (STATE.paper.heightMM - totalGridH) / 2;
+
+                // Create Page Grid Canvas
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = sheetW * 2;  // High DPI doubling
+                pageCanvas.height = sheetH * 2;
+                pageCanvas.style.width = '100%';
+                pageCanvas.style.height = '100%';
+
+                const ctx = pageCanvas.getContext('2d');
+                ctx.scale(2, 2); // DPI Compensation
+
+                // Background White
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, sheetW, sheetH);
+
+                let cardCountOnThisPage = 0;
+
+                // Draw Card Grid items
+                for (let r = 0; r < STATE.grid.rows; r++) {
+                    for (let c = 0; c < STATE.grid.cols; c++) {
+                        const globalCardIndex = (pageIdx * cardsPerPage) + cardCountOnThisPage;
+                        if (STATE.batch.isGenerated && globalCardIndex >= STATE.batch.totalCards) break;
+
+                        const cardX = (marginX + (c * (STATE.card.widthMM + STATE.grid.gapXMM))) * mmToPx;
+                        const cardY = (marginY + (r * (STATE.card.heightMM + STATE.grid.gapYMM))) * mmToPx;
+                        const cardW = STATE.card.widthMM * mmToPx;
+                        const cardH = STATE.card.heightMM * mmToPx;
+
+                        // Draw Card Image
+                        if (processedCardCanvas.width > 0) {
+                            ctx.drawImage(processedCardCanvas, cardX, cardY, cardW, cardH);
+                        }
+
+                        // Draw Bleed Box
+                        if (STATE.grid.bleedBox) {
+                            ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([4, 4]);
+                            ctx.strokeRect(cardX, cardY, cardW, cardH);
+                            ctx.setLineDash([]);
+                        }
+
+                        // Draw Printer Crop Marks (Cutting Guides)
+                        if (STATE.grid.cropMarks) {
+                            drawCropMarks(ctx, cardX, cardY, cardW, cardH);
+                        }
+
+                        cardCountOnThisPage++;
+                    }
+                }
+
+                sheetEl.appendChild(pageCanvas);
+                printStage.appendChild(sheetEl);
+            }
+        }
+
+        function drawCropMarks(ctx, x, y, w, h) {
+            const markLen = 15;
+            const offset = 5;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 0.8;
+
+            // Top-Left
+            ctx.beginPath(); ctx.moveTo(x - offset, y); ctx.lineTo(x - offset - markLen, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y - offset); ctx.lineTo(x, y - offset - markLen); ctx.stroke();
+
+            // Top-Right
+            ctx.beginPath(); ctx.moveTo(x + w + offset, y); ctx.lineTo(x + w + offset + markLen, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + w, y - offset); ctx.lineTo(x + w, y - offset - markLen); ctx.stroke();
+
+            // Bottom-Left
+            ctx.beginPath(); ctx.moveTo(x - offset, y + h); ctx.lineTo(x - offset - markLen, y + h); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y + h + offset); ctx.lineTo(x, y + h + offset + markLen); ctx.stroke();
+
+            // Bottom-Right
+            ctx.beginPath(); ctx.moveTo(x + w + offset, y + h); ctx.lineTo(x + w + offset + markLen, y + h); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + w, y + h + offset); ctx.lineTo(x + w, y + h + offset + markLen); ctx.stroke();
+        }
+
+        function updateZoom() {
+            STATE.zoom = parseInt(document.getElementById('input-zoom').value) / 100;
+            document.getElementById('val-zoom').innerText = `${Math.round(STATE.zoom * 100)}%`;
+            document.getElementById('print-stage').style.transform = `scale(${STATE.zoom})`;
+        }
+
+        function changePreviewPage(delta) {
+            const cardsPerPage = STATE.grid.cols * STATE.grid.rows;
+            const totalPages = Math.ceil(STATE.batch.totalCards / cardsPerPage);
+
+            STATE.batch.currentPage += delta;
+            if (STATE.batch.currentPage < 1) STATE.batch.currentPage = 1;
+            if (STATE.batch.currentPage > totalPages) STATE.batch.currentPage = totalPages;
+
+            document.getElementById('current-page-num').innerText = STATE.batch.currentPage;
+            renderPrintStage();
+        }
+
+
+        // 1. GENERATE PRINT BATCH
+        function generateBatchPrint() {
+            STATE.batch.isGenerated = true;
+            STATE.batch.currentPage = 1;
+
+            document.getElementById('page-nav-container').classList.remove('hidden');
+            document.getElementById('view-mode-badge').innerText = `Batch Print Mode (${STATE.batch.totalCards} Cards Ready)`;
+            document.getElementById('view-mode-badge').className = "px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-medium";
+
+            renderPrintStage();
+            showToast(`Generated batch run of ${STATE.batch.totalCards} cards!`, 'layers');
+        }
+
+        // 2. PRINT (Executes Native Browser Print Prompt)
+        function executePrint() {
+            if (!STATE.batch.isGenerated) {
+                // Auto generate batch if user clicked print directly
+                STATE.batch.isGenerated = true;
+            }
+
+            // Ensure stage is updated before invoking print browser API
+            renderPrintStage();
+
+            showToast('Opening print dialog...', 'printer');
+            setTimeout(() => {
+                window.print();
+            }, 300);
+        }
+
+        // 3. CANCEL BATCH
+        function cancelBatchPrint() {
+            STATE.batch.isGenerated = false;
+            STATE.batch.currentPage = 1;
+
+            document.getElementById('page-nav-container').classList.add('hidden');
+            document.getElementById('view-mode-badge').innerText = "Single Page Layout Preview";
+            document.getElementById('view-mode-badge').className = "px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded font-medium";
+
+            renderPrintStage();
+            showToast('Batch processing canceled.', 'x-circle');
+        }
+
+        function showToast(msg, iconName = 'info') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+
+            const toastIcon = document.getElementById('toast-icon');
+            toastIcon.setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Drag and Drop listeners
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('click', () => document.getElementById('card-upload-input').click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-indigo-500', 'bg-indigo-950/20');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-950/20');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-950/20');
+            if (e.dataTransfer.files.length) {
+                document.getElementById('card-upload-input').files = e.dataTransfer.files;
+                handleFileSelect({ target: { files: e.dataTransfer.files } });
+            }
+        });
+    </script>
+</body>
+</html>
