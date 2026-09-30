@@ -37,8 +37,7 @@
       watermarkText: "JOES STUDIO",
       watermarkOpacity: 0.12,
       watermarkSize: 24,
-      watermarkRotation: -25,
-    },
+      watermarkRotation: -25,\n      photoEnhancement: {\n        enabled: true,\n        whiteBackground: true,\n        strength: "strong",\n      },\n      enhancedPhotoCache: new Map(),\n    },
 
     notify(msg, type = "info") {
       if (window.Utils?.toast) {
