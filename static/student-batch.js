@@ -462,7 +462,6 @@
 
     close() {
       document.getElementById("studentBatchModal")?.classList.add("hidden");
-      this.cleanupPreview();
     },
 
     chooseTemplate() {
@@ -2672,6 +2671,5 @@
     });
     Batch.refresh();
     Batch.syncPhotoEditorControls();
-    Batch.previewBatch();
   });
 })();
