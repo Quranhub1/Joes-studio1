@@ -33,6 +33,11 @@
       embeddedPhotos: new Map(),
       badgeFile: null,
       badgeDataUrl: "",
+      watermarkEnabled: false,
+      watermarkText: "JOES STUDIO",
+      watermarkOpacity: 0.12,
+      watermarkSize: 24,
+      watermarkRotation: -25,
     },
 
     notify(msg, type = "info") {
@@ -75,6 +80,122 @@
       const color = this.normalizeCardColor(this.state.cardBackground);
       root.style.setProperty("background-color", color, "important");
       root.setAttribute("data-student-batch-background", color);
+    },
+
+    setWatermark(options = {}) {
+      if (Object.prototype.hasOwnProperty.call(options, "enabled")) {
+        this.state.watermarkEnabled = !!options.enabled;
+      }
+      if (Object.prototype.hasOwnProperty.call(options, "text")) {
+        this.state.watermarkText = String(options.text ?? "").trim().slice(0, 80);
+      }
+      if (Object.prototype.hasOwnProperty.call(options, "opacity")) {
+        const value = Number(options.opacity);
+        if (Number.isFinite(value)) this.state.watermarkOpacity = Math.min(0.5, Math.max(0.02, value));
+      }
+      if (Object.prototype.hasOwnProperty.call(options, "size")) {
+        const value = Number(options.size);
+        if (Number.isFinite(value)) this.state.watermarkSize = Math.min(72, Math.max(8, Math.round(value)));
+      }
+      if (Object.prototype.hasOwnProperty.call(options, "rotation")) {
+        const value = Number(options.rotation);
+        if (Number.isFinite(value)) this.state.watermarkRotation = Math.min(180, Math.max(-180, Math.round(value)));
+      }
+      this.syncWatermarkControls();
+      this.refresh();
+    },
+
+    applyWatermark(root) {
+      if (!root || !this.state.watermarkEnabled || !this.state.watermarkText) return;
+      root.querySelectorAll(".joes-custom-watermark").forEach(el => el.remove());
+
+      const watermark = root.ownerDocument.createElement("div");
+      watermark.className = "joes-custom-watermark";
+      watermark.textContent = this.state.watermarkText;
+      watermark.style.cssText = [
+        "position:absolute",
+        "left:50%",
+        "top:50%",
+        "transform:translate(-50%,-50%) rotate(" + this.state.watermarkRotation + "deg)",
+        "z-index:9999",
+        "pointer-events:none",
+        "user-select:none",
+        "white-space:nowrap",
+        "font-family:Arial,sans-serif",
+        "font-size:" + this.state.watermarkSize + "px",
+        "font-weight:800",
+        "letter-spacing:2px",
+        "line-height:1",
+        "color:#334155",
+        "opacity:" + this.state.watermarkOpacity,
+        "mix-blend-mode:multiply"
+      ].join(";");
+      root.appendChild(watermark);
+    },
+
+    syncWatermarkControls() {
+      const enabled = document.getElementById("studentBatchWatermarkEnabled");
+      const text = document.getElementById("studentBatchWatermarkText");
+      const opacity = document.getElementById("studentBatchWatermarkOpacity");
+      const size = document.getElementById("studentBatchWatermarkSize");
+      const rotation = document.getElementById("studentBatchWatermarkRotation");
+      const opacityValue = document.getElementById("studentBatchWatermarkOpacityValue");
+      const sizeValue = document.getElementById("studentBatchWatermarkSizeValue");
+      const rotationValue = document.getElementById("studentBatchWatermarkRotationValue");
+      if (enabled) enabled.checked = this.state.watermarkEnabled;
+      if (text && text.value !== this.state.watermarkText) text.value = this.state.watermarkText;
+      if (opacity) opacity.value = String(Math.round(this.state.watermarkOpacity * 100));
+      if (size) size.value = String(this.state.watermarkSize);
+      if (rotation) rotation.value = String(this.state.watermarkRotation);
+      if (opacityValue) opacityValue.textContent = Math.round(this.state.watermarkOpacity * 100) + "%";
+      if (sizeValue) sizeValue.textContent = this.state.watermarkSize + "px";
+      if (rotationValue) rotationValue.textContent = this.state.watermarkRotation + "°";
+    },
+
+    ensureWatermarkControls() {
+      const modal = document.getElementById("studentBatchModal");
+      if (!modal || modal.querySelector("#studentBatchWatermarkPanel")) return;
+
+      const panel = document.createElement("section");
+      panel.id = "studentBatchWatermarkPanel";
+      panel.className = "mx-4 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4";
+      panel.innerHTML =
+        '<div class="flex items-center justify-between gap-3 mb-3">' +
+          '<div><div class="text-sm font-semibold text-slate-800">Custom Watermark</div>' +
+          '<div class="text-[10px] text-slate-500">Optional watermark applied to every generated and printed card.</div></div>' +
+          '<label class="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">' +
+            '<input id="studentBatchWatermarkEnabled" type="checkbox" class="h-4 w-4">' +
+            '<span>Enable</span>' +
+          '</label>' +
+        '</div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
+          '<label class="text-[10px] font-medium text-slate-600">Watermark text' +
+            '<input id="studentBatchWatermarkText" type="text" maxlength="80" placeholder="JOES STUDIO" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-xs bg-white">' +
+          '</label>' +
+          '<label class="text-[10px] font-medium text-slate-600">Opacity <span id="studentBatchWatermarkOpacityValue" class="float-right text-slate-400">12%</span>' +
+            '<input id="studentBatchWatermarkOpacity" type="range" min="2" max="50" value="12" class="mt-2 w-full">' +
+          '</label>' +
+          '<label class="text-[10px] font-medium text-slate-600">Size <span id="studentBatchWatermarkSizeValue" class="float-right text-slate-400">24px</span>' +
+            '<input id="studentBatchWatermarkSize" type="range" min="8" max="72" value="24" class="mt-2 w-full">' +
+          '</label>' +
+          '<label class="text-[10px] font-medium text-slate-600">Rotation <span id="studentBatchWatermarkRotationValue" class="float-right text-slate-400">-25°</span>' +
+            '<input id="studentBatchWatermarkRotation" type="range" min="-180" max="180" value="-25" class="mt-2 w-full">' +
+          '</label>' +
+        '</div>';
+
+      const anchor = modal.querySelector("#studentBatchPrintPreview") || modal.querySelector("#studentBatchFields");
+      if (anchor && anchor.parentElement) anchor.parentElement.insertAdjacentElement("beforebegin", panel);
+      else modal.appendChild(panel);
+
+      const bind = (id, handler) => document.getElementById(id)?.addEventListener("input", handler);
+      document.getElementById("studentBatchWatermarkEnabled")?.addEventListener("change", e => {
+        this.setWatermark({ enabled: e.target.checked });
+      });
+      bind("studentBatchWatermarkText", e => this.setWatermark({ text: e.target.value }));
+      bind("studentBatchWatermarkOpacity", e => this.setWatermark({ opacity: Number(e.target.value) / 100 }));
+      bind("studentBatchWatermarkSize", e => this.setWatermark({ size: Number(e.target.value) }));
+      bind("studentBatchWatermarkRotation", e => this.setWatermark({ rotation: Number(e.target.value) }));
+      this.syncWatermarkControls();
     },
 
     normalize(value) {
@@ -997,6 +1118,7 @@
 
       const body = this.findHtmlCardRoot(doc);
       this.applyCardBackground(body);
+      this.applyWatermark(body);
 
       for (const img of Array.from(body.querySelectorAll("img"))) {
         const srcAttr = String(img.getAttribute("src") || "");
@@ -1481,6 +1603,7 @@
       const fieldsEl = document.getElementById("studentBatchFields");
       const sizeEl = document.getElementById("studentBatchCardSize");
       const photoEl = document.getElementById("studentBatchPhotoName");
+      this.ensureWatermarkControls();
 
       const bgInput = document.getElementById("studentBatchCardBackground");
       const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
