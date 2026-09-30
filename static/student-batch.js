@@ -27,6 +27,8 @@
       rowsPerPage: 0,
       cardWidthMm: 130,
       cardHeightMm: 60,
+      templateNativeWidthMm: 130,
+      templateNativeHeightMm: 60,
       cardBackground: "#ffffff",
       backgroundPreset: "none",
       orientation: "landscape",
@@ -873,8 +875,14 @@
       this.state.templateFields = fields;
 
       const size = this.detectHtmlCardSize(doc, cardRoot);
-      this.state.cardWidthMm = size.w;
-      this.state.cardHeightMm = size.h;
+      // Every uploaded HTML template is normalized to the application's
+      // standard card canvas. Keep the source geometry separately so the
+      // complete custom design can be scaled into 130 x 60 mm without
+      // cropping or distorting its internal layout.
+      this.state.templateNativeWidthMm = Math.max(1, Number(size.w) || 130);
+      this.state.templateNativeHeightMm = Math.max(1, Number(size.h) || 60);
+      this.state.cardWidthMm = 130;
+      this.state.cardHeightMm = 60;
 
       this.state.mapping = this.autoMapHtml();
       this.refresh();
@@ -2140,8 +2148,11 @@
       // Normalize the template root to its exact native physical size.
       // The page layout will uniformly scale this complete card canvas into
       // the slot dictated by cards-per-page.
-      const nativeW = Math.max(1, Math.round(this.state.cardWidthMm * 96 / 25.4));
-      const nativeH = Math.max(1, Math.round(this.state.cardHeightMm * 96 / 25.4));
+      const nativeW = Math.max(1, Math.round((Number(this.state.templateNativeWidthMm) || 130) * 96 / 25.4));
+      const nativeH = Math.max(1, Math.round((Number(this.state.templateNativeHeightMm) || 60) * 96 / 25.4));
+      const targetW = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
+      const targetH = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
+      const fitScale = Math.min(targetW / nativeW, targetH / nativeH);
       cardClone.style.width = nativeW + "px";
       cardClone.style.height = nativeH + "px";
       cardClone.style.minWidth = "0";
@@ -2152,9 +2163,18 @@
       cardClone.style.overflow = "hidden";
       cardClone.style.margin = "0";
       cardClone.style.position = cardClone.style.position || "relative";
-      wrapper.style.width = nativeW + "px";
-      wrapper.style.height = nativeH + "px";
-      wrapper.appendChild(cardClone);
+      const scaleShell = document.createElement("div");
+      scaleShell.style.cssText = [
+        "position:absolute","left:0","top:0",
+        "width:" + nativeW + "px","height:" + nativeH + "px",
+        "transform-origin:top left",
+        "transform:scale(" + fitScale + ")",
+        "overflow:hidden"
+      ].join(";");
+      scaleShell.appendChild(cardClone);
+      wrapper.style.width = targetW + "px";
+      wrapper.style.height = targetH + "px";
+      wrapper.appendChild(scaleShell);
       document.body.appendChild(wrapper);
 
       const canvas = await this.domToCanvas(wrapper, this.state.cardWidthMm, this.state.cardHeightMm);
