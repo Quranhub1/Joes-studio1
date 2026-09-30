@@ -7,7 +7,10 @@
   },
   "scripts": {
     "vercel-build": "node -e \"console.log('Joes Studio: static frontend, Vercel Functions under /api')\"",
-    "test:syntax": "node --check api/_auth.mjs && node --check api/auth.js && node --check api/admin.js && node --check api/usage.js && node --check api/payments.js && node --check static/student-batch.js"
+    "test:syntax": "node --check api/_auth.mjs && node --check api/auth.js && node --check api/admin.js && node --check api/usage.js && node --check api/payments.js && node --check static/student-batch.js",
+    "cloudflare-deploy": "npx wrangler deploy",
+    "cloudflare-preview": "npx wrangler dev",
+    "cloudflare-typegen": "npx wrangler types"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1"
