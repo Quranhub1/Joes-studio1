@@ -1,4 +1,4 @@
 // Frontend runtime configuration.
-// GitHub Pages uses the production Vercel API origin for authentication,
-// payments, usage enforcement, templates, and badge storage.
-window.JOES_API_BASE = "https://joes-studio1.vercel.app";
+// The Cloudflare Worker serves both the static application and the /api/* API.
+// Keep this relative so the same deployment works on workers.dev and a custom domain.
+window.JOES_API_BASE = window.location.origin;
