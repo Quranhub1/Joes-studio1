@@ -149,7 +149,7 @@
         this.notify("The free custom-watermark trial has ended after 3 generated batches. Upgrade to Pro to continue.", "error");
         return;
       }
-      if (!/^image\\/(png|jpeg|jpg|webp|svg\\+xml)$/i.test(String(file.type || ""))) {
+      if (!/^image\/(png|jpeg|jpg|webp|svg\+xml)$/i.test(String(file.type || ""))) {
         this.notify("Choose a PNG, JPG, WEBP, or SVG watermark image.", "error");
         return;
       }
