@@ -1,0 +1,24 @@
+# Server/runtime source
+api/
+worker.mjs
+wrangler.jsonc
+
+# Project metadata and package manifests
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+README.md
+
+# Development/editor files
+.git/
+.github/
+.vscode/
+.dev.vars*
+.wrangler/
+
+# Legacy source tree not used by the deployed frontend
+PaperStudio-main/
+
+# Sensitive/local configuration
+.env*
