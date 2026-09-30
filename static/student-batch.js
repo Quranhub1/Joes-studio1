@@ -1369,8 +1369,73 @@
       return { doc, body };
     },
 
+    async prepareExportImages(root) {
+      if (!root) return;
+      const images = Array.from(root.querySelectorAll("img[src]"));
+      await Promise.all(images.map(async img => {
+        const raw = String(img.getAttribute("src") || "").trim();
+        if (!raw || /^(?:data:|blob:)/i.test(raw)) return;
+
+        let src = raw;
+        try {
+          src = new URL(raw, document.baseURI).href;
+        } catch (_) {}
+
+        // First choice: embed the original image directly as a data URL.
+        try {
+          const response = await fetch(src, { mode: "cors", credentials: "omit", cache: "force-cache" });
+          if (response.ok) {
+            const blob = await response.blob();
+            if (blob.size) {
+              const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+              if (dataUrl) {
+                img.setAttribute("src", dataUrl);
+                img.removeAttribute("crossorigin");
+                return;
+              }
+            }
+          }
+        } catch (_) {}
+
+        // Second choice: use the same image proxy used by the live preview.
+        // This makes remote school logos safe for canvas/PDF rendering when
+        // the original host does not expose CORS headers.
+        try {
+          const proxy = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
+          const response = await fetch(proxy, { mode: "cors", credentials: "omit", cache: "force-cache" });
+          if (response.ok) {
+            const blob = await response.blob();
+            if (blob.size) {
+              const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+              if (dataUrl) {
+                img.setAttribute("src", dataUrl);
+                img.removeAttribute("crossorigin");
+                return;
+              }
+            }
+          }
+        } catch (_) {}
+
+        // Leave the original source intact as a final fallback. The image
+        // loader below will wait for it and report it rather than inventing
+        // a placeholder image.
+        img.setAttribute("src", src);
+      }));
+    },
+
     async renderHtmlCard(row) {
       const { doc, body } = await this.buildHtmlCard(row);
+      await this.prepareExportImages(body);
       const wrapper = document.createElement("div");
       wrapper.style.cssText = [
         "position:fixed", "left:-100000px", "top:0", "visibility:hidden",
@@ -1901,7 +1966,8 @@
               "scaleX(" + ((layout.card.w * 96 / 25.4) / nativeW) + ") " +
               "scaleY(" + ((layout.card.h * 96 / 25.4) / nativeH) + ")";
 
-            const cardClone = built.body.cloneNode(true);
+            await this.prepareExportImages(built.body);
+                        const cardClone = built.body.cloneNode(true);
             this.sanitizePlaceholderImages(cardClone);
             stage.appendChild(printDoc.importNode(cardClone, true));
             frame.appendChild(stage);
