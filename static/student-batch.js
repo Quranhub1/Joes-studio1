@@ -44,7 +44,7 @@
       // This keeps faces readable on paper without altering the original
       // uploaded files.
       photoEnhancement: {
-        enabled: true,
+        enabled: false,
         whiteBackground: false,
         strength: "strong",
         manual: {
