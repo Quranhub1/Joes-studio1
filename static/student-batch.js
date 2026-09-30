@@ -82,6 +82,39 @@
       root.setAttribute("data-student-batch-background", color);
     },
 
+    async enhanceStudentPhoto(dataUrl) {
+      if (!dataUrl || (!this.state.photoEnhancement.enabled && !this.state.photoEnhancement.whiteBackground)) return dataUrl;
+      const key=dataUrl+"|"+JSON.stringify(this.state.photoEnhancement);
+      const cached=this.state.enhancedPhotoCache.get(key); if(cached)return cached;
+      try {
+        if(window.JoesStudentPhotoEnhancer?.process){
+          const out=await window.JoesStudentPhotoEnhancer.process(dataUrl,{auto:this.state.photoEnhancement.enabled,strength:this.state.photoEnhancement.strength,whiteBackground:this.state.photoEnhancement.whiteBackground});
+          this.state.enhancedPhotoCache.set(key,out); return out;
+        }
+      } catch(e){console.warn("Photo enhancement failed; using original.",e);}
+      return dataUrl;
+    },
+    setPhotoEnhancement(options={}) {
+      if("enabled" in options)this.state.photoEnhancement.enabled=!!options.enabled;
+      if("whiteBackground" in options)this.state.photoEnhancement.whiteBackground=!!options.whiteBackground;
+      if(options.strength)this.state.photoEnhancement.strength=String(options.strength);
+      this.state.enhancedPhotoCache.clear(); this.syncPhotoEnhancementControls(); this.refresh();
+    },
+    syncPhotoEnhancementControls() {
+      const a=document.getElementById("studentBatchAutoEnhance"),w=document.getElementById("studentBatchWhiteBackground"),s=document.getElementById("studentBatchEnhancementStrength");
+      if(a)a.checked=this.state.photoEnhancement.enabled;if(w)w.checked=this.state.photoEnhancement.whiteBackground;if(s)s.value=this.state.photoEnhancement.strength;
+    },
+    ensurePhotoEnhancementControls() {
+      const modal=document.getElementById("studentBatchModal"); if(!modal||modal.querySelector("#studentBatchPhotoEnhancementPanel"))return;
+      const p=document.createElement("section");p.id="studentBatchPhotoEnhancementPanel";p.className="mx-4 mb-4 rounded-xl border border-slate-200 bg-white p-4";
+      p.innerHTML='<div class="mb-3"><div class="text-sm font-semibold text-slate-800">Automatic Photo Enhancement</div><div class="text-[10px] text-slate-500">Photos are processed locally in your browser.</div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><label class="flex items-center gap-2 text-xs font-medium text-slate-700"><input id="studentBatchAutoEnhance" type="checkbox" class="h-4 w-4">Auto enhance</label><label class="flex items-center gap-2 text-xs font-medium text-slate-700"><input id="studentBatchWhiteBackground" type="checkbox" class="h-4 w-4">Whiten background</label><label class="text-[10px] font-medium text-slate-600">Strength<select id="studentBatchEnhancementStrength" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-xs bg-white"><option value="natural">Natural</option><option value="strong">Strong</option></select></label></div>';
+      const a=modal.querySelector("#studentBatchWatermarkPanel")||modal.querySelector("#studentBatchFields"); if(a&&a.parentElement)a.parentElement.insertAdjacentElement("beforebegin",p);else modal.appendChild(p);
+      document.getElementById("studentBatchAutoEnhance")?.addEventListener("change",e=>this.setPhotoEnhancement({enabled:e.target.checked}));
+      document.getElementById("studentBatchWhiteBackground")?.addEventListener("change",e=>this.setPhotoEnhancement({whiteBackground:e.target.checked}));
+      document.getElementById("studentBatchEnhancementStrength")?.addEventListener("change",e=>this.setPhotoEnhancement({strength:e.target.value}));
+      this.syncPhotoEnhancementControls();
+    },
+
     setWatermark(options = {}) {
       if (Object.prototype.hasOwnProperty.call(options, "enabled")) {
         this.state.watermarkEnabled = !!options.enabled;
@@ -1077,7 +1110,7 @@
 
       if (!resolved) return false;
 
-      const src = this.imageSourceForTemplate(resolved);
+      const src = this.imageSourceForTemplate(isPhoto ? await this.enhanceStudentPhoto(resolved) : resolved);
       if (!src) return false;
 
       if (el.tagName === "IMG") {
@@ -1605,6 +1638,7 @@
       const sizeEl = document.getElementById("studentBatchCardSize");
       const photoEl = document.getElementById("studentBatchPhotoName");
       this.ensureWatermarkControls();
+      this.ensurePhotoEnhancementControls();
 
       const bgInput = document.getElementById("studentBatchCardBackground");
       const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
