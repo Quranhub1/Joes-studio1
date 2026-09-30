@@ -1870,47 +1870,6 @@
       });
     },
 
-    async ensurePhotoUpscaler() {
-      if (window.Upscaler && window.ESRGANMedium2x) return true;
-      if (this._photoUpscalerLoadPromise) return this._photoUpscalerLoadPromise;
-
-      const loadScript = src => new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-joes-photo-ai="' + src + '"]');
-        if (existing) {
-          if (existing.dataset.loaded === "true") { resolve(); return; }
-          existing.addEventListener("load", () => resolve(), { once: true });
-          existing.addEventListener("error", () => reject(new Error("Could not load photo AI library: " + src)), { once: true });
-          return;
-        }
-
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.dataset.joesPhotoAi = src;
-        script.onload = () => {
-          script.dataset.loaded = "true";
-          resolve();
-        };
-        script.onerror = () => reject(new Error("Could not load photo AI library: " + src));
-        document.head.appendChild(script);
-      });
-
-      this._photoUpscalerLoadPromise = (async () => {
-        // TensorFlow is required by UpscalerJS/ESRGAN. These are intentionally
-        // loaded only after a photo needs AI upscaling, not during page startup.
-        const base = "https://cdn.jsdelivr.net/npm/";
-        await loadScript(base + "@tensorflow/tfjs@4.22.0/dist/tf.min.js");
-        await loadScript(base + "@upscalerjs/esrgan-medium@1.0.0/dist/umd/2x.min.js");
-        await loadScript(base + "upscaler@1.0.0/dist/browser/umd/upscaler.min.js");
-        return Boolean(window.Upscaler && window.ESRGANMedium2x);
-      })().catch(error => {
-        console.warn("Lazy photo AI loading failed; local enhancement will be used.", error);
-        return false;
-      });
-
-      return this._photoUpscalerLoadPromise;
-    },
-
     async enhanceStudentPhoto(dataUrl) {
       if (!dataUrl) return dataUrl;
 
@@ -1938,10 +1897,8 @@
       // Photos stay on the user device. ESRGAN Medium 2x is used only for
       // genuinely small portraits, then the deterministic local finishing
       // pass handles print brightness, shadows, face lighting and sharpening.
-      if (this.state.photoEnhancement.enabled) {
+      if (this.state.photoEnhancement.enabled && window.Upscaler && window.ESRGANMedium2x) {
         try {
-          const aiReady = await this.ensurePhotoUpscaler();
-          if (!aiReady) throw new Error("Photo AI libraries unavailable; using local enhancement.");
           const img = await new Promise((resolve, reject) => {
             const image = new Image();
             image.onload = () => resolve(image);
