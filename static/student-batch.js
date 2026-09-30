@@ -1081,11 +1081,30 @@
       if (Number(attrW) > 0 && Number(attrH) > 0) return { w: Number(attrW), h: Number(attrH) };
 
       const css = Array.from(doc.querySelectorAll("style")).map(s => s.textContent || "").join("\n");
-      const classMatch = css.match(/(?:\.exam-card|\.student-card|\.card|\#student-card|\#card)[^{]*\{([^}]*)\}/i);
-      const block = classMatch ? classMatch[1] : css;
-      const w = this.parseCssLength((block.match(/\bwidth\s*:\s*([^;]+)/i) || [])[1]);
-      const h = this.parseCssLength((block.match(/\bheight\s*:\s*([^;]+)/i) || [])[1]);
-      if (w > 0 && h > 0) return { w, h };
+
+      // Prefer the actual card-root selector. This includes .card-container,
+      // which is used by the built-in exam-card templates. Do not fall back to
+      // @page/body dimensions when the card itself declares physical size.
+      const selectors = [
+        "#exam-card", "#student-card", "#card", "#id-card",
+        ".card-container", ".exam-card", ".student-card", ".id-card", ".student-id-card"
+      ];
+      const blocks = [];
+      for (const selector of selectors) {
+        const safe = selector.replace(/[.*+?^$()|[\\]\\]/g, "\\$&");
+        const re = new RegExp(safe + "[^\\{]*\\{([^}]*)\\}", "ig");
+        let match;
+        while ((match = re.exec(css))) blocks.push(match[1] || "");
+      }
+      for (const block of blocks) {
+        const w = this.parseCssLength((block.match(/\bwidth\s*:\s*([^;]+)/i) || [])[1]);
+        const h = this.parseCssLength((block.match(/\bheight\s*:\s*([^;]+)/i) || [])[1]);
+        if (w > 0 && h > 0) return { w, h };
+      }
+
+      const inlineW = this.parseCssLength(root?.style?.width);
+      const inlineH = this.parseCssLength(root?.style?.height);
+      if (inlineW > 0 && inlineH > 0) return { w: inlineW, h: inlineH };
 
       const page = css.match(/@page[^\{]*\{[^}]*size\s*:\s*([^;]+);?/i);
       if (page) {
@@ -2118,7 +2137,23 @@
       // strips the selector that controls the badge, fields, borders and
       // internal positioning. That is why only the badge was surviving.
       const cardClone = body.cloneNode(true);
-      // Preserve the selected template's own geometry and styles.
+      // Normalize the template root to its exact native physical size.
+      // The page layout will uniformly scale this complete card canvas into
+      // the slot dictated by cards-per-page.
+      const nativeW = Math.max(1, Math.round(this.state.cardWidthMm * 96 / 25.4));
+      const nativeH = Math.max(1, Math.round(this.state.cardHeightMm * 96 / 25.4));
+      cardClone.style.width = nativeW + "px";
+      cardClone.style.height = nativeH + "px";
+      cardClone.style.minWidth = "0";
+      cardClone.style.minHeight = "0";
+      cardClone.style.maxWidth = "none";
+      cardClone.style.maxHeight = "none";
+      cardClone.style.boxSizing = "border-box";
+      cardClone.style.overflow = "hidden";
+      cardClone.style.margin = "0";
+      cardClone.style.position = cardClone.style.position || "relative";
+      wrapper.style.width = nativeW + "px";
+      wrapper.style.height = nativeH + "px";
       wrapper.appendChild(cardClone);
       document.body.appendChild(wrapper);
 
