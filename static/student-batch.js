@@ -1777,10 +1777,23 @@
       // Every badge field in the selected HTML template uses this uploaded PNG.
       if (this.isBadgeField(field)) return this.state.badgeDataUrl || "";
 
-      const header = this.state.mapping[field];
+      // Resolve mapping keys by their normalized names too. This prevents
+      // harmless spacing/case/punctuation differences in custom templates
+      // from silently breaking an otherwise valid Excel mapping.
+      const requestedField = String(field ?? "").trim();
+      let mappedKey = requestedField;
+      if (!Object.prototype.hasOwnProperty.call(this.state.mapping || {}, mappedKey)) {
+        const normalized = this.normalize(requestedField);
+        mappedKey = Object.keys(this.state.mapping || {}).find(
+          key => this.normalize(key) === normalized
+        ) || requestedField;
+      }
+
+      const header = this.state.mapping?.[mappedKey];
       if (header && row[header] !== undefined) return row[header];
-      if (row[field] !== undefined) return row[field];
-      const h = this.findHeader(field);
+      if (row[requestedField] !== undefined) return row[requestedField];
+
+      const h = this.findHeader(requestedField);
       return h && row[h] !== undefined ? row[h] : "";
     },
 
@@ -1963,11 +1976,21 @@
       return file ? await this.fileToDataUrl(file) : (row?.__embeddedPhoto || "");
     },
     replacePlaceholders(html, row) {
-      return html.replace(/{{\s*([^{}]+?)\s*}}/g, (_m, name) => {
-        const field = String(name).trim();
-        if (this.isImageField(field)) return "";
+      // Support every placeholder syntax accepted by detectPlaceholders().
+      // Image placeholders are deliberately preserved here because image
+      // sources are resolved before this pass. Clearing {{photo}} at this
+      // stage would make custom-template photos disappear.
+      const replaceField = (_m, name) => {
+        const field = String(name ?? "").trim();
+        if (this.isImageField(field)) return _m;
         return escapeHtml(this.displayValue(row, field));
-      });
+      };
+
+      return String(html ?? "")
+        .replace(/{{\s*([^{}]+?)\s*}}/g, replaceField)
+        .replace(/\[\[\s*([^\[\]]+?)\s*\]\]/g, replaceField)
+        .replace(/\$\{\s*([^{}]+?)\s*\}/g, replaceField)
+        .replace(/%\{\s*([^{}]+?)\s*\}/g, replaceField);
     },
 
     isImageField(field = "") {
