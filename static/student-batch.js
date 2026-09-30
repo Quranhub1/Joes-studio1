@@ -2970,8 +2970,8 @@
       const totalCards = this.state.rows.length * copies;
       const totalPages = Math.max(1, Math.ceil(totalCards / layout.perPage));
       const sheet = layout.sheet;
-      const nativeW = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
-      const nativeH = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
+      const nativeW = Math.max(1, Math.round((Number(this.state.templateNativeWidthMm) || Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
+      const nativeH = Math.max(1, Math.round((Number(this.state.templateNativeHeightMm) || Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
 
       let iframe = null;
 
@@ -2999,8 +2999,8 @@
           "body{display:block!important;}",
           ".student-batch-print-page{position:relative;box-sizing:border-box;width:" + sheet.w + "mm;height:" + sheet.h + "mm;overflow:hidden;background:#fff;break-after:page;page-break-after:always;}",
           ".student-batch-print-page:last-child{break-after:auto;page-break-after:auto;}",
-          ".student-batch-print-frame{position:absolute;overflow:hidden;box-sizing:border-box;background:" + this.normalizeCardColor(this.state.cardBackground) + ";}",
-          ".student-batch-print-stage{position:absolute;left:0;top:0;transform-origin:top left;overflow:hidden;}",
+          ".student-batch-print-frame{position:absolute;overflow:visible;box-sizing:border-box;background:" + this.normalizeCardColor(this.state.cardBackground) + ";}",
+          ".student-batch-print-stage{position:absolute;left:0;top:0;transform-origin:top left;overflow:visible;}",
           "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}",
           this.state.htmlStyles || ""
         ].join("\n");
@@ -3080,17 +3080,14 @@
             const uniformScale = Math.min(targetW / sourceW, targetH / sourceH);
             stage.style.width = sourceW + "px";
             stage.style.height = sourceH + "px";
+            stage.style.transformOrigin = "top left";
             stage.style.transform = "scale(" + uniformScale + ")";
 
             const cardClone = built.body.cloneNode(true);
-            cardClone.style.width = sourceW + "px";
-            cardClone.style.height = sourceH + "px";
-            cardClone.style.minWidth = "0";
-            cardClone.style.minHeight = "0";
-            cardClone.style.maxWidth = "none";
-            cardClone.style.maxHeight = "none";
+            // Keep the uploaded custom template root and its own CSS geometry.
+            // The print stage scales the complete card as one object instead
+            // of rewriting width/height/overflow and clipping its children.
             cardClone.style.boxSizing = "border-box";
-            cardClone.style.overflow = "hidden";
             cardClone.style.margin = "0";
             this.sanitizePlaceholderImages(cardClone);
             stage.appendChild(printDoc.importNode(cardClone, true));
