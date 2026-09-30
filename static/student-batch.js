@@ -2893,13 +2893,25 @@
             const stage = printDoc.createElement("div");
             stage.className = "student-batch-print-stage";
             stage.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
-            stage.style.width = nativeW + "px";
-            stage.style.height = nativeH + "px";
-            stage.style.transform =
-              "scaleX(" + ((layout.card.w * 96 / 25.4) / nativeW) + ") " +
-              "scaleY(" + ((layout.card.h * 96 / 25.4) / nativeH) + ")";
+            const sourceW = Math.max(1, Math.round((Number(this.state.templateNativeWidthMm) || 130) * 96 / 25.4));
+            const sourceH = Math.max(1, Math.round((Number(this.state.templateNativeHeightMm) || 60) * 96 / 25.4));
+            const targetW = Math.max(1, layout.card.w * 96 / 25.4);
+            const targetH = Math.max(1, layout.card.h * 96 / 25.4);
+            const uniformScale = Math.min(targetW / sourceW, targetH / sourceH);
+            stage.style.width = sourceW + "px";
+            stage.style.height = sourceH + "px";
+            stage.style.transform = "scale(" + uniformScale + ")";
 
             const cardClone = built.body.cloneNode(true);
+            cardClone.style.width = sourceW + "px";
+            cardClone.style.height = sourceH + "px";
+            cardClone.style.minWidth = "0";
+            cardClone.style.minHeight = "0";
+            cardClone.style.maxWidth = "none";
+            cardClone.style.maxHeight = "none";
+            cardClone.style.boxSizing = "border-box";
+            cardClone.style.overflow = "hidden";
+            cardClone.style.margin = "0";
             this.sanitizePlaceholderImages(cardClone);
             stage.appendChild(printDoc.importNode(cardClone, true));
             frame.appendChild(stage);
