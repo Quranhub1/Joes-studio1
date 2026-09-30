@@ -8,6 +8,7 @@ package.json
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+bun.lock
 README.md
 
 # Development/editor files
@@ -16,6 +17,7 @@ README.md
 .vscode/
 .dev.vars*
 .wrangler/
+node_modules/
 
 # Legacy source tree not used by the deployed frontend
 PaperStudio-main/
