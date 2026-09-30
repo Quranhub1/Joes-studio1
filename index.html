@@ -20,11 +20,13 @@
     <script src="./static/jszip.min.js"></script>
     <script src="./static/idb-keyval.umd.js"></script>
     <script src="./static/bwip-js.min.js"></script>
-    <!-- Lightweight local photo finishing is loaded at startup. Heavy AI upscaling
-         libraries are loaded lazily only when the user actually enhances a photo. -->
+    <!-- Browser-local AI super-resolution. No external image API or API key required. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@upscalerjs/esrgan-medium@1.0.0/dist/umd/2x.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/upscaler@1.0.0/dist/browser/umd/upscaler.min.js"></script>
     <script src="./static/student-photo-enhancer.js?v=20260928-upscaler"></script>
     <script src="./static/runtime-config.js"></script>
-    <script src="./static/student-batch.js?v=20260930-custom-watermark-2"></script>
+    <script src="./static/student-batch.js?v=20260930-custom-watermark-1"></script>
     <script>var App;</script>
     <link rel="preload" href="./static/SourceHanSerifCN-Bold.ttf" as="font" type="font/ttf" crossorigin />
     <style>
