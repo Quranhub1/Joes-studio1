@@ -417,10 +417,23 @@
     // KSHS templates use #exam-card / .card-container, while custom templates
     // may use one of the other supported card selectors.
     findHtmlCardRoot(doc) {
-      return doc.querySelector(
+      // Prefer explicit card roots. For generic custom templates, choose a
+      // dimensioned card candidate before falling back to the first ".card".
+      // This prevents a nested .card element from becoming the render root.
+      const explicit = doc.querySelector(
         "#exam-card, [data-card], .card-container, .exam-card, .student-card, " +
-        "#student-card, .id-card, #id-card, .card"
-      ) || doc.body;
+        "#student-card, .id-card, #id-card"
+      );
+      if (explicit) return explicit;
+
+      const candidates = Array.from(doc.querySelectorAll(".card"));
+      const dimensioned = candidates.find(el => {
+        const style = String(el.getAttribute("style") || "");
+        const cls = String(el.className || "");
+        const text = (style + " " + cls).toLowerCase();
+        return /(?:width|height)\s*[:=]/i.test(text);
+      });
+      return dimensioned || candidates[0] || doc.body;
     },
 
     organizeUI() {
@@ -2297,31 +2310,28 @@
       // strips the selector that controls the badge, fields, borders and
       // internal positioning. That is why only the badge was surviving.
       const cardClone = body.cloneNode(true);
-      // Normalize the template root to its exact native physical size.
-      // The page layout will uniformly scale this complete card canvas into
-      // the slot dictated by cards-per-page.
+      // Preserve the uploaded template root exactly. Do not force its
+      // width, height, max/min dimensions, position, or overflow because
+      // those rules may be essential to its internal layout.
       const nativeW = Math.max(1, Math.round((Number(this.state.templateNativeWidthMm) || 130) * 96 / 25.4));
       const nativeH = Math.max(1, Math.round((Number(this.state.templateNativeHeightMm) || 60) * 96 / 25.4));
       const targetW = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
       const targetH = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
       const fitScale = Math.min(targetW / nativeW, targetH / nativeH);
-      cardClone.style.width = nativeW + "px";
-      cardClone.style.height = nativeH + "px";
-      cardClone.style.minWidth = "0";
-      cardClone.style.minHeight = "0";
-      cardClone.style.maxWidth = "none";
-      cardClone.style.maxHeight = "none";
+
       cardClone.style.boxSizing = "border-box";
-      cardClone.style.overflow = "hidden";
       cardClone.style.margin = "0";
-      cardClone.style.position = cardClone.style.position || "relative";
+
+      // The shell owns the physical canvas and scales the whole custom card
+      // uniformly. The uploaded root and all descendants retain their native
+      // CSS coordinate system, so no part of the design is clipped by us.
       const scaleShell = document.createElement("div");
       scaleShell.style.cssText = [
         "position:absolute","left:0","top:0",
         "width:" + nativeW + "px","height:" + nativeH + "px",
         "transform-origin:top left",
         "transform:scale(" + fitScale + ")",
-        "overflow:hidden"
+        "overflow:visible"
       ].join(";");
       scaleShell.appendChild(cardClone);
       wrapper.style.width = targetW + "px";
@@ -2644,26 +2654,24 @@
             cardStage.appendChild(style);
 
             const clone = builtCards[i].cloneNode(true);
-            clone.style.width = nativeCardWidth + "px";
-            clone.style.height = nativeCardHeight + "px";
-            clone.style.minWidth = "0";
-            clone.style.minHeight = "0";
-            clone.style.maxWidth = "none";
-            clone.style.maxHeight = "none";
-            clone.style.boxSizing = "border-box";
-            clone.style.overflow = "hidden";
-            clone.style.margin = "0";
-            clone.style.position = clone.style.position || "relative";
 
-            // The transform is applied to the complete template card, never
-            // to individual fields. The whole card therefore remains visible.
+            // IMPORTANT: do not rewrite the custom template root's dimensions
+            // or overflow. Its own CSS is the source of truth. Rewriting
+            // width/height/overflow here can clip absolutely-positioned
+            // children and leave only header elements visible in preview.
+            clone.style.boxSizing = "border-box";
+            clone.style.margin = "0";
+
+            // Scale the COMPLETE native template as one object. The template
+            // root keeps its original width/height/classes and every child
+            // remains in the same coordinate system as the uploaded HTML.
             const scaleShell = document.createElement("div");
             scaleShell.style.cssText = [
               "position:absolute","left:0","top:0",
               "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
               "transform-origin:top left",
               "transform:scale(" + uniformScale + ")",
-              "overflow:hidden"
+              "overflow:visible"
             ].join(";");
             scaleShell.appendChild(clone);
             cardStage.appendChild(scaleShell);
