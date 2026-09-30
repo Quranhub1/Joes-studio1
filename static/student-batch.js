@@ -356,7 +356,7 @@
         "#studentBatchWorkspace details{display:block !important}",
         "#studentBatchWorkspace details[open] > div{display:block !important}",
         "#studentBatchWorkspace .student-batch-card{width:100% !important;max-height:none !important;overflow:visible !important}",
-        "#studentBatchPrintPreview{height:420px !important;max-height:420px !important;overflow:hidden !important;overscroll-behavior:none !important;padding:12px !important;box-sizing:border-box;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;display:flex !important;align-items:center !important;justify-content:center !important}",
+
         ".student-batch-section-title{font-size:15px;font-weight:850;color:#1e293b;margin-bottom:12px}",
         ".student-batch-section-sub{font-size:10px;color:#94a3b8;margin-top:-8px;margin-bottom:12px}",
         ".student-batch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
@@ -422,9 +422,6 @@
 
       const actions=document.createElement("div");
       actions.className="student-batch-actionbar";
-      const preview=document.createElement("button");
-      preview.type="button";preview.className="student-batch-step";preview.textContent="Refresh preview";
-      preview.onclick=()=>Batch.previewBatch();
       const top=document.createElement("button");
       top.type="button";top.className="student-batch-step";top.textContent="Back to top";
       top.onclick=()=>modal.scrollTo({top:0,behavior:"smooth"});
@@ -878,7 +875,6 @@
 
       this.state.mapping = this.autoMapHtml();
       this.refresh();
-      this.previewBatch();
       this.notify("HTML template loaded: " + fileNameSafe(this.state.templateName) + " • " + fields.length + " fields detected");
     },
     detectPlaceholders(text) {
@@ -1711,14 +1707,12 @@
       this.state.photoEnhancement.manual[name] = Math.max(range[0],Math.min(range[1],next));
       this.state.enhancedPhotoCache.clear();
       this.syncPhotoEditorControls();
-      this.previewBatch();
     },
 
     resetPhotoManual() {
       this.state.photoEnhancement.manual = this.photoManualDefaults();
       this.state.enhancedPhotoCache.clear();
       this.syncPhotoEditorControls();
-      this.previewBatch();
       this.notify("Manual photo adjustments reset.");
     },
 
@@ -2337,411 +2331,6 @@
       };
     },
 
-    async previewBatch() {
-      const host = document.getElementById("studentBatchPrintPreview");
-      if (!host || this.state.templateMode !== "html" || !this.state.htmlText) {
-        if (host) host.innerHTML = "";
-        return;
-      }
-
-      if (this._previewTimer) clearTimeout(this._previewTimer);
-      this._previewTimer = setTimeout(async () => {
-        try {
-          host.innerHTML = '<div class="flex items-center justify-center min-h-[220px] text-sm text-slate-400">Generating live print preview…</div>';
-
-          const layout = this.layout();
-          const previewCount = Math.max(1, Math.min(layout.perPage, this.previewCardCount()));
-          if (!this.state.rows.length) {
-            if (this.state.photoFiles.size) {
-              const firstPhoto = this.state.photoFiles.values().next().value;
-              const dataUrl = firstPhoto ? await this.fileToDataUrl(firstPhoto) : "";
-              if (dataUrl) {
-                const previewRow = { __embeddedPhoto: dataUrl };
-                const result = await this.buildHtmlCard(previewRow);
-                const maxPageWidth = Math.min(900, Math.max(420, host.clientWidth - 24));
-                const previewW = Math.min(560, maxPageWidth);
-                const ratio = (Number(this.state.cardHeightMm) || 60) / (Number(this.state.cardWidthMm) || 130);
-                const wrapper = document.createElement("div");
-                wrapper.className = "student-batch-preview-card";
-                wrapper.style.cssText = "position:relative;overflow:hidden;width:"+previewW+"px;height:"+Math.round(previewW*ratio)+"px;margin:0 auto;background:"+this.normalizeCardColor(this.state.cardBackground);
-                const style = document.createElement("style");
-                style.textContent = this.state.htmlStyles;
-                wrapper.appendChild(style);
-                const body = result.body.cloneNode(true);
-                this.sanitizePlaceholderImages(body);
-                this.proxyExternalPreviewImages(body);
-                body.style.margin = "0";
-                body.style.boxSizing = "border-box";
-                wrapper.appendChild(body);
-                host.innerHTML = "";
-                host.style.display = "flex";
-                host.style.flexDirection = "column";
-                host.style.alignItems = "stretch";
-                host.appendChild(wrapper);
-                const status = document.getElementById("studentBatchPreviewStatus");
-                if (status) status.textContent = "Live template preview • first selected photo • Excel data not loaded";
-                return;
-              }
-            }
-            this.renderTemplatePreview();
-            const status = document.getElementById("studentBatchPreviewStatus");
-            if (status) status.textContent = "Template preview • import Excel data to populate cards";
-            return;
-          }
-
-          const copies = Math.max(1, Number(this.state.copies) || 1);
-          const previewRows = [];
-          for (const rowData of this.state.rows) {
-            for (let copy = 0; copy < copies && previewRows.length < previewCount; copy++) {
-              previewRows.push(rowData);
-            }
-            if (previewRows.length >= previewCount) break;
-          }
-
-          const builtCards = [];
-          for (const rowData of previewRows) {
-            const result = await this.buildHtmlCard(rowData);
-            builtCards.push(result.body);
-          }
-
-          const availableW = Math.max(1, host.clientWidth - 24);
-          const availableH = Math.max(1, host.clientHeight - 24);
-          // Fit the complete print sheet inside the preview window. Never make
-          // the user scroll horizontally or vertically just to see a card.
-          const pageScale = Math.min(
-            availableW / layout.sheet.w,
-            availableH / layout.sheet.h
-          );
-          const pageWidth = Math.round(layout.sheet.w * pageScale);
-          const pageHeight = Math.round(layout.sheet.h * pageScale);
-          const nativeCardWidth = Math.max(1, Math.round((Number(this.state.cardWidthMm) || 130) * 96 / 25.4));
-          const nativeCardHeight = Math.max(1, Math.round((Number(this.state.cardHeightMm) || 60) * 96 / 25.4));
-
-          const page = document.createElement("div");
-          page.className = "student-batch-preview-page";
-          page.style.cssText = [
-            "position:relative","box-sizing:border-box","flex:none",
-            "width:" + pageWidth + "px","height:" + pageHeight + "px",
-            "margin:0 auto","background:#fff",
-            "border:1px solid #cbd5e1","box-shadow:0 3px 12px rgba(15,23,42,.12)","overflow:hidden"
-          ].join(";");
-
-          for (let i = 0; i < builtCards.length; i++) {
-            const slot = i;
-            const col = slot % layout.cols;
-            const row = Math.floor(slot / layout.cols);
-            const cellXmm = Number(this.state.margin) + col * (layout.cellW + Number(this.state.gapX));
-            const cellYmm = Number(this.state.margin) + row * (layout.cellH + Number(this.state.gapY));
-            const xMm = cellXmm + (layout.cellW - layout.card.w) / 2;
-            const yMm = cellYmm + (layout.cellH - layout.card.h) / 2;
-            const xPx = xMm * pageScale;
-            const yPx = yMm * pageScale;
-            const cardWidthPx = layout.card.w * pageScale;
-            const cardHeightPx = layout.card.h * pageScale;
-
-            const frame = document.createElement("div");
-            frame.className = "student-batch-preview-card";
-            frame.style.backgroundColor = this.normalizeCardColor(this.state.cardBackground);
-            frame.style.cssText = [
-              "position:absolute","left:" + xPx + "px","top:" + yPx + "px",
-              "width:" + cardWidthPx + "px","height:" + cardHeightPx + "px",
-              "overflow:hidden","box-sizing:border-box","background:#fff"
-            ].join(";");
-
-            const cardStage = document.createElement("div");
-            cardStage.style.cssText = [
-              "position:absolute","left:0","top:0",
-              "width:" + nativeCardWidth + "px","height:" + nativeCardHeight + "px",
-              "transform-origin:top left",
-              "transform:scaleX(" + (cardWidthPx / nativeCardWidth) + ") scaleY(" + (cardHeightPx / nativeCardHeight) + ")",
-              "overflow:hidden",
-              "background:" + this.normalizeCardColor(this.state.cardBackground)
-            ].join(";");
-
-            const style = document.createElement("style");
-            style.textContent = this.state.htmlStyles;
-            cardStage.appendChild(style);
-
-            const clone = builtCards[i].cloneNode(true);
-            this.sanitizePlaceholderImages(clone);
-            this.proxyExternalPreviewImages(clone);
-            cardStage.appendChild(clone);
-
-            frame.appendChild(cardStage);
-            page.appendChild(frame);
-          }
-
-          host.innerHTML = "";
-          host.style.display = "flex";
-          host.style.flexDirection = "column";
-          host.style.alignItems = "stretch";
-          host.style.justifyContent = "flex-start";
-          host.appendChild(page);
-
-          const info = document.createElement("div");
-          info.className = "text-xs text-slate-500 text-center mt-2";
-          info.textContent = "Live print preview • " + previewRows.length + " card" +
-            (previewRows.length === 1 ? "" : "s") + " • Excel data integrated • " +
-            this.state.orientation + " • " + this.state.sheetSize +
-            " • " + layout.cols + " × " + layout.rows + " layout";
-          host.appendChild(info);
-
-          const status = document.getElementById("studentBatchPreviewStatus");
-          if (status) status.textContent = "Live print preview • " + previewRows.length +
-            " Excel record" + (previewRows.length === 1 ? "" : "s") + " • " +
-            layout.cols + " × " + layout.rows + " • " + this.state.orientation;
-        } catch (e) {
-          console.error("Student batch preview failed", e);
-          host.innerHTML =
-            '<div class="flex flex-col items-center justify-center min-h-[220px] text-sm text-red-500 text-center p-4">' +
-            "<strong>Preview failed</strong><span class=\"mt-1\">" +
-            escapeHtml(e.message || "Unable to render the template.") + "</span></div>";
-        }
-      }, 0);
-    },
-
-    previewCardCount() {
-      const mode = String(document.querySelector('input[name="studentBatchMode"]:checked')?.value || document.getElementById("studentBatchMode")?.value || "cards").toLowerCase();
-      if (mode === "single") return 1;
-      if (mode === "filled") {
-        const copies = Math.max(1, Number(this.state.copies) || 1);
-        return Math.max(1, (this.state.rows.length || 1) * copies);
-      }
-      return Math.max(1, Number(this.state.cardsPerPage) || 1);
-    },
-
-    proxyExternalPreviewImages(root) {
-      if (!root) return;
-
-      root.querySelectorAll("img[src]").forEach(img => {
-        const src = String(img.getAttribute("src") || "").trim();
-        if (!/^https?:\/\//i.test(src)) return;
-        if (/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1|images\.weserv\.nl)(?::\d+)?\//i.test(src)) return;
-
-        // The KSHS image server does not send CORS headers. The browser can
-        // display the image in some contexts, but the preview/export pipeline
-        // cannot reliably use it from GitHub Pages. Route external template
-        // images through the same public image proxy used by PDF export.
-        img.setAttribute(
-          "src",
-          "https://images.weserv.nl/?url=" + encodeURIComponent(src)
-        );
-        img.removeAttribute("crossorigin");
-      });
-    },
-
-    renderTemplatePreview() {
-      const host = document.getElementById("studentBatchPreview");
-      if (!host || this.state.templateMode !== "html" || !this.state.htmlText) return;
-
-      host.innerHTML = "";
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(this.state.htmlText, "text/html");
-      doc.querySelectorAll("script, iframe, object, embed").forEach(el => el.remove());
-      const source = this.findHtmlCardRoot(doc);
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "student-batch-preview-card";
-      wrapper.style.cssText = [
-        "position:relative",
-        "width:100%",
-        "height:100%",
-        "max-width:100%",
-        "max-height:100%",
-        "aspect-ratio:" + (Number(this.state.cardWidthMm) || 130) + "/" + (Number(this.state.cardHeightMm) || 60),
-        "overflow:hidden",
-        "box-sizing:border-box",
-        "background:" + this.normalizeCardColor(this.state.cardBackground),
-        "box-shadow:0 8px 24px rgba(15,23,42,.12)",
-        "border-radius:6px",
-        "flex:0 1 auto"
-      ].join(";");
-
-      const style = document.createElement("style");
-      style.textContent = this.state.htmlStyles;
-      wrapper.appendChild(style);
-
-      // Keep the template's real root, including its classes, dimensions and
-      // internal layout, then scale that root down to the available preview box.
-      const body = source.cloneNode(true);
-      this.sanitizePlaceholderImages(body);
-      this.applyBranding(body);
-      this.proxyExternalPreviewImages(body);
-      body.style.margin = "0";
-      body.style.boxSizing = "border-box";
-      body.style.position = "absolute";
-      body.style.left = "0";
-      body.style.top = "0";
-      body.style.transformOrigin = "top left";
-      body.style.overflow = "hidden";
-
-      const nativeW = Math.max(1, (Number(this.state.cardWidthMm) || 130) * 96 / 25.4);
-      const nativeH = Math.max(1, (Number(this.state.cardHeightMm) || 60) * 96 / 25.4);
-      body.style.width = nativeW + "px";
-      body.style.height = nativeH + "px";
-
-      wrapper.appendChild(body);
-      host.appendChild(wrapper);
-
-      const fit = () => {
-        const availableW = Math.max(1, host.clientWidth - 24);
-        const availableH = Math.max(1, host.clientHeight - 24);
-        const cardW = Math.max(1, Number(this.state.cardWidthMm) || 130);
-        const cardH = Math.max(1, Number(this.state.cardHeightMm) || 60);
-        const scale = Math.min(
-          availableW / nativeW,
-          availableH / nativeH,
-          1.5
-        );
-
-        const visualW = nativeW * scale;
-        const visualH = nativeH * scale;
-        wrapper.style.width = Math.min(availableW, visualW) + "px";
-        wrapper.style.height = Math.min(availableH, visualH) + "px";
-        wrapper.style.aspectRatio = cardW + "/" + cardH;
-        body.style.transform = "scale(" + scale + ")";
-      };
-
-      requestAnimationFrame(fit);
-      if (window.ResizeObserver) {
-        const observer = new ResizeObserver(fit);
-        observer.observe(host);
-        wrapper._studentBatchPreviewObserver = observer;
-      }
-    },
-
-    renderSheetVisualizer() {
-      const host = document.getElementById("studentBatchSheetVisualizer");
-      if (!host) return;
-      const layout = this.layout();
-      const sheetW = Number(layout.sheet.w) || 210;
-      const sheetH = Number(layout.sheet.h) || 297;
-      const cardW = Number(layout.card.w) || Number(this.state.cardWidthMm) || 130;
-      const cardH = Number(layout.card.h) || Number(this.state.cardHeightMm) || 60;
-      const cols = Math.max(1, Number(layout.cols) || 1);
-      const rows = Math.max(1, Number(layout.rows) || 1);
-      const margin = Math.max(0, Number(this.state.margin) || 0);
-      const gapX = Math.max(0, Number(this.state.gapX) || 0);
-      const gapY = Math.max(0, Number(this.state.gapY) || 0);
-      const usableW = Math.max(1, sheetW - margin * 2);
-      const usableH = Math.max(1, sheetH - margin * 2);
-      const scale = Math.min(300 / sheetW, 300 / sheetH);
-      const pageW = sheetW * scale;
-      const pageH = sheetH * scale;
-      const cardWpx = cardW * scale;
-      const cardHpx = cardH * scale;
-      host.innerHTML = "";
-      host.style.overflow = "hidden";
-      host.style.display = "flex";
-      host.style.alignItems = "center";
-      host.style.justifyContent = "center";
-      const page = document.createElement("div");
-      page.style.cssText = "position:relative;flex:none;width:"+pageW+"px;height:"+pageH+"px;background:#fff;border:1px solid #cbd5e1;box-shadow:0 4px 14px rgba(15,23,42,.18);overflow:hidden;";
-      for (let r=0;r<rows;r++) {
-        for (let c=0;c<cols;c++) {
-          const x = (margin + c * (cardW + gapX)) * scale;
-          const y = (margin + r * (cardH + gapY)) * scale;
-          if (x + cardWpx > pageW + 1 || y + cardHpx > pageH + 1) continue;
-          const card = document.createElement("div");
-          card.style.cssText = "position:absolute;left:"+x+"px;top:"+y+"px;width:"+cardWpx+"px;height:"+cardHpx+"px;background:"+this.normalizeCardColor(this.state.cardBackground)+";border:1px solid #94a3b8;border-radius:2px;box-sizing:border-box;overflow:hidden;";
-          page.appendChild(card);
-        }
-      }
-      host.appendChild(page);
-      const format = document.getElementById("studentBatchSheetFormat");
-      if (format) format.textContent = this.state.sheetSize + " " + this.state.orientation + " • " + cols + " × " + rows;
-    },
-    refresh() {
-      const fileEl = document.getElementById("studentBatchTemplateName");
-      const excelEl = document.getElementById("studentBatchExcelName");
-      const countEl = document.getElementById("studentBatchCount");
-      const layoutEl = document.getElementById("studentBatchLayout");
-      const fieldsEl = document.getElementById("studentBatchFields");
-      const sizeEl = document.getElementById("studentBatchCardSize");
-      const photoEl = document.getElementById("studentBatchPhotoName");
-      const badgeNameEl = document.getElementById("studentBatchBadgeName");
-      const badgePreviewEl = document.getElementById("studentBatchBadgePreview");
-      const badgeClearEl = document.getElementById("studentBatchBadgeClear");
-      const badgeClearInlineEl = document.getElementById("studentBatchBadgeClearInline");
-      const badgePreviewInlineEl = document.getElementById("studentBatchBadgePreviewInline");
-      const badgeNameInlineEl = document.getElementById("studentBatchBadgeNameInline");
-      const schoolNameEl = document.getElementById("studentBatchSchoolName");
-      const cardTitleEl = document.getElementById("studentBatchCardTitle");
-      const brandingStatusEl = document.getElementById("studentBatchBrandingStatus");
-
-      const bgInput = document.getElementById("studentBatchCardBackground");
-      const bgHexInput = document.getElementById("studentBatchCardBackgroundHex");
-      const bgValue = this.normalizeCardColor(this.state.cardBackground);
-      if (bgInput && bgInput.value !== bgValue) bgInput.value = bgValue;
-      if (bgHexInput && bgHexInput.value.toLowerCase() !== bgValue) bgHexInput.value = bgValue;
-      this.renderBackgroundAlbum();
-
-      if (fileEl) fileEl.textContent = this.state.templateName || "No template selected";
-      if (excelEl) excelEl.textContent = this.state.rows.length ? "Excel data loaded" : "No Excel file selected";
-      if (countEl) countEl.textContent = String(this.state.rows.length);
-      if (photoEl) photoEl.textContent = this.state.photoFiles.size ? "Photo folder indexed" : "No photo folder (optional)";
-      if (badgeNameEl) {
-        badgeNameEl.textContent = this.state.badgeFile?.name
-          ? "Uploaded: " + this.state.badgeFile.name
-          : "Using the selected template's original badge/logo";
-      }
-      if (badgePreviewEl) {
-        badgePreviewEl.innerHTML = this.state.badgeDataUrl
-          ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="max-h-full max-w-full object-contain p-1">'
-          : '<i class="ph ph-image text-slate-300 text-lg"></i>';
-      }
-      if (badgeClearEl) badgeClearEl.classList.toggle("hidden", !this.state.badgeDataUrl);
-      if (schoolNameEl && schoolNameEl.value !== this.state.schoolName) schoolNameEl.value = this.state.schoolName;
-      if (cardTitleEl && cardTitleEl.value !== this.state.cardTitle) cardTitleEl.value = this.state.cardTitle;
-      if (brandingStatusEl) brandingStatusEl.textContent = this.state.schoolNameCustomized || this.state.cardTitleCustomized || this.state.badgeDataUrl ? "Customized" : "Template default";
-      if (badgeNameInlineEl) badgeNameInlineEl.textContent = this.state.badgeFile?.name ? "Uploaded: " + this.state.badgeFile.name : "Using template artwork";
-      if (badgePreviewInlineEl) badgePreviewInlineEl.innerHTML = this.state.badgeDataUrl
-        ? '<img src="' + this.imageSourceForTemplate(this.state.badgeDataUrl) + '" alt="" class="w-full h-full object-contain p-1">'
-        : '<i class="ph ph-seal text-slate-300 text-xl"></i>';
-      if (badgeClearInlineEl) badgeClearInlineEl.classList.toggle("hidden", !this.state.badgeDataUrl);
-      if (sizeEl) sizeEl.textContent = (Number(this.state.cardWidthMm).toFixed(1) + " × " + Number(this.state.cardHeightMm).toFixed(1) + " mm");
-
-      const l = this.layout();
-      if (layoutEl) layoutEl.textContent = l.cols + " × " + l.rows + " = " + l.perPage + " cards/page • " + this.state.orientation + " • " + this.state.resolution + " DPI";
-
-      if (fieldsEl) this.renderFieldMapping(fieldsEl);
-
-      const optionalUnmappedFields = this.state.templateFields.filter(field =>
-        !this.isBadgeField(field) && !this.isStudentPhotoField(field) && !this.state.mapping[field]
-      );
-      const batchReady =
-        !!this.state.rows.length &&
-        !!this.state.templateFile;
-
-
-
-      const generate = document.getElementById("studentBatchGenerate");
-      if (generate) {
-        // Badge/logo upload is optional. A selected template may already contain
-        // its own logo, or the badge field may intentionally remain empty.
-        generate.disabled = !batchReady;
-        generate.title = optionalUnmappedFields.length
-          ? "Unmapped template fields will be left blank."
-          : "";
-      }
-
-      const print = document.getElementById("studentBatchPrint");
-      if (print) {
-        print.disabled = !batchReady;
-        print.title = optionalUnmappedFields.length
-          ? "Unmapped template fields will be left blank."
-          : "";
-      }
-
-      if (this.state.templateMode === "html") {
-        this.renderTemplatePreview();
-        this.renderSheetVisualizer();
-        this.previewBatch();
-      } else {
-        this.renderSheetVisualizer();
-      }
-    },
-
     async print() {
       if (!this.state.rows.length || !this.state.templateFile || !this.state.templateFields.length) {
         Utils.toast("Select an HTML template and Excel data first.", "error");
@@ -3002,7 +2591,6 @@
       this.state.enhancedPhotoCache.clear();
       this.syncPhotoEditorControls();
       this.refresh();
-      this.previewBatch();
     },
 
     cleanupPreview() {
