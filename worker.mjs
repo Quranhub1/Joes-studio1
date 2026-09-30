@@ -41,8 +41,23 @@ const ENV_KEYS = [
   "GITHUB_BRANCH",
 ];
 
-function configureProcessEnv(env) {
+function configureProcessEnv(env, requestUrl) {
   if (!globalThis.process?.env) return;
+  const origin = new URL(requestUrl).origin;
+  // Same-origin deployment defaults keep auth/CORS/OAuth working on workers.dev
+  // and on a later custom domain without hard-coding a platform hostname.
+  if (env.APP_ORIGIN === undefined && env.FRONTEND_ORIGIN === undefined) {
+    globalThis.process.env.APP_ORIGIN = origin;
+  }
+  if (env.API_ORIGIN === undefined) {
+    globalThis.process.env.API_ORIGIN = origin;
+  }
+  if (env.APP_URL === undefined) {
+    globalThis.process.env.APP_URL = origin;
+  }
+  if (env.GOOGLE_REDIRECT_URI === undefined) {
+    globalThis.process.env.GOOGLE_REDIRECT_URI = origin + "/api/auth?action=google-callback";
+  }
   for (const key of ENV_KEYS) {
     const value = env[key];
     if (value !== undefined && value !== null) globalThis.process.env[key] = String(value);
@@ -132,7 +147,7 @@ function responseFromNode(res) {
 }
 
 async function dispatchVercelHandler(request, env, handlerLoader) {
-  configureProcessEnv(env);
+  configureProcessEnv(env, request.url);
   const req = toNodeRequest(request);
   await prepareBody(request, req);
   const res = new NodeResponse();
@@ -142,7 +157,7 @@ async function dispatchVercelHandler(request, env, handlerLoader) {
 }
 
 async function health(request, env) {
-  configureProcessEnv(env);
+  configureProcessEnv(env, request.url);
   const mod = await import("./api/health.mjs");
   return mod.GET(request);
 }
