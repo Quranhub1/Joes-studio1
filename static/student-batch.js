@@ -1178,12 +1178,40 @@
       }
     },
 
+    normalizeExternalImageUrl(value) {
+      let raw = String(value ?? "").trim();
+      if (!raw) return "";
+      if (/^(?:data:|blob:)/i.test(raw)) return raw;
+
+      // Unwrap the preview proxy back to its real image URL.
+      try {
+        const parsed = new URL(raw, document.baseURI);
+        if (/^images\.weserv\.nl$/i.test(parsed.hostname)) {
+          const nested = parsed.searchParams.get("url");
+          if (nested) raw = nested;
+        }
+      } catch (_) {}
+
+      // Prevent "%2520" / "%25..." double-encoding when a template already
+      // contains a percent-encoded image path.
+      for (let i = 0; i < 2; i++) {
+        try {
+          const decoded = decodeURIComponent(raw);
+          if (decoded === raw) break;
+          raw = decoded;
+        } catch (_) {
+          break;
+        }
+      }
+      return raw;
+    },
+
     imageSourceForTemplate(value) {
-      const raw = String(value ?? "").trim();
+      const raw = this.normalizeExternalImageUrl(value);
       if (!raw) return "";
       if (/^(?:data:|blob:)/i.test(raw)) return raw;
       if (/^https?:\/\//i.test(raw) &&
-          !/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1|images\.weserv\.nl)(?::\d+)?\//i.test(raw)) {
+          !/^https?:\/\/(?:quranhub1\.github\.io|localhost|127\.0\.0\.1)(?::\d+)?\//i.test(raw)) {
         return "https://images.weserv.nl/?url=" + encodeURIComponent(raw);
       }
       return raw;
@@ -1463,22 +1491,20 @@
     async inlineExportImages(root) {
       const images = Array.from(root.querySelectorAll("img"));
       await Promise.all(images.map(async img => {
-        const src = String(img.getAttribute("src") || "").trim();
-        if (!src || /^(?:data:|blob:)/i.test(src)) return;
+        const raw = String(img.getAttribute("src") || "").trim();
+        const src = this.normalizeExternalImageUrl(raw);
+        if (!src || /^(?:data:|blob:)/i.test(src)) {
+          if (src && src !== raw) img.setAttribute("src", src);
+          return;
+        }
 
-        // External images such as the KSHS badge must be inlined before the
-        // card is serialized into a data-SVG. Browsers may show the image in
-        // the live preview but silently drop it when that SVG is rasterized
-        // for the PDF. Fetching it into a data URL makes the preview/export
-        // renderer deterministic.
         img.setAttribute("crossorigin", "anonymous");
         try {
-          // GitHub Pages cannot fetch arbitrary external images when the
-          // source server omits CORS headers. Do not request the original
-          // URL first, because that only produces a console error and still
-          // leaves the export renderer without the image.
-          const proxyUrl = "https://images.weserv.nl/?url=" +
-            encodeURIComponent(src);
+          // Always proxy the ORIGINAL URL, never a URL that has already been
+          // proxied. The previous implementation re-proxied an already
+          // encoded weserv URL and turned "%20" into "%2520", causing the
+          // KSHS logo request to return HTTP 404.
+          const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(src);
           const response = await fetch(proxyUrl, {
             mode: "cors",
             credentials: "omit",
@@ -1490,9 +1516,11 @@
           const dataUrl = await this.fileToDataUrl(blob);
           if (!dataUrl) throw new Error("Image proxy returned no usable image data");
           img.setAttribute("src", dataUrl);
+          img.removeAttribute("crossorigin");
         } catch (error) {
-          // Keep the original source as a last-resort browser rendering path.
-          // Do not replace the actual badge with a fake placeholder.
+          // Keep the normalized real source as a final browser-rendering path.
+          // Never replace a real logo with a fake placeholder.
+          img.setAttribute("src", src);
           console.warn("Could not inline card image for PDF export:", src, error);
         }
       }));
